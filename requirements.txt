@@ -1,0 +1,31 @@
+# --- UI ---
+streamlit>=1.37
+
+# --- Config ---
+python-dotenv>=1.0
+
+# --- RAG framework (used selectively: just the recursive text splitter) ---
+langchain-text-splitters>=0.2
+
+# --- LLM ---
+google-genai>=1.0
+
+# --- Embeddings ---
+# Pinned for compatibility with torch 2.2.2, the last version PyTorch
+# published for Intel (x86_64) macOS.
+numpy<2
+torch==2.2.2
+transformers==4.44.2
+sentence-transformers==3.0.1
+
+# --- Vector store ---
+chromadb>=0.5
+
+# --- Document parsing ---
+pypdf>=4.2
+python-docx>=1.1
+markdown>=3.6
+
+# --- Testing ---
+pytest>=8.0
+pytest-mock>=3.14

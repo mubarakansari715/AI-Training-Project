@@ -1,0 +1,27 @@
+# Environment
+.venv/
+venv/
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Data (keep folder structure, ignore contents)
+data/uploads/*
+data/chroma/*
+data/conversations/*
+!data/uploads/.gitkeep
+!data/chroma/.gitkeep
+!data/conversations/.gitkeep
+
+# Notebooks
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/

@@ -15,6 +15,7 @@ Python, Streamlit, ChromaDB, local embeddings, and Google Gemini.
 - [Running the Application](#running-the-application)
 - [How RAG Works](#how-rag-works)
 - [Example Usage](#example-usage)
+- [Screenshots](#screenshots)
 - [Testing](#testing)
 - [Future Improvements](#future-improvements)
 
@@ -254,6 +255,15 @@ Opens at `http://localhost:8501`.
 - "What happens after a document doesn't contain a fact?" → the
   assistant tells you it couldn't find that information, rather than
   making something up.
+
+## Screenshots
+
+**Conversational memory** — the assistant remembers what you told it
+earlier in the same conversation ("My name is Mubarak" → later, "How are
+you?" gets answered by name), while the sidebar shows the auto-titled,
+reopenable conversation history, ChatGPT-style:
+
+![Chat conversation with sidebar history](screenshots/chat-conversation.png)
 
 ## Testing
 

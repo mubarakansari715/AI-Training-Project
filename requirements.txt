@@ -13,6 +13,10 @@ google-genai>=1.0
 # --- Embeddings ---
 # Pinned for compatibility with torch 2.2.2, the last version PyTorch
 # published for Intel (x86_64) macOS.
+# CPU-only index avoids pulling bundled CUDA libs on Linux deploy targets
+# (e.g. Streamlit Community Cloud); macOS has no CUDA wheels anyway so this
+# is a no-op locally.
+--extra-index-url https://download.pytorch.org/whl/cpu
 numpy<2
 torch==2.2.2
 transformers==4.44.2

@@ -291,3 +291,11 @@ pipeline integration test. The Gemini API is mocked throughout, so
   searching — the LLM already sees history for continuity, but the
   *retrieval* step still embeds each question independently)
 - Multilingual document support
+
+## Quick Start
+
+```bash
+cd /Users/mubarak/Desktop/AI_Training/AI-Training-Project
+source .venv/bin/activate
+streamlit run app/main.py
+```

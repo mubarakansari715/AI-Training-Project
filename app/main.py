@@ -133,6 +133,8 @@ def main() -> None:
         st.session_state.conversation_id,
         show_debug=sidebar.show_debug,
         strict_mode=sidebar.strict_mode,
+        model_name=sidebar.model_name,
+        temperature=sidebar.temperature,
     )
 
 

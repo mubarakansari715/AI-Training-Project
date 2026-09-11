@@ -79,6 +79,8 @@ def render_chat(
     conversation_id: str,
     show_debug: bool,
     strict_mode: bool,
+    model_name: str | None = None,
+    temperature: float | None = None,
 ) -> None:
     """Render chat history and input box, storing messages in session state
     and persisting each exchange to `conversation_id` via `conversation_store`.
@@ -141,7 +143,13 @@ def render_chat(
         if question:
             with st.spinner("Thinking..."):
                 try:
-                    result = pipeline.ask(question, strict_mode=strict_mode, history=history)
+                    result = pipeline.ask(
+                        question,
+                        strict_mode=strict_mode,
+                        history=history,
+                        model_name=model_name,
+                        temperature=temperature,
+                    )
                     answer, sources = result.answer, result.sources
                 except Exception:
                     answer, sources = (

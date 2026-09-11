@@ -83,6 +83,8 @@ class RAGPipeline:
         question: str,
         strict_mode: bool | None = None,
         history: list[dict] | None = None,
+        model_name: str | None = None,
+        temperature: float | None = None,
     ) -> AskResult:
         """Answer a question using retrieved document context.
 
@@ -91,6 +93,10 @@ class RAGPipeline:
         "that" or remembering something said earlier in the session.
         It does not affect retrieval or the strict-mode "not found"
         check, which are always based on the current question alone.
+
+        `model_name`/`temperature` override the generator's configured
+        defaults for this call only, so the UI can switch models or
+        adjust temperature without rebuilding the pipeline.
 
         Greetings/pleasantries ("hi", "thanks", ...) always get a
         normal reply, bypassing the strict "not found" refusal — that
@@ -115,7 +121,13 @@ class RAGPipeline:
         if strict and not chunks and not small_talk:
             return AskResult(answer=NOT_FOUND_MESSAGE, sources=[])
 
-        answer = self.generator.generate(question, chunks, history=history)
+        answer = self.generator.generate(
+            question,
+            chunks,
+            history=history,
+            model_name=model_name,
+            temperature=temperature,
+        )
         return AskResult(answer=answer, sources=chunks, found_context=bool(chunks))
 
     def clear_index(self) -> None:

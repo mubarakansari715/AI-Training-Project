@@ -58,6 +58,8 @@ class AnswerGenerator:
         question: str,
         chunks: list[RetrievedChunk],
         history: list[dict] | None = None,
+        model_name: str | None = None,
+        temperature: float | None = None,
     ) -> str:
         """Return the answer text, or a friendly fallback message on failure.
 
@@ -65,6 +67,11 @@ class AnswerGenerator:
         "content": str}, ...], oldest first — used for conversational
         continuity (e.g. remembering something said earlier in the
         session). The most recent `MAX_HISTORY_MESSAGES` are included.
+
+        `model_name`/`temperature` override this generator's configured
+        defaults for this call only — used to let the UI switch models
+        or adjust temperature per-request without rebuilding the (cached)
+        pipeline.
         """
         if not self.is_configured():
             logger.warning("Gemini API key is not configured")
@@ -72,11 +79,13 @@ class AnswerGenerator:
 
         prompt = build_prompt(question, chunks)
         contents = _build_contents(history or [], prompt)
+        model = model_name or self.model_name
+        temp = self.temperature if temperature is None else temperature
         try:
             response = self._client.models.generate_content(
-                model=self.model_name,
+                model=model,
                 contents=contents,
-                config=types.GenerateContentConfig(temperature=self.temperature),
+                config=types.GenerateContentConfig(temperature=temp),
             )
             text = (response.text or "").strip()
             return text or FALLBACK_MESSAGE

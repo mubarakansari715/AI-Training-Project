@@ -2,9 +2,9 @@
 
 Full RAG pipeline: upload (via the chat input's attach icon) -> parse
 -> clean -> chunk -> embed -> store -> question -> retrieve -> build
-context -> Gemini -> answer + sources. Conversations are persisted to
-disk (ConversationStore) so past chats survive an app restart and can
-be reopened from the sidebar.
+context -> OpenRouter/Gemini -> answer + sources. Conversations are
+persisted to disk (ConversationStore) so past chats survive an app
+restart and can be reopened from the sidebar.
 """
 
 import logging
@@ -121,9 +121,10 @@ def main() -> None:
 
         if not pipeline.generator.is_configured():
             st.info(
-                "No Gemini API key configured — set GEMINI_API_KEY in your "
-                ".env file to get real answers. You can still upload and "
-                "index documents in the meantime.",
+                "No LLM provider configured — set OPENROUTER_API_KEY "
+                "(preferred) or GEMINI_API_KEY (fallback) in your .env file "
+                "to get real answers. You can still upload and index "
+                "documents in the meantime.",
                 icon="ℹ️",
             )
 
@@ -133,8 +134,6 @@ def main() -> None:
         st.session_state.conversation_id,
         show_debug=sidebar.show_debug,
         strict_mode=sidebar.strict_mode,
-        model_name=sidebar.model_name,
-        temperature=sidebar.temperature,
     )
 
 

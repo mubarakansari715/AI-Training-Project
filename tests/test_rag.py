@@ -10,7 +10,13 @@ from unittest.mock import MagicMock
 import pytest
 
 from app.rag.generator import AnswerGenerator
-from app.services.rag_service import NOT_FOUND_MESSAGE, RAGPipeline
+from app.services.rag_service import (
+    NOT_FOUND_MESSAGE,
+    SOURCE_DOCUMENT,
+    SOURCE_GENERAL_KNOWLEDGE,
+    SOURCE_SMALL_TALK,
+    RAGPipeline,
+)
 
 
 class FakeUploadedFile:
@@ -37,8 +43,10 @@ def _mock_gemini(pipeline, monkeypatch, answer_text: str):
     monkeypatch.setattr("app.rag.generator.genai.Client", lambda api_key: fake_client)
     # The pipeline's generator was already constructed (with no API key,
     # since tests run without GEMINI_API_KEY set) before this patch — swap
-    # in a fresh one now that genai.Client is mocked.
-    pipeline.generator = AnswerGenerator(api_key="fake-key")
+    # in a fresh one now that genai.Client is mocked. OpenRouter is
+    # explicitly disabled so the (primary) fallback path doesn't shadow
+    # the Gemini call these tests are exercising.
+    pipeline.generator = AnswerGenerator(api_key="fake-key", openrouter_api_key="")
     return fake_client
 
 
@@ -55,11 +63,17 @@ def test_index_files_adds_chunks(pipeline):
     assert pipeline.document_count() == 1
 
 
-def test_ask_without_any_documents_returns_not_found(pipeline):
-    result = pipeline.ask("What is the leave policy?")
+def test_ask_without_any_documents_falls_back_to_general_knowledge_by_default(pipeline, monkeypatch):
+    # Non-strict is the default: no documents at all shouldn't refuse
+    # outright, it should answer from the model's general knowledge.
+    _mock_gemini(pipeline, monkeypatch, "Paris is the capital of France.")
 
-    assert result.answer == NOT_FOUND_MESSAGE
+    result = pipeline.ask("What is the capital of France?")
+
+    assert result.answer == "Paris is the capital of France."
     assert result.sources == []
+    assert result.found_context is False
+    assert result.source == SOURCE_GENERAL_KNOWLEDGE
 
 
 def test_greeting_bypasses_not_found_even_with_no_documents(pipeline, monkeypatch):
@@ -68,6 +82,7 @@ def test_greeting_bypasses_not_found_even_with_no_documents(pipeline, monkeypatc
     result = pipeline.ask("hi", strict_mode=True)
 
     assert result.answer == "Hello! How can I help you with your documents?"
+    assert result.source == SOURCE_SMALL_TALK
 
 
 def test_greeting_bypasses_strict_mode_even_with_irrelevant_documents(pipeline, monkeypatch):
@@ -114,6 +129,7 @@ def test_full_pipeline_returns_answer_with_sources(pipeline, monkeypatch):
     assert result.found_context is True
     assert len(result.sources) > 0
     assert result.sources[0].source == "handbook.txt"
+    assert result.source == SOURCE_DOCUMENT
 
 
 def test_strict_mode_blocks_llm_call_when_no_relevant_context(pipeline, monkeypatch):
@@ -140,6 +156,7 @@ def test_non_strict_mode_calls_llm_even_without_relevant_context(pipeline, monke
     result = pipeline.ask("What is the annual leave policy?", strict_mode=False)
 
     assert result.answer == "I don't have specific info, but generally..."
+    assert result.source == SOURCE_GENERAL_KNOWLEDGE
 
 
 def test_clear_index_removes_all_documents(pipeline):

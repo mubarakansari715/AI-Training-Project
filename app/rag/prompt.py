@@ -48,10 +48,26 @@ def build_source_list(chunks: list[RetrievedChunk]) -> str:
 
 
 def build_prompt(question: str, chunks: list[RetrievedChunk]) -> str:
-    """Assemble the full prompt sent to the LLM."""
+    """Assemble the full document-grounded prompt sent to the LLM."""
     return (
         f"SYSTEM INSTRUCTIONS\n{SYSTEM_INSTRUCTIONS}\n\n"
         f"CONTEXT\n{build_context(chunks)}\n\n"
         f"SOURCE INFORMATION\n{build_source_list(chunks)}\n\n"
         f"USER QUESTION\n{question}"
     )
+
+
+GENERAL_KNOWLEDGE_INSTRUCTIONS = """You are a helpful assistant. No relevant
+content was found in the user's uploaded documents (or none are attached
+yet), so answer the question using your own general knowledge instead.
+
+Do not claim the answer came from the user's documents — it didn't. You
+may also use the earlier turns of this conversation for continuity (e.g.
+remembering the user's name or referring back to something they said)."""
+
+
+def build_general_knowledge_prompt(question: str) -> str:
+    """Assemble a prompt for answering from the model's own knowledge,
+    used when no document context is available (see `build_prompt` for
+    the document-grounded counterpart)."""
+    return f"SYSTEM INSTRUCTIONS\n{GENERAL_KNOWLEDGE_INSTRUCTIONS}\n\nUSER QUESTION\n{question}"

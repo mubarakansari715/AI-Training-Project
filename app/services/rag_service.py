@@ -27,6 +27,12 @@ NOT_FOUND_MESSAGE = (
     "so I don't want to guess."
 )
 
+# Where an answer's content came from — used by the UI to label each
+# answer so it's clear whether it's grounded in the user's documents.
+SOURCE_DOCUMENT = "document"
+SOURCE_GENERAL_KNOWLEDGE = "general_knowledge"
+SOURCE_SMALL_TALK = "small_talk"
+
 
 @dataclass
 class AskResult:
@@ -35,6 +41,9 @@ class AskResult:
     answer: str
     sources: list[RetrievedChunk] = field(default_factory=list)
     found_context: bool = False
+    # One of the SOURCE_* constants above, or None when no real answer
+    # was generated (empty question, strict-mode refusal, error).
+    source: str | None = None
 
 
 class RAGPipeline:
@@ -85,6 +94,7 @@ class RAGPipeline:
         history: list[dict] | None = None,
         model_name: str | None = None,
         temperature: float | None = None,
+        openrouter_model_name: str | None = None,
     ) -> AskResult:
         """Answer a question using retrieved document context.
 
@@ -94,23 +104,28 @@ class RAGPipeline:
         It does not affect retrieval or the strict-mode "not found"
         check, which are always based on the current question alone.
 
-        `model_name`/`temperature` override the generator's configured
-        defaults for this call only, so the UI can switch models or
-        adjust temperature without rebuilding the pipeline.
+        `model_name`/`openrouter_model_name`/`temperature` override the
+        generator's configured defaults for this call only, so the UI
+        can switch models or adjust temperature without rebuilding the
+        pipeline.
 
         Greetings/pleasantries ("hi", "thanks", ...) always get a
         normal reply, bypassing the strict "not found" refusal — that
         guard is meant to stop fabricated *document* facts, not to
         block small talk.
+
+        Documents are always checked first. When strict mode is off
+        (the default) and nothing relevant is found there, the model
+        answers from its own general knowledge instead of refusing —
+        `AskResult.source` tells the two apart so the UI can label
+        which one produced the answer. Strict mode keeps the old
+        behavior of refusing outright in that case.
         """
         if not question or not question.strip():
             return AskResult(answer="Please enter a question.")
 
         strict = settings.strict_document_mode if strict_mode is None else strict_mode
         small_talk = is_small_talk(question)
-
-        if self.vector_store.count() == 0 and not small_talk:
-            return AskResult(answer=NOT_FOUND_MESSAGE)
 
         try:
             chunks = self.retriever.retrieve(question)
@@ -127,8 +142,17 @@ class RAGPipeline:
             history=history,
             model_name=model_name,
             temperature=temperature,
+            openrouter_model_name=openrouter_model_name,
         )
-        return AskResult(answer=answer, sources=chunks, found_context=bool(chunks))
+
+        if small_talk:
+            source = SOURCE_SMALL_TALK
+        elif chunks:
+            source = SOURCE_DOCUMENT
+        else:
+            source = SOURCE_GENERAL_KNOWLEDGE
+
+        return AskResult(answer=answer, sources=chunks, found_context=bool(chunks), source=source)
 
     def clear_index(self) -> None:
         """Delete all indexed content (used by the 'clear index' button)."""

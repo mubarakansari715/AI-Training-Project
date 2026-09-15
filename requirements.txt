@@ -9,6 +9,7 @@ langchain-text-splitters>=0.2
 
 # --- LLM ---
 google-genai>=1.0
+requests>=2.31  # OpenRouter fallback (plain REST, no SDK needed)
 
 # --- Embeddings ---
 # Pinned for compatibility with torch 2.2.2, the last version PyTorch

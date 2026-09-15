@@ -105,6 +105,7 @@ def _serialize_message(message: dict) -> dict:
         "role": message["role"],
         "content": message["content"],
         "sources": [asdict(chunk) for chunk in message.get("sources", [])],
+        "source": message.get("source"),
         "show_debug": message.get("show_debug", False),
         "attached_files": message.get("attached_files", []),
     }
@@ -115,6 +116,7 @@ def _deserialize_message(message: dict) -> dict:
         "role": message["role"],
         "content": message["content"],
         "sources": [RetrievedChunk(**c) for c in message.get("sources", [])],
+        "source": message.get("source"),
         "show_debug": message.get("show_debug", False),
         "attached_files": message.get("attached_files", []),
     }

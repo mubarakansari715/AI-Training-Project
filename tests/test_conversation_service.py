@@ -21,6 +21,7 @@ def _messages(with_sources: bool = False):
             "role": "assistant",
             "content": "You get 24 days.",
             "sources": sources,
+            "source": "document",
             "show_debug": False,
         },
     ]
@@ -36,10 +37,12 @@ def test_save_and_load_round_trips_messages(store):
         "role": "user",
         "content": "What is the leave policy?",
         "sources": [],
+        "source": None,
         "show_debug": False,
         "attached_files": [],
     }
     assert loaded[1]["content"] == "You get 24 days."
+    assert loaded[1]["source"] == "document"
 
 
 def test_save_and_load_round_trips_sources(store):

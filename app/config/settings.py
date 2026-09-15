@@ -33,6 +33,14 @@ def _get_float(name: str, default: float) -> float:
 
 @dataclass(frozen=True)
 class Settings:
+    # Primary LLM provider. Get a key at https://openrouter.ai/keys.
+    openrouter_api_key: str = os.getenv("OPENROUTER_API_KEY", "")
+    # "openrouter/auto" lets OpenRouter pick a suitable model; set a
+    # specific model ID to pin it instead.
+    openrouter_model: str = os.getenv("OPENROUTER_MODEL", "openrouter/auto")
+
+    # Fallback provider, used only when OpenRouter is unconfigured or a
+    # call fails.
     gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")
     # Verify available model names for your API key in Google AI Studio;
     # override via .env if this default is renamed/retired.
@@ -57,7 +65,11 @@ class Settings:
     # question/chunk pairs well under 0.1 and genuinely relevant ones
     # 0.25+, so 0.2 filters noise without dropping real matches.
     similarity_threshold: float = _get_float("SIMILARITY_THRESHOLD", 0.2)
-    strict_document_mode: bool = _get_bool("STRICT_DOCUMENT_MODE", True)
+    # False (default): answer from documents when they have the answer,
+    # otherwise fall back to the model's general knowledge (source is
+    # shown in the UI either way). True: only ever answer from documents,
+    # refusing when nothing relevant is found.
+    strict_document_mode: bool = _get_bool("STRICT_DOCUMENT_MODE", False)
 
 
 settings = Settings()

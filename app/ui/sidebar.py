@@ -15,8 +15,18 @@ from app.config.settings import settings
 from app.ui.components import render_document_list
 
 # Curated, known-good model IDs for the picker; "Custom..." lets you type
-# any other ID your API key has access to (Google AI Studio has the
-# current list, since Gemini model names change over time).
+# any other ID either provider's API key has access to. OpenRouter's are
+# listed first since it's the primary provider (see app/rag/generator.py);
+# Gemini's are the fallback. "openrouter/auto" is the default — it lets
+# OpenRouter pick a suitable model for you.
+OPENROUTER_MODEL_OPTIONS = [
+    "openrouter/auto",
+    "meta-llama/llama-3.1-8b-instruct:free",
+    "mistralai/mistral-7b-instruct:free",
+    "deepseek/deepseek-chat-v3-0324:free",
+]
+# Check available model names for your key in Google AI Studio, since
+# Gemini model names change over time.
 GEMINI_MODEL_OPTIONS = [
     "gemini-3.5-flash-lite",
     "gemini-3.8-flash",
@@ -24,6 +34,16 @@ GEMINI_MODEL_OPTIONS = [
     "gemini-2.5-flash",
 ]
 CUSTOM_MODEL_OPTION = "Custom..."
+
+
+def _is_gemini_model(model_id: str) -> bool:
+    """Route a model ID to Gemini if it looks like one, OpenRouter otherwise.
+
+    OpenRouter IDs are always "provider/model" (or "openrouter/auto");
+    Gemini's own IDs are the only ones that start with "gemini-" bare, so
+    this also correctly routes a typed-in "Custom..." entry.
+    """
+    return model_id in GEMINI_MODEL_OPTIONS or model_id.startswith("gemini-")
 
 
 @dataclass
@@ -35,9 +55,53 @@ class SidebarState:
     delete_conversation_id: str | None = None
     clear_index: bool = False
     show_debug: bool = False
-    strict_mode: bool = True
-    model_name: str = settings.gemini_model
-    temperature: float = settings.gemini_temperature
+    strict_mode: bool = settings.strict_document_mode
+
+
+def render_model_picker() -> tuple[str | None, str | None]:
+    """Render the model picker, returning
+    `(gemini_model_override, openrouter_model_override)`.
+
+    Exactly one of the two is set, matching whichever model the picker
+    chose; the other is None so that provider keeps its own configured
+    default (see AnswerGenerator.generate()).
+
+    Meant to be rendered directly next to the chat input (see
+    app/ui/chat.py) — that's where model switching lives in most chat
+    apps, not tucked away in the sidebar.
+    """
+    all_models = [*OPENROUTER_MODEL_OPTIONS, *GEMINI_MODEL_OPTIONS]
+    default_model = st.session_state.get("model_name", settings.openrouter_model)
+    known_models = all_models if default_model in all_models else [default_model, *all_models]
+
+    model_choice = st.selectbox(
+        "Model",
+        options=[*known_models, CUSTOM_MODEL_OPTION],
+        index=known_models.index(default_model),
+        label_visibility="collapsed",
+        width=280,
+        help="OpenRouter models are tried first, Gemini models as the "
+        "fallback — picking one here overrides that provider's model, "
+        "the other keeps its configured default. 'openrouter/auto' picks "
+        "a model for you automatically.",
+    )
+    if model_choice == CUSTOM_MODEL_OPTION:
+        model_name = (
+            st.text_input(
+                "Custom model ID",
+                placeholder="e.g. anthropic/claude-3.5-sonnet or gemini-3.1-pro-preview",
+                help="Any OpenRouter model ID (see openrouter.ai/models) or "
+                "Gemini model ID your API key can access.",
+            ).strip()
+            or settings.openrouter_model
+        )
+    else:
+        model_name = model_choice
+    st.session_state.model_name = model_name
+
+    if _is_gemini_model(model_name):
+        return model_name, None
+    return None, model_name
 
 
 def render_sidebar(
@@ -98,10 +162,12 @@ def render_sidebar(
         with st.expander("⚙️ Advanced settings"):
             strict_mode = st.checkbox(
                 "Strict document mode",
-                value=st.session_state.get("strict_mode", True),
-                help="When on, answers come only from your documents. If "
-                "nothing relevant is found, the assistant says so instead "
-                "of guessing.",
+                value=st.session_state.get("strict_mode", settings.strict_document_mode),
+                help="Off (default): answers come from your documents when "
+                "possible, and from the model's general knowledge otherwise "
+                "— each answer shows which one it came from. On: only ever "
+                "answer from your documents, refusing when nothing relevant "
+                "is found.",
             )
             st.session_state.strict_mode = strict_mode
 
@@ -114,52 +180,6 @@ def render_sidebar(
             )
             st.session_state.show_debug = show_debug
 
-            st.divider()
-
-            default_model = st.session_state.get("model_name", settings.gemini_model)
-            known_models = (
-                GEMINI_MODEL_OPTIONS
-                if default_model in GEMINI_MODEL_OPTIONS
-                else [default_model, *GEMINI_MODEL_OPTIONS]
-            )
-            model_choice = st.selectbox(
-                "Model",
-                options=[*known_models, CUSTOM_MODEL_OPTION],
-                index=known_models.index(default_model),
-                help="Which Gemini model answers your questions. "
-                "'flash-lite'/'flash' are fast and cheap; 'pro' is slower "
-                "but handles harder questions better.",
-            )
-            if model_choice == CUSTOM_MODEL_OPTION:
-                model_name = (
-                    st.text_input(
-                        "Custom model ID",
-                        placeholder="e.g. gemini-3.1-pro-preview",
-                        help="Any model ID available for your API key — "
-                        "check Google AI Studio for the current list.",
-                    ).strip()
-                    or settings.gemini_model
-                )
-            else:
-                model_name = model_choice
-            st.session_state.model_name = model_name
-
-            temperature = st.slider(
-                "Temperature",
-                min_value=0.0,
-                max_value=2.0,
-                value=float(st.session_state.get("temperature", settings.gemini_temperature)),
-                step=0.1,
-                help="Lower (e.g. 0.2) gives literal, consistent answers "
-                "grounded in your documents. Higher (1.0+) gives more "
-                "varied, creative phrasing but can drift from the source "
-                "text — keep it low for factual document Q&A.",
-            )
-            st.session_state.temperature = temperature
-            st.caption(
-                "0.2 = literal · 1.0 = balanced (Gemini default) · 2.0 = max creativity"
-            )
-
     return SidebarState(
         new_chat=new_chat,
         selected_conversation_id=selected_conversation_id,
@@ -167,6 +187,4 @@ def render_sidebar(
         clear_index=clear_index,
         show_debug=show_debug,
         strict_mode=strict_mode,
-        model_name=model_name,
-        temperature=temperature,
     )

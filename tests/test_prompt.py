@@ -1,4 +1,9 @@
-from app.rag.prompt import build_context, build_prompt, build_source_list
+from app.rag.prompt import (
+    build_context,
+    build_general_knowledge_prompt,
+    build_prompt,
+    build_source_list,
+)
 from app.rag.retriever import RetrievedChunk
 
 
@@ -52,3 +57,18 @@ def test_build_prompt_allows_conversational_continuity():
     prompt = build_prompt("Anything?", []).lower()
 
     assert "conversation" in prompt
+
+
+def test_build_general_knowledge_prompt_has_required_sections():
+    prompt = build_general_knowledge_prompt("What is the capital of France?")
+
+    assert "SYSTEM INSTRUCTIONS" in prompt
+    assert "USER QUESTION" in prompt
+    assert "What is the capital of France?" in prompt
+
+
+def test_build_general_knowledge_prompt_allows_outside_knowledge():
+    prompt = build_general_knowledge_prompt("Anything?").lower()
+
+    assert "general knowledge" in prompt
+    assert "documents" in prompt  # tells the model to disclose it isn't one

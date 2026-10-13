@@ -112,7 +112,8 @@ class RAGPipeline:
         Greetings/pleasantries ("hi", "thanks", ...) always get a
         normal reply, bypassing the strict "not found" refusal — that
         guard is meant to stop fabricated *document* facts, not to
-        block small talk.
+        block small talk. Small talk also skips retrieval, so it never
+        shows unrelated document sources.
 
         Documents are always checked first. When strict mode is off
         (the default) and nothing relevant is found there, the model
@@ -127,8 +128,10 @@ class RAGPipeline:
         strict = settings.strict_document_mode if strict_mode is None else strict_mode
         small_talk = is_small_talk(question)
 
+        # Small talk ("hi", "who are you?") never needs document
+        # context — searching anyway attaches unrelated chunks as sources.
         try:
-            chunks = self.retriever.retrieve(question)
+            chunks = [] if small_talk else self.retriever.retrieve(question)
         except Exception:
             logger.exception("Retrieval failed")
             return AskResult(answer="Something went wrong while searching your documents.")

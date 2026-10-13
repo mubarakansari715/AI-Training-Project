@@ -179,3 +179,16 @@ def test_reuploading_the_same_document_does_not_duplicate_chunks(pipeline):
     assert first_count > 0
     assert second_count == 0
     assert pipeline.vector_store.count() == first_count
+
+
+def test_small_talk_does_not_attach_document_sources(pipeline, monkeypatch):
+    _mock_gemini(pipeline, monkeypatch, "I am ALLY AI.")
+
+    file = FakeUploadedFile("handbook.txt", b"Who are you? Employees get 24 days of leave.")
+    pipeline.index_files([file])
+
+    result = pipeline.ask("who are you?")
+
+    assert result.answer == "I am ALLY AI."
+    assert result.sources == []
+    assert result.source == SOURCE_SMALL_TALK

@@ -78,6 +78,16 @@ OPEN_RULE = ("If the documents don't contain the answer, you may answer from gen
              "knowledge, but say clearly that this part is not from the documents.")
 
 
+FINAL_ANSWER_PROMPT = """{question}
+
+You already searched the documents ({searches}); these are the excerpts found:
+
+{excerpts}
+
+Answer the question now, using only these excerpts (follow the rules above). \
+If they don't contain the answer, say so."""
+
+
 class AgentError(Exception):
     """The agent couldn't produce an answer (provider failure, empty reply)."""
 
@@ -127,29 +137,39 @@ def run_agent(
         ),
     }]
     messages += [{"role": t["role"], "content": t["content"]} for t in (history or [])[-_HISTORY_MESSAGES:]]
+    base = list(messages)  # system + history, without tool turns (for the final answer)
     messages.append({"role": "user", "content": question})
 
     searches: list[str] = []
     sources: dict[str, RetrievedChunk] = {}
+    excerpts: list[str] = []
 
     # One extra turn beyond max_searches for the final answer.
     for turn in range(max_searches + 1):
-        if len(searches) >= max_searches:
-            tool_choice = "none"
+        limit_reached = len(searches) >= max_searches
+        if limit_reached:
+            # Final answer as a plain question with the excerpts inlined and no
+            # tools: with earlier tool calls still in the conversation, models
+            # keep trying to search again, which the API rejects.
+            messages = base + [{"role": "user", "content": FINAL_ANSWER_PROMPT.format(
+                question=question, searches=", ".join(f'"{q}"' for q in searches),
+                excerpts="\n\n".join(excerpts) or "(none)",
+            )}]
+            tools, tool_choice = [], "none"
         elif turn == 0 and must_search:
-            tool_choice = "required"
+            tools, tool_choice = [SEARCH_TOOL], "required"
         else:
-            tool_choice = "auto"
+            tools, tool_choice = [SEARCH_TOOL], "auto"
         try:
             message = generator.chat_with_tools(
-                messages, [SEARCH_TOOL], model_name=model_name, temperature=temperature,
+                messages, tools, model_name=model_name, temperature=temperature,
                 tool_choice=tool_choice,
             )
         except ToolCallingError as exc:
             raise AgentError(str(exc)) from exc
 
         tool_calls = message.get("tool_calls") or []
-        if not tool_calls or tool_choice == "none":
+        if not tool_calls or limit_reached:
             answer = (message.get("content") or "").strip()
             if not answer:
                 raise AgentError("The model returned an empty answer")
@@ -164,6 +184,7 @@ def run_agent(
                 searches.append(query)
                 found = retriever.retrieve(query)
                 content = _format_results(found, start=len(sources) + 1)
+                excerpts.append(content)
                 for chunk in found:
                     sources.setdefault(chunk.chunk_id, chunk)
                 logger.info("Agent search %d: %r -> %d chunks", len(searches), query, len(found))

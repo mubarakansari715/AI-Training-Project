@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock
 
+import pytest
+
 from app.rag.generator import FALLBACK_MESSAGE, MISSING_KEY_MESSAGE, AnswerGenerator
 from app.rag.retriever import RetrievedChunk
 
@@ -354,3 +356,40 @@ def test_gemini_fallback_maps_assistant_role_and_builds_contents(monkeypatch):
     assert contents[1] == {"role": "model", "parts": [{"text": "Nice to meet you, Mubarak!"}]}
     assert contents[2]["role"] == "user"
     assert "What is my name?" in contents[2]["parts"][0]["text"]
+
+
+class _Resp:
+    def __init__(self, status, body=None, text="", headers=None):
+        self.status_code, self._body, self.text, self.headers = status, body or {}, text, headers or {}
+
+    def json(self):
+        return self._body
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise RuntimeError(f"HTTP {self.status_code}")
+
+
+def test_chat_with_tools_retries_once_on_short_rate_limit(monkeypatch):
+    replies = [_Resp(429, text="Rate limit reached ... Please try again in 1.5s."),
+               _Resp(200, {"choices": [{"message": {"content": "ok"}}]})]
+    sent = []
+    monkeypatch.setattr("app.rag.generator.requests.post", lambda url, **kw: (sent.append(kw["json"]), replies.pop(0))[1])
+    slept = []
+    monkeypatch.setattr("app.rag.generator.time.sleep", slept.append)
+
+    message = AnswerGenerator(api_key="", groq_api_key="k").chat_with_tools([{"role": "user", "content": "hi"}], [])
+
+    assert message == {"content": "ok"}
+    assert slept == [2.0]
+    assert "tools" not in sent[0] and "tool_choice" not in sent[0]  # no tools -> plain turn
+
+
+def test_chat_with_tools_raises_when_rate_limit_wait_is_too_long(monkeypatch):
+    from app.rag.generator import ToolCallingError
+
+    monkeypatch.setattr("app.rag.generator.requests.post",
+                        lambda url, **kw: _Resp(429, text="Please try again in 45s."))
+    with pytest.raises(ToolCallingError):
+        AnswerGenerator(api_key="", groq_api_key="k").chat_with_tools([{"role": "user", "content": "hi"}], [])
+

@@ -16,6 +16,8 @@ caught and turned into a friendly message instead of crashing the app.
 from __future__ import annotations
 
 import logging
+import re
+import time
 
 import requests
 from google import genai
@@ -238,34 +240,66 @@ class AnswerGenerator:
         """One Groq chat turn with tool calling (OpenAI-compatible).
 
         Returns the assistant message dict (with `content` and/or
-        `tool_calls`). Raises ToolCallingError on any failure, so the caller
-        can fall back to the non-agent pipeline (which also has the Gemini
-        fallback). Groq only: tool calling isn't wired up for Gemini.
+        `tool_calls`). With no `tools`, it's a plain turn (the model can't
+        call anything — sending tool_choice "none" instead is rejected when
+        the model tries anyway). A rate-limit response that asks for a short
+        wait is retried once. Raises ToolCallingError on any other failure,
+        so the caller can fall back to the non-agent pipeline (which also has
+        the Gemini fallback). Groq only: tool calling isn't wired up for Gemini.
         """
         if not self.groq_api_key:
             raise ToolCallingError("Groq is not configured")
+        payload = {
+            "model": self._concrete_groq_model(model_name),
+            "messages": messages,
+            "temperature": self.temperature if temperature is None else temperature,
+        }
+        if tools:
+            payload.update(tools=tools, tool_choice=tool_choice)
         try:
-            response = requests.post(
-                GROQ_URL,
-                headers={"Authorization": f"Bearer {self.groq_api_key}"},
-                json={
-                    "model": self._concrete_groq_model(model_name),
-                    "messages": messages,
-                    "tools": tools,
-                    "tool_choice": tool_choice,
-                    "temperature": self.temperature if temperature is None else temperature,
-                },
-                timeout=GROQ_TIMEOUT_SECONDS,
-            )
-            response.raise_for_status()
-            return response.json()["choices"][0]["message"]
+            for attempt in (1, 2):
+                response = requests.post(
+                    GROQ_URL,
+                    headers={"Authorization": f"Bearer {self.groq_api_key}"},
+                    json=payload,
+                    timeout=GROQ_TIMEOUT_SECONDS,
+                )
+                wait = _retry_after_seconds(response)
+                if response.status_code == 429 and attempt == 1 and wait is not None and wait <= MAX_RETRY_WAIT_SECONDS:
+                    logger.info("Groq rate limit; retrying in %.1fs", wait)
+                    time.sleep(wait)
+                    continue
+                if response.status_code >= 400:
+                    logger.warning("Groq tool-calling turn rejected: %s %s", response.status_code, response.text[:300])
+                response.raise_for_status()
+                return response.json()["choices"][0]["message"]
         except Exception as exc:
             logger.exception("Groq tool-calling turn failed")
             raise ToolCallingError(str(exc)) from exc
+        raise ToolCallingError("Groq rate limit persisted after retry")
 
 
 class ToolCallingError(Exception):
     """A tool-calling turn failed (provider error, rate limit, bad response)."""
+
+
+# Longest wait a rate-limited tool turn will sleep before retrying once.
+MAX_RETRY_WAIT_SECONDS = 15.0
+_TRY_AGAIN_RE = re.compile(r"try again in ([\d.]+)s")
+
+
+def _retry_after_seconds(response) -> float | None:
+    """How long Groq asks us to wait on a 429 (Retry-After header or message)."""
+    if response.status_code != 429:
+        return None
+    header = response.headers.get("retry-after")
+    try:
+        if header is not None:
+            return float(header)
+    except ValueError:
+        pass
+    match = _TRY_AGAIN_RE.search(response.text or "")
+    return float(match.group(1)) + 0.5 if match else None
 
 
 def _build_gemini_contents(history: list[dict], current_prompt: str) -> list[dict]:

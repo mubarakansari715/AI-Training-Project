@@ -328,3 +328,18 @@ def test_auto_mode_skipped_when_gemini_model_picked(pipeline, monkeypatch):
 
     assert result.answer == "You get 24 days."
     assert result.model is None
+
+
+def test_not_found_answer_is_not_labelled_as_from_documents(pipeline, monkeypatch):
+    from app.rag.chunker import Chunk
+
+    _mock_gemini(pipeline, monkeypatch, "The FY 2025 budget was not found in the uploaded documents.")
+    chunk = Chunk(text="Appropriations for FY 2018 were $117 million.", source="report.pdf", page=12, chunk_id="c12")
+    pipeline.vector_store.add_chunks([chunk], pipeline.embedding_service.embed_texts([chunk.text]))
+    pipeline.retriever.score_threshold = -1  # make sure the unrelated chunk is retrieved
+
+    result = pipeline.ask("What was the budget for FY 2025?", strict_mode=True)
+
+    assert result.sources == []
+    assert result.source is None
+

@@ -232,10 +232,16 @@ class RAGPipeline:
             groq_model_name=groq_model,
         )
 
+        # As in auto mode: sources are what the answer cites — a "not found"
+        # reply shouldn't be labelled as coming from the retrieved chunks.
+        if chunks:
+            chunks = cited_chunks(answer, chunks)
         if small_talk:
             source = SOURCE_SMALL_TALK
         elif chunks:
             source = SOURCE_DOCUMENT
+        elif strict:
+            source = None
         else:
             source = SOURCE_GENERAL_KNOWLEDGE
 

@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import streamlit as st
 
+from app.config.settings import APP_NAME
 from app.services.conversation_service import ConversationStore
 from app.services.rag_service import RAGPipeline
 from app.ui.chat import render_chat
@@ -83,7 +84,7 @@ def handle_document_management(pipeline: RAGPipeline, sidebar) -> None:
 
 def main() -> None:
     st.set_page_config(
-        page_title="RAG Chatbot",
+        page_title=APP_NAME,
         page_icon="🤖",
         layout="wide",
     )
@@ -113,7 +114,7 @@ def main() -> None:
     handle_document_management(pipeline, sidebar)
 
     if not st.session_state.get("chat_history"):
-        st.title("Welcome to RAG Chatbot")
+        st.title(f"Welcome to {APP_NAME}")
         st.write(
             "Attach documents using the 📎 icon in the chat box and ask "
             "questions about their content."

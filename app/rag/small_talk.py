@@ -48,14 +48,25 @@ _RECALL_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Questions about the assistant itself ("who are you?", "what's your
+# name?"), answered from its system instructions rather than documents.
+_IDENTITY_RE = re.compile(
+    r"^(who\s+are\s+you|what\s+are\s+you|"
+    r"(what'?s|what\s+is)\s+your\s+name|"
+    r"what\s+should\s+i\s+call\s+you|introduce\s+yourself)"
+    r"[\s!.,?]*$",
+    re.IGNORECASE,
+)
+
 
 def is_small_talk(text: str) -> bool:
-    """Return True if `text` is a greeting, self-introduction, or a
-    question about the conversation itself — not a real document
-    question."""
+    """Return True if `text` is a greeting, self-introduction, a
+    question about the assistant, or a question about the conversation
+    itself — not a real document question."""
     stripped = text.strip()
     return bool(
         _GREETING_RE.match(stripped)
         or _INTRO_RE.match(stripped)
         or _RECALL_RE.match(stripped)
+        or _IDENTITY_RE.match(stripped)
     )

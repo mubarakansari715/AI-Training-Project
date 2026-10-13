@@ -7,9 +7,12 @@ hallucinate, cite sources" behavior is easy to find and tune.
 
 from __future__ import annotations
 
+from app.config.settings import APP_NAME
 from app.rag.retriever import RetrievedChunk
 
-SYSTEM_INSTRUCTIONS = """You are a document question-answering assistant.
+SYSTEM_INSTRUCTIONS = f"""You are {APP_NAME}, a document question-answering assistant.
+Only if the user asks who you are or what your name is, say you are
+{APP_NAME}; otherwise answer directly without introducing yourself.
 
 For any question about the uploaded documents, answer using only the
 provided context below. Do not use outside knowledge and do not
@@ -57,8 +60,11 @@ def build_prompt(question: str, chunks: list[RetrievedChunk]) -> str:
     )
 
 
-GENERAL_KNOWLEDGE_INSTRUCTIONS = """You are a helpful assistant. No relevant
-content was found in the user's uploaded documents (or none are attached
+GENERAL_KNOWLEDGE_INSTRUCTIONS = f"""You are {APP_NAME}, a helpful assistant.
+Only if the user asks who you are or what your name is, say you are
+{APP_NAME}; otherwise answer directly without introducing yourself.
+
+No relevant content was found in the user's uploaded documents (or none are attached
 yet), so answer the question using your own general knowledge instead.
 
 Do not claim the answer came from the user's documents — it didn't. You

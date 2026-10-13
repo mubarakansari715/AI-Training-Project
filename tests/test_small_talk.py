@@ -96,3 +96,18 @@ def test_recognizes_conversational_recall_questions(text):
 )
 def test_does_not_over_match_real_sentences(text):
     assert is_small_talk(text) is False
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "who are you?",
+        "Who are you",
+        "what's your name?",
+        "What is your name",
+        "what should I call you?",
+        "introduce yourself",
+    ],
+)
+def test_recognizes_questions_about_the_assistant(text):
+    assert is_small_talk(text) is True

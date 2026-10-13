@@ -13,6 +13,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# The assistant's display name, used in the UI and in the LLM's
+# system instructions so it introduces itself consistently.
+APP_NAME = "ALLY AI"
+
 
 def _get_int(name: str, default: int) -> int:
     value = os.getenv(name)

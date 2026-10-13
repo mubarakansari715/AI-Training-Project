@@ -1,6 +1,6 @@
-# RAG Chatbot
+# ALLY AI
 
-A document-grounded RAG (Retrieval-Augmented Generation) chatbot built with
+ALLY AI is a document-grounded RAG (Retrieval-Augmented Generation) chatbot built with
 Python, Streamlit, ChromaDB, local embeddings, and OpenRouter (with Google
 Gemini as a fallback).
 

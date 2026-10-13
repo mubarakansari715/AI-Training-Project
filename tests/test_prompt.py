@@ -1,3 +1,4 @@
+from app.config.settings import APP_NAME
 from app.rag.prompt import (
     build_context,
     build_general_knowledge_prompt,
@@ -72,3 +73,8 @@ def test_build_general_knowledge_prompt_allows_outside_knowledge():
 
     assert "general knowledge" in prompt
     assert "documents" in prompt  # tells the model to disclose it isn't one
+
+
+def test_prompts_give_the_assistant_its_name():
+    assert f"You are {APP_NAME}" in build_prompt("q", [])
+    assert f"You are {APP_NAME}" in build_general_knowledge_prompt("q")

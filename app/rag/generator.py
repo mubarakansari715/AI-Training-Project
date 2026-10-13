@@ -94,10 +94,12 @@ class AnswerGenerator:
         configured default for whichever provider ends up handling the
         call.
 
-        OpenRouter is tried first. If it isn't configured, or the call
-        raises or returns an empty response, Gemini is tried next
-        (when configured). Only if neither provider produces an answer
-        is `FALLBACK_MESSAGE` returned.
+        OpenRouter is tried first, unless a Gemini model was picked
+        explicitly (`model_name` set, `openrouter_model_name` not), in
+        which case Gemini goes first. If the first provider isn't
+        configured, or its call raises or returns an empty response,
+        the other is tried next (when configured). Only if neither
+        produces an answer is `FALLBACK_MESSAGE` returned.
 
         When `chunks` is non-empty the answer is grounded in that
         document context (and only that context). When it's empty —
@@ -115,13 +117,24 @@ class AnswerGenerator:
         history = history or []
         temp = self.temperature if temperature is None else temperature
 
-        if self.openrouter_api_key:
-            text = self._generate_with_openrouter(prompt, history, openrouter_model_name, temp)
-            if text:
-                return text
+        def try_openrouter() -> str:
+            if not self.openrouter_api_key:
+                return ""
+            return self._generate_with_openrouter(prompt, history, openrouter_model_name, temp)
 
-        if self._client is not None:
-            text = self._generate_with_gemini(prompt, history, model_name, temp)
+        def try_gemini() -> str:
+            if self._client is None:
+                return ""
+            return self._generate_with_gemini(prompt, history, model_name, temp)
+
+        # A Gemini model picked explicitly (with no OpenRouter override)
+        # means the user wants Gemini, so it goes first; otherwise
+        # OpenRouter stays primary.
+        prefer_gemini = model_name is not None and openrouter_model_name is None
+        providers = (try_gemini, try_openrouter) if prefer_gemini else (try_openrouter, try_gemini)
+
+        for provider in providers:
+            text = provider()
             if text:
                 return text
 

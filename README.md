@@ -48,6 +48,7 @@ up an earlier conversation later — even after restarting the app.
 - Persistent ChromaDB vector store (no re-indexing after a restart)
 - Semantic retrieval with a configurable similarity threshold
 - Context-grounded answer generation via OpenRouter, falling back to Gemini
+  (picking a Gemini model in the model picker sends it to Gemini first)
 - Source citations (filename + page number when available)
 - Every answer is labeled: 📄 from your documents or 🌐 general knowledge
 - Strict document mode (off by default) — refuses to answer beyond the docs

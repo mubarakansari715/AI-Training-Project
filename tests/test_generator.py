@@ -279,6 +279,41 @@ def test_generate_falls_back_to_gemini_when_openrouter_call_fails(monkeypatch):
     assert answer == "Answer from Gemini."
 
 
+def test_generate_prefers_gemini_when_gemini_model_picked(monkeypatch):
+    post = MagicMock(side_effect=AssertionError("OpenRouter should not be called"))
+    monkeypatch.setattr("app.rag.generator.requests.post", post)
+
+    captured = {}
+    monkeypatch.setattr(
+        "app.rag.generator.genai.Client", lambda api_key: _capturing_gemini_client(captured)
+    )
+
+    generator = AnswerGenerator(api_key="fake-key", openrouter_api_key="fake-or-key")
+    answer = generator.generate("A question?", [], model_name="gemini-2.5-flash")
+
+    assert answer == "answer"
+    assert captured["model"] == "gemini-2.5-flash"
+    post.assert_not_called()
+
+
+def test_generate_falls_back_to_openrouter_when_picked_gemini_fails(monkeypatch):
+    monkeypatch.setattr(
+        "app.rag.generator.requests.post",
+        _capturing_openrouter_post({}, content="Answer from OpenRouter."),
+    )
+
+    fake_client = MagicMock()
+    fake_client.models.generate_content.side_effect = RuntimeError("API down")
+    monkeypatch.setattr(
+        "app.rag.generator.genai.Client", lambda api_key: fake_client
+    )
+
+    generator = AnswerGenerator(api_key="fake-key", openrouter_api_key="fake-or-key")
+    answer = generator.generate("A question?", [], model_name="gemini-2.5-flash")
+
+    assert answer == "Answer from OpenRouter."
+
+
 def test_generate_returns_fallback_message_when_both_providers_fail(monkeypatch):
     monkeypatch.setattr(
         "app.rag.generator.requests.post", MagicMock(side_effect=RuntimeError("network down"))

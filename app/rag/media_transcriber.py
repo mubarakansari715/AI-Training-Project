@@ -137,3 +137,12 @@ def transcribe_media(data: bytes, filename: str) -> list[DocumentPage]:
 
     return pages
 
+
+def transcribe_speech(data: bytes, filename: str = "voice message") -> str:
+    """Return the plain text spoken in a short WAV recording (e.g. a voice
+    question from the chat input's 🎤 button); "" if no speech was heard."""
+    with tempfile.NamedTemporaryFile(suffix=".wav") as tmp:
+        tmp.write(data)
+        tmp.flush()
+        segments, _ = _transcribe(tmp.name, filename)
+    return " ".join(s["text"].strip() for s in segments if s["text"].strip())

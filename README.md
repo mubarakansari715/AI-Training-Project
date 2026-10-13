@@ -43,6 +43,8 @@ up an earlier conversation later — even after restarting the app.
   speech is transcribed locally with `faster-whisper` into `[mm:ss]`-timestamped
   text, plus an info page (duration, resolution, frame rate, language), so you
   can ask what was said and when. On-screen visuals are not analysed.
+- Voice questions: tap 🎤 in the chat box to ask by speaking — the recording
+  is transcribed locally and answered like a typed question
 - Robust text extraction with graceful handling of empty/corrupted files
 - Text cleaning (whitespace, broken line breaks, extraction artifacts)
 - Structure-aware chunking (paragraph/sentence-boundary-first splitting)
@@ -238,8 +240,9 @@ Opens at `http://localhost:8501`.
 2. Ask questions in the same chat box (with or without an attachment).
 3. Use **New chat** to start a fresh conversation, or click any past
    conversation in the sidebar to reopen it.
-4. Pick a model from the dropdown next to the chat box.
-5. Open **⚙️ Advanced settings** to toggle strict document mode, the
+4. Tap 🎤 in the chat box to ask a question by voice instead of typing.
+5. Pick a model from the dropdown next to the chat box.
+6. Open **⚙️ Advanced settings** to toggle strict document mode, the
    retrieval debug view, or adjust the temperature.
 
 ## How RAG Works

@@ -20,6 +20,8 @@ import re
 import streamlit as st
 
 from app.config.settings import APP_ICON
+from app.rag.document_loader import DocumentParsingError
+from app.rag.media_transcriber import transcribe_speech
 from app.rag.retriever import RetrievedChunk
 from app.services.conversation_service import ConversationStore
 from app.services.rag_service import (
@@ -105,6 +107,21 @@ def _render_debug(sources: list[RetrievedChunk]) -> None:
                 st.divider()
 
 
+def _transcribe_voice(audio) -> str | None:
+    """Turn a recorded voice message into text; None (after telling the
+    user why) if it failed or no speech was heard."""
+    with st.spinner("Transcribing your voice message..."):
+        try:
+            spoken = transcribe_speech(audio.getvalue())
+        except DocumentParsingError:
+            st.error("Sorry, I couldn't process that recording. Please try again.")
+            return None
+    if not spoken:
+        st.warning("I couldn't hear any speech in that recording. Please try again.")
+        return None
+    return spoken
+
+
 def _index_attached_files(pipeline: RAGPipeline, files: list) -> str | None:
     """Index newly attached files and return a status note, or None."""
     with st.spinner(f"Indexing {len(files)} document(s)..."):
@@ -148,6 +165,8 @@ def render_chat(
         with st.chat_message(message["role"], avatar=avatar):
             for filename in message.get("attached_files", []):
                 st.caption(f"📎 {filename}")
+            if message.get("voice"):
+                st.caption("🎤 Voice message")
             if message["content"]:
                 st.write(message["content"])
             if message["role"] == "assistant":
@@ -161,9 +180,10 @@ def render_chat(
             model_name, openrouter_model_name = render_model_picker()
 
         submission = st.chat_input(
-            "Ask a question or attach documents...",
+            "Ask a question, attach documents, or record your voice...",
             accept_file="multiple",
             file_type=SUPPORTED_DOCUMENT_TYPES,
+            accept_audio=True,
             submit_mode="disable",
         )
     if not submission:
@@ -171,6 +191,14 @@ def render_chat(
 
     question = (submission.text or "").strip()
     files = submission.files or []
+    audio = submission.audio
+
+    if audio is not None:
+        spoken = _transcribe_voice(audio)
+        if spoken is None:
+            return
+        question = f"{question} {spoken}".strip()
+
     if not question and not files:
         return
 
@@ -186,6 +214,8 @@ def render_chat(
     with st.chat_message("user", avatar=USER_AVATAR):
         for file in files:
             st.caption(f"📎 {file.name}")
+        if audio is not None:
+            st.caption("🎤 Voice message")
         if question:
             st.write(question)
     st.session_state.chat_history.append(
@@ -193,6 +223,7 @@ def render_chat(
             "role": "user",
             "content": question,
             "attached_files": [file.name for file in files],
+            "voice": audio is not None,
         }
     )
 

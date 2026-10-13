@@ -139,3 +139,12 @@ def test_worker_failure_raises_friendly_error(monkeypatch):
     with pytest.raises(DocumentParsingError, match="Could not transcribe 'note.wav'"):
         parse_document("note.wav", _wav_bytes())
 
+
+def test_transcribe_speech_joins_spoken_segments(fake_whisper):
+    fake_whisper.segments = [_segment(0.0, " What is my"), _segment(1.5, "vitamin D level? "), _segment(3.0, "  ")]
+
+    assert media_transcriber.transcribe_speech(_wav_bytes()) == "What is my vitamin D level?"
+
+
+def test_transcribe_speech_returns_empty_string_for_silence(fake_whisper):
+    assert media_transcriber.transcribe_speech(_wav_bytes()) == ""

@@ -40,6 +40,7 @@ def test_save_and_load_round_trips_messages(store):
         "source": None,
         "show_debug": False,
         "attached_files": [],
+        "voice": False,
     }
     assert loaded[1]["content"] == "You get 24 days."
     assert loaded[1]["source"] == "document"
@@ -140,3 +141,13 @@ def test_saving_again_updates_the_same_conversation(store):
     assert len(store.list_conversations()) == 1
     loaded = store.load(conversation_id)
     assert len(loaded) == 3
+
+
+def test_save_and_load_round_trips_voice_flag(store):
+    conversation_id = store.new_id()
+    store.save(conversation_id, [{"role": "user", "content": "What is my vitamin D?", "voice": True}])
+
+    loaded = store.load(conversation_id)
+
+    assert loaded[0]["voice"] is True
+

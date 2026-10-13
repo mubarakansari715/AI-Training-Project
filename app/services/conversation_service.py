@@ -108,6 +108,7 @@ def _serialize_message(message: dict) -> dict:
         "source": message.get("source"),
         "show_debug": message.get("show_debug", False),
         "attached_files": message.get("attached_files", []),
+        "voice": message.get("voice", False),
     }
 
 
@@ -119,4 +120,5 @@ def _deserialize_message(message: dict) -> dict:
         "source": message.get("source"),
         "show_debug": message.get("show_debug", False),
         "attached_files": message.get("attached_files", []),
+        "voice": message.get("voice", False),
     }

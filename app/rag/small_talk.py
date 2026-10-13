@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import re
 
+from app.config.settings import APP_NAME
+
 _GREETING_RE = re.compile(
     r"^((hi|hello|hey|hiya|yo)(\s+there)?|"
     r"good\s*(morning|afternoon|evening|night)|"
@@ -58,6 +60,23 @@ _IDENTITY_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Questions about who made/owns the assistant ("who built you?", "who is
+# the founder of ALLY AI?"). The target must be the assistant itself, so
+# "who is the owner of the property?" stays a document question.
+_ROLE = r"(found\w*|creators?|owners?|makers?|developers?|authors?|builders?)"
+_TARGET = (
+    r"(you|this(\s+(app|bot|chatbot|assistant|ai|tool))?|(this\s+)?"
+    + r"\s+".join(re.escape(w) for w in APP_NAME.lower().split())
+    + r"|(this\s+)?" + re.escape(APP_NAME.lower().split()[0]) + ")"
+)
+_CREATOR_RE = re.compile(
+    rf"^(who\s+(is|are|was)\s+(the\s+)?{_ROLE}(\s+(and|&|/)\s+{_ROLE})?\s+of\s+{_TARGET}|"
+    rf"who\s+(is|are)\s+your\s+{_ROLE}(\s+(and|&|/)\s+{_ROLE})?|"
+    rf"who\s+(built|created|made|developed|designed|founded|owns|programmed)\s+{_TARGET})"
+    r"[\s!.,?]*$",
+    re.IGNORECASE,
+)
+
 
 def is_small_talk(text: str) -> bool:
     """Return True if `text` is a greeting, self-introduction, a
@@ -69,4 +88,5 @@ def is_small_talk(text: str) -> bool:
         or _INTRO_RE.match(stripped)
         or _RECALL_RE.match(stripped)
         or _IDENTITY_RE.match(stripped)
+        or _CREATOR_RE.match(stripped)
     )

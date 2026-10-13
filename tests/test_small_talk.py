@@ -111,3 +111,34 @@ def test_does_not_over_match_real_sentences(text):
 )
 def test_recognizes_questions_about_the_assistant(text):
     assert is_small_talk(text) is True
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Who is the foundee and owner of this Ally ai?",
+        "who is the founder of ALLY AI?",
+        "Who is the owner of this app?",
+        "who are the creators of this assistant",
+        "who is your developer?",
+        "who built you?",
+        "Who made ALLY AI",
+        "who owns this ally ai?",
+    ],
+)
+def test_recognizes_questions_about_who_built_the_assistant(text):
+    assert is_small_talk(text) is True
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "who is the owner of the property?",
+        "who is the founder of the company in the report?",
+        "who built the bridge mentioned on page 3?",
+        "who is the author",
+    ],
+)
+def test_creator_questions_about_other_things_stay_document_questions(text):
+    assert is_small_talk(text) is False
+

@@ -17,6 +17,8 @@ load_dotenv()
 # The assistant's display name, used in the UI and in the LLM's
 # system instructions so it introduces itself consistently.
 APP_NAME = "ALLY AI"
+# Who built the assistant — its answer to "who created/owns you?".
+APP_CREATOR = "Mubarak Ansari"
 # Compass logo: browser tab icon, sidebar logo, and assistant avatar.
 APP_ICON = str(Path(__file__).resolve().parent.parent / "assets" / "ally_icon.png")
 

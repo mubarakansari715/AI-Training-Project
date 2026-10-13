@@ -47,10 +47,10 @@ def _mock_gemini(pipeline, monkeypatch, answer_text: str):
     monkeypatch.setattr("app.rag.generator.genai.Client", lambda api_key: fake_client)
     # The pipeline's generator was already constructed (with no API key,
     # since tests run without GEMINI_API_KEY set) before this patch — swap
-    # in a fresh one now that genai.Client is mocked. OpenRouter is
+    # in a fresh one now that genai.Client is mocked. Groq is
     # explicitly disabled so the (primary) fallback path doesn't shadow
     # the Gemini call these tests are exercising.
-    pipeline.generator = AnswerGenerator(api_key="fake-key", openrouter_api_key="")
+    pipeline.generator = AnswerGenerator(api_key="fake-key", groq_api_key="")
     return fake_client
 
 

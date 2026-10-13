@@ -8,7 +8,7 @@ def _chunk(text="Employees get 24 days of leave.", source="handbook.pdf"):
     return RetrievedChunk(text=text, source=source, page=1, score=0.9, chunk_id="c1")
 
 
-def _capturing_openrouter_post(captured, content="answer"):
+def _capturing_groq_post(captured, content="answer"):
     """A fake requests.post that records its kwargs and returns `content`."""
 
     def fake_post(url, headers, json, timeout):
@@ -41,23 +41,23 @@ def _capturing_gemini_client(captured):
 
 
 def test_generate_without_api_key_returns_friendly_message():
-    generator = AnswerGenerator(api_key="", openrouter_api_key="")
+    generator = AnswerGenerator(api_key="", groq_api_key="")
 
     assert generator.is_configured() is False
     assert generator.generate("A question?", []) == MISSING_KEY_MESSAGE
 
 
-# --- OpenRouter: primary provider ---
+# --- Groq: primary provider ---
 
 
 def test_generate_returns_answer_text_on_success(monkeypatch):
     captured = {}
     monkeypatch.setattr(
         "app.rag.generator.requests.post",
-        _capturing_openrouter_post(captured, content="  Employees get 24 days of annual leave.  "),
+        _capturing_groq_post(captured, content="  Employees get 24 days of annual leave.  "),
     )
 
-    generator = AnswerGenerator(openrouter_api_key="fake-or-key", api_key="")
+    generator = AnswerGenerator(groq_api_key="fake-or-key", api_key="")
     answer = generator.generate("What is the leave policy?", [])
 
     assert answer == "Employees get 24 days of annual leave."
@@ -69,7 +69,7 @@ def test_generate_returns_fallback_message_on_api_error(monkeypatch):
         "app.rag.generator.requests.post", MagicMock(side_effect=RuntimeError("API down"))
     )
 
-    generator = AnswerGenerator(openrouter_api_key="fake-or-key", api_key="")
+    generator = AnswerGenerator(groq_api_key="fake-or-key", api_key="")
     answer = generator.generate("A question?", [])
 
     assert answer == FALLBACK_MESSAGE
@@ -79,51 +79,51 @@ def test_generate_returns_fallback_message_on_empty_response(monkeypatch):
     captured = {}
     monkeypatch.setattr(
         "app.rag.generator.requests.post",
-        _capturing_openrouter_post(captured, content=""),
+        _capturing_groq_post(captured, content=""),
     )
 
-    generator = AnswerGenerator(openrouter_api_key="fake-or-key", api_key="")
+    generator = AnswerGenerator(groq_api_key="fake-or-key", api_key="")
     answer = generator.generate("A question?", [])
 
     assert answer == FALLBACK_MESSAGE
 
 
-def test_generate_uses_configured_openrouter_model(monkeypatch):
+def test_generate_uses_configured_groq_model(monkeypatch):
     captured = {}
     monkeypatch.setattr(
-        "app.rag.generator.requests.post", _capturing_openrouter_post(captured)
+        "app.rag.generator.requests.post", _capturing_groq_post(captured)
     )
 
     generator = AnswerGenerator(
-        openrouter_api_key="fake-or-key", openrouter_model="meta-llama/llama-3.1-8b-instruct:free", api_key=""
+        groq_api_key="fake-or-key", groq_model="meta-llama/llama-3.1-8b-instruct:free", api_key=""
     )
     generator.generate("A question?", [])
 
     assert captured["json"]["model"] == "meta-llama/llama-3.1-8b-instruct:free"
 
 
-def test_generate_openrouter_model_name_overrides_configured_default(monkeypatch):
+def test_generate_groq_model_name_overrides_configured_default(monkeypatch):
     captured = {}
     monkeypatch.setattr(
-        "app.rag.generator.requests.post", _capturing_openrouter_post(captured)
+        "app.rag.generator.requests.post", _capturing_groq_post(captured)
     )
 
     generator = AnswerGenerator(
-        openrouter_api_key="fake-or-key", openrouter_model="openrouter/auto", api_key=""
+        groq_api_key="fake-or-key", groq_model="groq/auto", api_key=""
     )
-    generator.generate("A question?", [], openrouter_model_name="mistralai/mistral-7b-instruct:free")
+    generator.generate("A question?", [], groq_model_name="mistralai/mistral-7b-instruct:free")
 
     assert captured["json"]["model"] == "mistralai/mistral-7b-instruct:free"
-    assert generator.openrouter_model == "openrouter/auto"  # unchanged for next calls
+    assert generator.groq_model == "groq/auto"  # unchanged for next calls
 
 
 def test_prompt_is_built_from_question_and_chunks(monkeypatch):
     captured = {}
     monkeypatch.setattr(
-        "app.rag.generator.requests.post", _capturing_openrouter_post(captured)
+        "app.rag.generator.requests.post", _capturing_groq_post(captured)
     )
 
-    generator = AnswerGenerator(openrouter_api_key="fake-or-key", api_key="")
+    generator = AnswerGenerator(groq_api_key="fake-or-key", api_key="")
     generator.generate("What is the leave policy?", [])
 
     # Last message is the current RAG-augmented prompt.
@@ -135,10 +135,10 @@ def test_prompt_is_built_from_question_and_chunks(monkeypatch):
 def test_generate_without_history_sends_only_current_turn(monkeypatch):
     captured = {}
     monkeypatch.setattr(
-        "app.rag.generator.requests.post", _capturing_openrouter_post(captured)
+        "app.rag.generator.requests.post", _capturing_groq_post(captured)
     )
 
-    generator = AnswerGenerator(openrouter_api_key="fake-or-key", api_key="")
+    generator = AnswerGenerator(groq_api_key="fake-or-key", api_key="")
     generator.generate("A question?", [])
 
     assert len(captured["json"]["messages"]) == 1
@@ -147,7 +147,7 @@ def test_generate_without_history_sends_only_current_turn(monkeypatch):
 def test_generate_with_history_includes_prior_turns_in_order(monkeypatch):
     captured = {}
     monkeypatch.setattr(
-        "app.rag.generator.requests.post", _capturing_openrouter_post(captured)
+        "app.rag.generator.requests.post", _capturing_groq_post(captured)
     )
 
     history = [
@@ -155,7 +155,7 @@ def test_generate_with_history_includes_prior_turns_in_order(monkeypatch):
         {"role": "assistant", "content": "Nice to meet you, Mubarak!"},
     ]
 
-    generator = AnswerGenerator(openrouter_api_key="fake-or-key", api_key="")
+    generator = AnswerGenerator(groq_api_key="fake-or-key", api_key="")
     answer = generator.generate("What is my name?", [], history=history)
 
     assert answer == "answer"
@@ -170,7 +170,7 @@ def test_generate_with_history_includes_prior_turns_in_order(monkeypatch):
 def test_generate_caps_history_to_recent_messages(monkeypatch):
     captured = {}
     monkeypatch.setattr(
-        "app.rag.generator.requests.post", _capturing_openrouter_post(captured)
+        "app.rag.generator.requests.post", _capturing_groq_post(captured)
     )
 
     history = [
@@ -178,7 +178,7 @@ def test_generate_caps_history_to_recent_messages(monkeypatch):
         for i in range(30)
     ]
 
-    generator = AnswerGenerator(openrouter_api_key="fake-or-key", api_key="")
+    generator = AnswerGenerator(groq_api_key="fake-or-key", api_key="")
     generator.generate("Final question?", [], history=history)
 
     # 10 history messages capped + 1 current turn.
@@ -190,10 +190,10 @@ def test_generate_caps_history_to_recent_messages(monkeypatch):
 def test_generate_uses_configured_default_temperature(monkeypatch):
     captured = {}
     monkeypatch.setattr(
-        "app.rag.generator.requests.post", _capturing_openrouter_post(captured)
+        "app.rag.generator.requests.post", _capturing_groq_post(captured)
     )
 
-    generator = AnswerGenerator(openrouter_api_key="fake-or-key", api_key="")
+    generator = AnswerGenerator(groq_api_key="fake-or-key", api_key="")
     generator.generate("A question?", [])
 
     assert captured["json"]["temperature"] == generator.temperature
@@ -202,10 +202,10 @@ def test_generate_uses_configured_default_temperature(monkeypatch):
 def test_generate_uses_explicit_temperature_override(monkeypatch):
     captured = {}
     monkeypatch.setattr(
-        "app.rag.generator.requests.post", _capturing_openrouter_post(captured)
+        "app.rag.generator.requests.post", _capturing_groq_post(captured)
     )
 
-    generator = AnswerGenerator(openrouter_api_key="fake-or-key", api_key="", temperature=0.9)
+    generator = AnswerGenerator(groq_api_key="fake-or-key", api_key="", temperature=0.9)
     generator.generate("A question?", [])
 
     assert generator.temperature == 0.9
@@ -215,10 +215,10 @@ def test_generate_uses_explicit_temperature_override(monkeypatch):
 def test_generate_uses_grounded_prompt_when_chunks_present(monkeypatch):
     captured = {}
     monkeypatch.setattr(
-        "app.rag.generator.requests.post", _capturing_openrouter_post(captured)
+        "app.rag.generator.requests.post", _capturing_groq_post(captured)
     )
 
-    generator = AnswerGenerator(openrouter_api_key="fake-or-key", api_key="")
+    generator = AnswerGenerator(groq_api_key="fake-or-key", api_key="")
     generator.generate("What is the leave policy?", [_chunk()])
 
     prompt = captured["json"]["messages"][-1]["content"]
@@ -229,10 +229,10 @@ def test_generate_uses_grounded_prompt_when_chunks_present(monkeypatch):
 def test_generate_uses_general_knowledge_prompt_when_no_chunks(monkeypatch):
     captured = {}
     monkeypatch.setattr(
-        "app.rag.generator.requests.post", _capturing_openrouter_post(captured)
+        "app.rag.generator.requests.post", _capturing_groq_post(captured)
     )
 
-    generator = AnswerGenerator(openrouter_api_key="fake-or-key", api_key="")
+    generator = AnswerGenerator(groq_api_key="fake-or-key", api_key="")
     generator.generate("What is the capital of France?", [])
 
     prompt = captured["json"]["messages"][-1]["content"].lower()
@@ -243,7 +243,7 @@ def test_generate_uses_general_knowledge_prompt_when_no_chunks(monkeypatch):
 # --- Gemini: fallback provider ---
 
 
-def test_generate_falls_back_to_gemini_when_openrouter_unconfigured(monkeypatch):
+def test_generate_falls_back_to_gemini_when_groq_unconfigured(monkeypatch):
     fake_response = MagicMock()
     fake_response.text = "Answer from Gemini."
     fake_client = MagicMock()
@@ -252,7 +252,7 @@ def test_generate_falls_back_to_gemini_when_openrouter_unconfigured(monkeypatch)
         "app.rag.generator.genai.Client", lambda api_key: fake_client
     )
 
-    generator = AnswerGenerator(api_key="fake-key", openrouter_api_key="")
+    generator = AnswerGenerator(api_key="fake-key", groq_api_key="")
 
     assert generator.is_configured() is True
     answer = generator.generate("A question?", [])
@@ -260,7 +260,7 @@ def test_generate_falls_back_to_gemini_when_openrouter_unconfigured(monkeypatch)
     assert answer == "Answer from Gemini."
 
 
-def test_generate_falls_back_to_gemini_when_openrouter_call_fails(monkeypatch):
+def test_generate_falls_back_to_gemini_when_groq_call_fails(monkeypatch):
     monkeypatch.setattr(
         "app.rag.generator.requests.post", MagicMock(side_effect=RuntimeError("network down"))
     )
@@ -273,14 +273,14 @@ def test_generate_falls_back_to_gemini_when_openrouter_call_fails(monkeypatch):
         "app.rag.generator.genai.Client", lambda api_key: fake_client
     )
 
-    generator = AnswerGenerator(api_key="fake-key", openrouter_api_key="fake-or-key")
+    generator = AnswerGenerator(api_key="fake-key", groq_api_key="fake-or-key")
     answer = generator.generate("A question?", [])
 
     assert answer == "Answer from Gemini."
 
 
 def test_generate_prefers_gemini_when_gemini_model_picked(monkeypatch):
-    post = MagicMock(side_effect=AssertionError("OpenRouter should not be called"))
+    post = MagicMock(side_effect=AssertionError("Groq should not be called"))
     monkeypatch.setattr("app.rag.generator.requests.post", post)
 
     captured = {}
@@ -288,7 +288,7 @@ def test_generate_prefers_gemini_when_gemini_model_picked(monkeypatch):
         "app.rag.generator.genai.Client", lambda api_key: _capturing_gemini_client(captured)
     )
 
-    generator = AnswerGenerator(api_key="fake-key", openrouter_api_key="fake-or-key")
+    generator = AnswerGenerator(api_key="fake-key", groq_api_key="fake-or-key")
     answer = generator.generate("A question?", [], model_name="gemini-2.5-flash")
 
     assert answer == "answer"
@@ -296,10 +296,10 @@ def test_generate_prefers_gemini_when_gemini_model_picked(monkeypatch):
     post.assert_not_called()
 
 
-def test_generate_falls_back_to_openrouter_when_picked_gemini_fails(monkeypatch):
+def test_generate_falls_back_to_groq_when_picked_gemini_fails(monkeypatch):
     monkeypatch.setattr(
         "app.rag.generator.requests.post",
-        _capturing_openrouter_post({}, content="Answer from OpenRouter."),
+        _capturing_groq_post({}, content="Answer from Groq."),
     )
 
     fake_client = MagicMock()
@@ -308,10 +308,10 @@ def test_generate_falls_back_to_openrouter_when_picked_gemini_fails(monkeypatch)
         "app.rag.generator.genai.Client", lambda api_key: fake_client
     )
 
-    generator = AnswerGenerator(api_key="fake-key", openrouter_api_key="fake-or-key")
+    generator = AnswerGenerator(api_key="fake-key", groq_api_key="fake-or-key")
     answer = generator.generate("A question?", [], model_name="gemini-2.5-flash")
 
-    assert answer == "Answer from OpenRouter."
+    assert answer == "Answer from Groq."
 
 
 def test_generate_returns_fallback_message_when_both_providers_fail(monkeypatch):
@@ -325,7 +325,7 @@ def test_generate_returns_fallback_message_when_both_providers_fail(monkeypatch)
         "app.rag.generator.genai.Client", lambda api_key: fake_client
     )
 
-    generator = AnswerGenerator(api_key="fake-key", openrouter_api_key="fake-or-key")
+    generator = AnswerGenerator(api_key="fake-key", groq_api_key="fake-or-key")
     answer = generator.generate("A question?", [])
 
     assert answer == FALLBACK_MESSAGE
@@ -343,7 +343,7 @@ def test_gemini_fallback_maps_assistant_role_and_builds_contents(monkeypatch):
         {"role": "assistant", "content": "Nice to meet you, Mubarak!"},
     ]
 
-    generator = AnswerGenerator(api_key="fake-key", openrouter_api_key="")
+    generator = AnswerGenerator(api_key="fake-key", groq_api_key="")
     answer = generator.generate("What is my name?", [], history=history)
 
     assert answer == "answer"

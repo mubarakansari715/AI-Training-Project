@@ -42,14 +42,18 @@ def _get_float(name: str, default: float) -> float:
 
 @dataclass(frozen=True)
 class Settings:
-    # Primary LLM provider. Get a key at https://openrouter.ai/keys.
-    openrouter_api_key: str = os.getenv("OPENROUTER_API_KEY", "")
-    # "openrouter/auto" lets OpenRouter pick a suitable model; set a
-    # specific model ID to pin it instead.
-    openrouter_model: str = os.getenv("OPENROUTER_MODEL", "openrouter/auto")
+    # Primary LLM provider. Get a key at https://console.groq.com/keys.
+    groq_api_key: str = os.getenv("GROQ_API_KEY", "")
+    # Any chat model your Groq key can use (GET /openai/v1/models).
+    groq_model: str = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 
-    # Fallback provider, used only when OpenRouter is unconfigured or a
-    # call fails.
+    # OpenRouter — the previous primary provider, disabled for now (see
+    # app/rag/generator.py). Uncomment to bring its settings back.
+    # openrouter_api_key: str = os.getenv("OPENROUTER_API_KEY", "")
+    # openrouter_model: str = os.getenv("OPENROUTER_MODEL", "openrouter/auto")
+
+    # Fallback provider, used only when Groq is unconfigured or a call
+    # fails.
     gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")
     # Verify available model names for your API key in Google AI Studio;
     # override via .env if this default is renamed/retired.

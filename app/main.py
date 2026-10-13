@@ -2,7 +2,7 @@
 
 Full RAG pipeline: upload (via the chat input's attach icon) -> parse
 -> clean -> chunk -> embed -> store -> question -> retrieve -> build
-context -> OpenRouter/Gemini -> answer + sources. Conversations are
+context -> Groq/Gemini -> answer + sources. Conversations are
 persisted to disk (ConversationStore) so past chats survive an app
 restart and can be reopened from the sidebar.
 """
@@ -122,7 +122,7 @@ def main() -> None:
 
         if not pipeline.generator.is_configured():
             st.info(
-                "No LLM provider configured — set OPENROUTER_API_KEY "
+                "No LLM provider configured — set GROQ_API_KEY "
                 "(preferred) or GEMINI_API_KEY (fallback) in your .env file "
                 "to get real answers. You can still upload and index "
                 "documents in the meantime.",

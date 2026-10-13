@@ -177,7 +177,7 @@ def render_chat(
 
     with st.bottom:
         with st.container(horizontal=True, horizontal_alignment="right"):
-            model_name, openrouter_model_name = render_model_picker()
+            model_name, groq_model_name = render_model_picker()
 
         submission = st.chat_input(
             "Ask a question, attach documents, or record your voice...",
@@ -250,7 +250,7 @@ def render_chat(
                             strict_mode=strict_mode,
                             history=history,
                             model_name=model_name,
-                            openrouter_model_name=openrouter_model_name,
+                            groq_model_name=groq_model_name,
                             temperature=temperature,
                         )
                         answer, sources, source_label = result.answer, result.sources, result.source

@@ -119,7 +119,7 @@ class RAGPipeline:
         history: list[dict] | None = None,
         model_name: str | None = None,
         temperature: float | None = None,
-        openrouter_model_name: str | None = None,
+        groq_model_name: str | None = None,
     ) -> AskResult:
         """Answer a question using retrieved document context.
 
@@ -129,7 +129,7 @@ class RAGPipeline:
         It does not affect retrieval or the strict-mode "not found"
         check, which are always based on the current question alone.
 
-        `model_name`/`openrouter_model_name`/`temperature` override the
+        `model_name`/`groq_model_name`/`temperature` override the
         generator's configured defaults for this call only, so the UI
         can switch models or adjust temperature without rebuilding the
         pipeline.
@@ -159,7 +159,7 @@ class RAGPipeline:
         if self.rewrite_queries and not small_talk and self.vector_store.count() > 0:
             search_query = rewrite_query(
                 self.generator, question, history,
-                model_name=model_name, openrouter_model_name=openrouter_model_name,
+                model_name=model_name, groq_model_name=groq_model_name,
             )
             small_talk = is_small_talk(search_query)
 
@@ -180,7 +180,7 @@ class RAGPipeline:
             history=history,
             model_name=model_name,
             temperature=temperature,
-            openrouter_model_name=openrouter_model_name,
+            groq_model_name=groq_model_name,
         )
 
         if small_talk:

@@ -15,16 +15,22 @@ from app.config.settings import APP_ICON, APP_NAME, settings
 from app.ui.components import render_document_list
 
 # Curated, known-good model IDs for the picker; "Custom..." lets you type
-# any other ID either provider's API key has access to. OpenRouter's are
-# listed first since it's the primary provider (see app/rag/generator.py);
-# Gemini's are the fallback. "openrouter/auto" is the default — it lets
-# OpenRouter pick a suitable model for you.
-OPENROUTER_MODEL_OPTIONS = [
-    "openrouter/auto",
-    "meta-llama/llama-3.1-8b-instruct:free",
-    "mistralai/mistral-7b-instruct:free",
-    "deepseek/deepseek-chat-v3-0324:free",
+# any other ID either provider's API key has access to. Groq's are listed
+# first since it's the primary provider (see app/rag/generator.py);
+# Gemini's are the fallback. Check what your key offers with Groq's
+# GET /openai/v1/models.
+GROQ_MODEL_OPTIONS = [
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
+    "qwen/qwen3.8-27b",
 ]
+# OpenRouter — the previous primary provider, disabled for now.
+# OPENROUTER_MODEL_OPTIONS = [
+#     "openrouter/auto",
+#     "meta-llama/llama-3.1-8b-instruct:free",
+#     "mistralai/mistral-7b-instruct:free",
+#     "deepseek/deepseek-chat-v3-0324:free",
+# ]
 # Check available model names for your key in Google AI Studio, since
 # Gemini model names change over time.
 GEMINI_MODEL_OPTIONS = [
@@ -37,11 +43,11 @@ CUSTOM_MODEL_OPTION = "Custom..."
 
 
 def _is_gemini_model(model_id: str) -> bool:
-    """Route a model ID to Gemini if it looks like one, OpenRouter otherwise.
+    """Route a model ID to Gemini if it looks like one, Groq otherwise.
 
-    OpenRouter IDs are always "provider/model" (or "openrouter/auto");
-    Gemini's own IDs are the only ones that start with "gemini-" bare, so
-    this also correctly routes a typed-in "Custom..." entry.
+    Gemini's own IDs are the only ones that start with "gemini-" bare
+    (Groq's look like "openai/gpt-oss-120b"), so this also correctly
+    routes a typed-in "Custom..." entry.
     """
     return model_id in GEMINI_MODEL_OPTIONS or model_id.startswith("gemini-")
 
@@ -61,7 +67,7 @@ class SidebarState:
 
 def render_model_picker() -> tuple[str | None, str | None]:
     """Render the model picker, returning
-    `(gemini_model_override, openrouter_model_override)`.
+    `(gemini_model_override, groq_model_override)`.
 
     Exactly one of the two is set, matching whichever model the picker
     chose; the other is None so that provider keeps its own configured
@@ -71,8 +77,8 @@ def render_model_picker() -> tuple[str | None, str | None]:
     app/ui/chat.py) — that's where model switching lives in most chat
     apps, not tucked away in the sidebar.
     """
-    all_models = [*OPENROUTER_MODEL_OPTIONS, *GEMINI_MODEL_OPTIONS]
-    default_model = st.session_state.get("model_name", settings.openrouter_model)
+    all_models = [*GROQ_MODEL_OPTIONS, *GEMINI_MODEL_OPTIONS]
+    default_model = st.session_state.get("model_name", settings.groq_model)
     known_models = all_models if default_model in all_models else [default_model, *all_models]
 
     model_choice = st.selectbox(
@@ -81,20 +87,19 @@ def render_model_picker() -> tuple[str | None, str | None]:
         index=known_models.index(default_model),
         label_visibility="collapsed",
         width=280,
-        help="OpenRouter models are tried first, Gemini models as the "
+        help="Groq models are tried first, Gemini models as the "
         "fallback — picking one here overrides that provider's model, "
-        "the other keeps its configured default. 'openrouter/auto' picks "
-        "a model for you automatically.",
+        "the other keeps its configured default.",
     )
     if model_choice == CUSTOM_MODEL_OPTION:
         model_name = (
             st.text_input(
                 "Custom model ID",
-                placeholder="e.g. anthropic/claude-3.5-sonnet or gemini-3.1-pro-preview",
-                help="Any OpenRouter model ID (see openrouter.ai/models) or "
+                placeholder="e.g. openai/gpt-oss-20b or gemini-3.1-pro-preview",
+                help="Any Groq model ID (see console.groq.com) or "
                 "Gemini model ID your API key can access.",
             ).strip()
-            or settings.openrouter_model
+            or settings.groq_model
         )
     else:
         model_name = model_choice

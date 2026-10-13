@@ -1,9 +1,14 @@
-"""LLM generation via OpenRouter, with Google Gemini as a fallback.
+"""LLM generation via Groq, with Google Gemini as a fallback.
 
-Reads OPENROUTER_API_KEY and GEMINI_API_KEY from the environment —
-never hardcoded, never logged. OpenRouter is always tried first; Gemini
-is only used when OpenRouter is unconfigured or a call to it fails, so
-it acts purely as a fallback, not a second choice the user picks.
+Reads GROQ_API_KEY and GEMINI_API_KEY from the environment — never
+hardcoded, never logged. Groq is always tried first; Gemini is only used
+when Groq is unconfigured or a call to it fails, so it acts purely as a
+fallback, not a second choice the user picks.
+
+OpenRouter was the primary provider before Groq. It is disabled for now
+(its settings and URL are commented out below); both use the same
+OpenAI-compatible chat API, so re-enabling it means pointing
+`_generate_with_groq` back at OPENROUTER_URL with its key and model.
 Failures (missing/invalid keys, network errors, rate limits, etc.) are
 caught and turned into a friendly message instead of crashing the app.
 """
@@ -22,15 +27,18 @@ from app.rag.retriever import RetrievedChunk
 
 logger = logging.getLogger(__name__)
 
-OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-OPENROUTER_TIMEOUT_SECONDS = 30
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_TIMEOUT_SECONDS = 30
+# OpenRouter — disabled for now, see the module docstring.
+# OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+# OPENROUTER_TIMEOUT_SECONDS = 30
 
 FALLBACK_MESSAGE = (
     "Unable to generate an answer right now. "
     "Please check your API configuration and try again."
 )
 MISSING_KEY_MESSAGE = (
-    "No LLM provider is configured. Set OPENROUTER_API_KEY (preferred) or "
+    "No LLM provider is configured. Set GROQ_API_KEY (preferred) or "
     "GEMINI_API_KEY (fallback) in your .env file to enable answers."
 )
 
@@ -44,8 +52,8 @@ class AnswerGenerator:
     """Generates an answer, grounded in document context when there is
     any, falling back to the model's own general knowledge otherwise.
 
-    OpenRouter is the primary provider; Gemini is used only as a
-    fallback when OpenRouter is unconfigured or its call fails.
+    Groq is the primary provider; Gemini is used only as a fallback
+    when Groq is unconfigured or its call fails.
     """
 
     def __init__(
@@ -53,8 +61,8 @@ class AnswerGenerator:
         model_name: str | None = None,
         api_key: str | None = None,
         temperature: float | None = None,
-        openrouter_api_key: str | None = None,
-        openrouter_model: str | None = None,
+        groq_api_key: str | None = None,
+        groq_model: str | None = None,
     ):
         self.model_name = model_name or settings.gemini_model
         # `is None` (not truthiness) so an explicit empty string means
@@ -63,13 +71,11 @@ class AnswerGenerator:
         self.temperature = settings.gemini_temperature if temperature is None else temperature
         self._client = genai.Client(api_key=self.api_key) if self.api_key else None
 
-        self.openrouter_api_key = (
-            settings.openrouter_api_key if openrouter_api_key is None else openrouter_api_key
-        )
-        self.openrouter_model = openrouter_model or settings.openrouter_model
+        self.groq_api_key = settings.groq_api_key if groq_api_key is None else groq_api_key
+        self.groq_model = groq_model or settings.groq_model
 
     def is_configured(self) -> bool:
-        return self._client is not None or bool(self.openrouter_api_key)
+        return self._client is not None or bool(self.groq_api_key)
 
     def generate(
         self,
@@ -78,7 +84,7 @@ class AnswerGenerator:
         history: list[dict] | None = None,
         model_name: str | None = None,
         temperature: float | None = None,
-        openrouter_model_name: str | None = None,
+        groq_model_name: str | None = None,
     ) -> str:
         """Return the answer text, or a friendly fallback message on failure.
 
@@ -88,14 +94,14 @@ class AnswerGenerator:
         session). The most recent `MAX_HISTORY_MESSAGES` are included.
 
         `model_name` overrides the configured Gemini model and
-        `openrouter_model_name` the configured OpenRouter model, each
+        `groq_model_name` the configured Groq model, each
         for this call only — used to let the UI switch models without
         rebuilding the (cached) pipeline. `temperature` overrides the
         configured default for whichever provider ends up handling the
         call.
 
-        OpenRouter is tried first, unless a Gemini model was picked
-        explicitly (`model_name` set, `openrouter_model_name` not), in
+        Groq is tried first, unless a Gemini model was picked
+        explicitly (`model_name` set, `groq_model_name` not), in
         which case Gemini goes first. If the first provider isn't
         configured, or its call raises or returns an empty response,
         the other is tried next (when configured). Only if neither
@@ -119,7 +125,7 @@ class AnswerGenerator:
             history=history,
             model_name=model_name,
             temperature=temperature,
-            openrouter_model_name=openrouter_model_name,
+            groq_model_name=groq_model_name,
         )
         return text or FALLBACK_MESSAGE
 
@@ -129,7 +135,7 @@ class AnswerGenerator:
         history: list[dict] | None = None,
         model_name: str | None = None,
         temperature: float | None = None,
-        openrouter_model_name: str | None = None,
+        groq_model_name: str | None = None,
     ) -> str:
         """Send a ready-made prompt through the provider fallback chain
         (see `generate`) and return the reply, or "" if every provider
@@ -138,21 +144,21 @@ class AnswerGenerator:
         history = history or []
         temp = self.temperature if temperature is None else temperature
 
-        def try_openrouter() -> str:
-            if not self.openrouter_api_key:
+        def try_groq() -> str:
+            if not self.groq_api_key:
                 return ""
-            return self._generate_with_openrouter(prompt, history, openrouter_model_name, temp)
+            return self._generate_with_groq(prompt, history, groq_model_name, temp)
 
         def try_gemini() -> str:
             if self._client is None:
                 return ""
             return self._generate_with_gemini(prompt, history, model_name, temp)
 
-        # A Gemini model picked explicitly (with no OpenRouter override)
+        # A Gemini model picked explicitly (with no Groq override)
         # means the user wants Gemini, so it goes first; otherwise
-        # OpenRouter stays primary.
-        prefer_gemini = model_name is not None and openrouter_model_name is None
-        providers = (try_gemini, try_openrouter) if prefer_gemini else (try_openrouter, try_gemini)
+        # Groq stays primary.
+        prefer_gemini = model_name is not None and groq_model_name is None
+        providers = (try_gemini, try_groq) if prefer_gemini else (try_groq, try_gemini)
 
         for provider in providers:
             text = provider()
@@ -183,34 +189,34 @@ class AnswerGenerator:
             logger.exception("Gemini generation failed")
             return ""
 
-    def _generate_with_openrouter(
+    def _generate_with_groq(
         self,
         prompt: str,
         history: list[dict],
         model_name: str | None,
         temperature: float,
     ) -> str:
-        model = model_name or self.openrouter_model
-        messages = _build_openrouter_messages(history, prompt)
+        model = model_name or self.groq_model
+        messages = _build_chat_messages(history, prompt)
         try:
             response = requests.post(
-                OPENROUTER_URL,
-                headers={"Authorization": f"Bearer {self.openrouter_api_key}"},
+                GROQ_URL,
+                headers={"Authorization": f"Bearer {self.groq_api_key}"},
                 json={
                     "model": model,
                     "messages": messages,
                     "temperature": temperature,
                 },
-                timeout=OPENROUTER_TIMEOUT_SECONDS,
+                timeout=GROQ_TIMEOUT_SECONDS,
             )
             response.raise_for_status()
             data = response.json()
             text = (data["choices"][0]["message"]["content"] or "").strip()
             if not text:
-                logger.warning("OpenRouter returned an empty response")
+                logger.warning("Groq returned an empty response")
             return text
         except Exception:
-            logger.exception("OpenRouter generation failed")
+            logger.exception("Groq generation failed")
             return ""
 
 
@@ -228,7 +234,7 @@ def _build_gemini_contents(history: list[dict], current_prompt: str) -> list[dic
     return contents
 
 
-def _build_openrouter_messages(history: list[dict], current_prompt: str) -> list[dict]:
+def _build_chat_messages(history: list[dict], current_prompt: str) -> list[dict]:
     """Turn chat history + the current RAG prompt into OpenAI-style chat messages."""
     recent = history[-MAX_HISTORY_MESSAGES:]
     messages = [{"role": turn["role"], "content": turn["content"]} for turn in recent]

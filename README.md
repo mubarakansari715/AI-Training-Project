@@ -1,7 +1,7 @@
 # ALLY AI
 
 ALLY AI is a document-grounded RAG (Retrieval-Augmented Generation) chatbot built with
-Python, Streamlit, ChromaDB, local embeddings, and OpenRouter (with Google
+Python, Streamlit, ChromaDB, local embeddings, and Groq (with Google
 Gemini as a fallback).
 
 ## Table of Contents
@@ -59,7 +59,7 @@ up an earlier conversation later — even after restarting the app.
 - Semantic retrieval with a configurable similarity threshold; summary requests
   ("summarize this video", "what is the report about?") fetch more chunks and
   skip the threshold so the whole document is covered
-- Context-grounded answer generation via OpenRouter, falling back to Gemini
+- Context-grounded answer generation via Groq, falling back to Gemini
   (picking a Gemini model in the model picker sends it to Gemini first)
 - Source citations (filename + page number when available)
 - Every answer is labeled: 📄 from your documents or 🌐 general knowledge
@@ -99,7 +99,7 @@ flowchart TD
     I --> G
     G --> J[Relevant Chunks]
     J --> K[Context Builder / Prompt]
-    K --> L[OpenRouter LLM / Gemini fallback]
+    K --> L[Groq LLM / Gemini fallback]
     L --> M[Answer + Sources]
     M --> B
 ```
@@ -119,7 +119,7 @@ and reloaded into the UI when you pick it from the sidebar.
 | Chunking | LangChain's `RecursiveCharacterTextSplitter` |
 | Embeddings | `sentence-transformers/all-MiniLM-L6-v2` (configurable) |
 | Vector store | ChromaDB (persistent, local) |
-| LLM | OpenRouter (`requests`), Google Gemini fallback (`google-genai`) |
+| LLM | Groq (`requests`, OpenAI-compatible API), Google Gemini fallback (`google-genai`) |
 | Conversation storage | Plain JSON files on disk |
 | Config | `.env` via `python-dotenv` |
 
@@ -144,7 +144,7 @@ app/
 │   ├── vector_store.py           # Persistent ChromaDB wrapper
 │   ├── retriever.py              # Question -> relevant chunks
 │   ├── prompt.py                 # RAG prompt template
-│   ├── generator.py              # OpenRouter/Gemini answer generation
+│   ├── generator.py              # Groq/Gemini answer generation
 │   ├── reranker.py               # Cross-encoder reranking of retrieved chunks
 │   └── small_talk.py             # Greeting/intro/recall detection
 └── services/
@@ -198,8 +198,8 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Edit `.env` and set `OPENROUTER_API_KEY` (get one at
-[openrouter.ai/keys](https://openrouter.ai/keys)) and/or `GEMINI_API_KEY`
+Edit `.env` and set `GROQ_API_KEY` (get one at
+[console.groq.com/keys](https://console.groq.com/keys)) and/or `GEMINI_API_KEY`
 (get one at [Google AI Studio](https://aistudio.google.com/app/apikey)).
 At least one is needed for answers. Never commit
 your real `.env` file — it's already excluded via `.gitignore`.
@@ -216,8 +216,8 @@ See [`.env.example`](.env.example) for the full file with defaults:
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `OPENROUTER_API_KEY` | OpenRouter API key (primary provider) | _(none)_ |
-| `OPENROUTER_MODEL` | Default OpenRouter model ID | `openrouter/auto` |
+| `GROQ_API_KEY` | Groq API key (primary provider) | _(none)_ |
+| `GROQ_MODEL` | Default Groq model ID | `openai/gpt-oss-120b` |
 | `GEMINI_API_KEY` | Gemini API key (fallback provider) | _(none)_ |
 | `GEMINI_MODEL` | Gemini model name | `gemini-3.5-flash-lite` |
 | `GEMINI_TEMPERATURE` | Sampling temperature (0.0-2.0); lower = more literal/consistent | `0.2` |
@@ -310,7 +310,7 @@ Tests cover document parsing (including video/audio transcription, with
 the Whisper model faked), text cleaning, chunking (including
 metadata/determinism), embeddings, the vector store, retrieval, prompt
 construction, small-talk detection, conversation persistence, and a full
-pipeline integration test. The OpenRouter and Gemini APIs are mocked throughout, so
+pipeline integration test. The Groq and Gemini APIs are mocked throughout, so
 `pytest` never requires a real API key.
 
 ## Future Improvements

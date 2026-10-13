@@ -70,7 +70,7 @@ def rewrite_query(
     question: str,
     history: list[dict] | None = None,
     model_name: str | None = None,
-    openrouter_model_name: str | None = None,
+    groq_model_name: str | None = None,
 ) -> str:
     """Return a spelling-corrected, self-contained version of `question`
     for retrieval, or `question` itself if rewriting isn't possible."""
@@ -80,7 +80,7 @@ def rewrite_query(
     output = generator.complete(
         prompt,
         model_name=model_name,
-        openrouter_model_name=openrouter_model_name,
+        groq_model_name=groq_model_name,
         temperature=0.0,
     )
     rewritten = _clean(output, question)

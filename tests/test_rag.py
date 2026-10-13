@@ -243,3 +243,17 @@ def test_typo_question_recognised_as_small_talk_after_rewrite(pipeline, monkeypa
     assert result.source == SOURCE_SMALL_TALK
     assert result.sources == []
 
+
+
+def test_pipeline_settings_can_be_overridden_per_instance(tmp_path):
+    pipeline = RAGPipeline(
+        persist_dir=str(tmp_path / "chroma"), collection_name="override_test",
+        chunk_size=200, chunk_overlap=20, top_k=2, score_threshold=0.5,
+    )
+    long_text = ("Employees get 24 days of annual leave. " * 30).encode()
+
+    num_chunks, _ = pipeline.index_files([FakeUploadedFile("handbook.txt", long_text)])
+
+    assert num_chunks > 1  # 200-char chunks split this text, the 800 default wouldn't twice over
+    assert pipeline.retriever.top_k == 2
+    assert pipeline.retriever.score_threshold == 0.5

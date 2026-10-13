@@ -221,6 +221,7 @@ See [`.env.example`](.env.example) for the full file with defaults:
 | `GEMINI_MODEL` | Gemini model name | `gemini-3.5-flash-lite` |
 | `GEMINI_TEMPERATURE` | Sampling temperature (0.0-2.0); lower = more literal/consistent | `0.2` |
 | `EMBEDDING_MODEL` | sentence-transformers model name | `sentence-transformers/all-MiniLM-L6-v2` |
+| `EMBEDDING_QUERY_PREFIX` | Instruction prepended to queries (needed by some models, e.g. BGE) | _(empty)_ |
 | `WHISPER_MODEL` | faster-whisper model for video/audio (`tiny`/`base`/`small`/`medium`) | `base` |
 | `CHROMA_PERSIST_DIR` | Where the vector store is saved | `data/chroma` |
 | `CHROMA_COLLECTION_NAME` | ChromaDB collection name | `rag_documents` |

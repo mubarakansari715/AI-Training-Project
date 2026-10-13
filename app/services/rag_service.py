@@ -50,18 +50,33 @@ class AskResult:
 
 
 class RAGPipeline:
-    """End-to-end RAG orchestrator used by the Streamlit UI."""
+    """End-to-end RAG orchestrator used by the Streamlit UI.
+
+    Every tuning knob defaults to the app's settings (`.env`); passing one
+    explicitly overrides it for this pipeline only — used by the evaluation
+    harness to compare configurations through exactly the code users hit.
+    """
 
     def __init__(
         self,
         persist_dir: str | None = None,
         collection_name: str | None = None,
+        chunk_size: int | None = None,
+        chunk_overlap: int | None = None,
+        embedding_model: str | None = None,
+        embedding_query_prefix: str | None = None,
+        top_k: int | None = None,
+        score_threshold: float | None = None,
     ):
-        self.embedding_service = EmbeddingService()
+        self.chunk_size = chunk_size or settings.chunk_size
+        self.chunk_overlap = settings.chunk_overlap if chunk_overlap is None else chunk_overlap
+        self.embedding_service = EmbeddingService(embedding_model, embedding_query_prefix)
         self.vector_store = VectorStore(
             persist_dir=persist_dir, collection_name=collection_name
         )
-        self.retriever = Retriever(self.vector_store, self.embedding_service)
+        self.retriever = Retriever(
+            self.vector_store, self.embedding_service, top_k=top_k, score_threshold=score_threshold
+        )
         self.generator = AnswerGenerator()
         self.indexed_documents: set[str] = set()
         self.rewrite_queries = settings.query_rewriting
@@ -76,7 +91,7 @@ class RAGPipeline:
         if not pages:
             return 0, errors
 
-        chunks = chunk_pages(pages)
+        chunks = chunk_pages(pages, chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap)
         if not chunks:
             return 0, errors
 

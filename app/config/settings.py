@@ -65,6 +65,9 @@ class Settings:
     embedding_model: str = os.getenv(
         "EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
     )
+    # Instruction some models expect before each query (e.g. BGE:
+    # "Represent this sentence for searching relevant passages: ").
+    embedding_query_prefix: str = os.getenv("EMBEDDING_QUERY_PREFIX", "")
 
     chroma_persist_dir: str = os.getenv("CHROMA_PERSIST_DIR", "data/chroma")
     chroma_collection_name: str = os.getenv("CHROMA_COLLECTION_NAME", "rag_documents")

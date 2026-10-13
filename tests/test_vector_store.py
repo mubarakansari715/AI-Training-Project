@@ -76,3 +76,21 @@ def test_clear_removes_all_chunks(store):
 def test_add_chunks_empty_list_is_a_noop(store):
     assert store.add_chunks([], []) == 0
     assert store.count() == 0
+
+
+def test_all_chunks_returns_every_stored_chunk(tmp_path):
+    from app.rag.chunker import Chunk
+    from app.rag.vector_store import VectorStore
+
+    store = VectorStore(persist_dir=str(tmp_path / "c"), collection_name="all_chunks_test")
+    store.add_chunks(
+        [Chunk(text="a", source="d.pdf", page=3, chunk_id="c1"), Chunk(text="b", source="d.txt", page=None, chunk_id="c2")],
+        [[1.0, 0.0], [0.0, 1.0]],
+    )
+
+    chunks = sorted(store.all_chunks(), key=lambda c: c["chunk_id"])
+
+    assert chunks == [
+        {"chunk_id": "c1", "text": "a", "source": "d.pdf", "page": 3},
+        {"chunk_id": "c2", "text": "b", "source": "d.txt", "page": None},
+    ]

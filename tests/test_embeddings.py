@@ -29,3 +29,13 @@ def test_model_is_cached_across_instances():
 
     # Both instances should share the same underlying cached model.
     assert service_a._model is service_b._model
+
+
+def test_query_prefix_is_applied_to_queries_only():
+    from app.rag.embeddings import EmbeddingService
+
+    plain = EmbeddingService(query_prefix="")
+    prefixed = EmbeddingService(query_prefix="search: ")
+
+    assert prefixed.embed_query("leave policy") == plain.embed_query("search: leave policy")
+    assert prefixed.embed_texts(["leave policy"]) == plain.embed_texts(["leave policy"])

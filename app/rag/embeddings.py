@@ -27,8 +27,11 @@ def _load_model(model_name: str) -> SentenceTransformer:
 class EmbeddingService:
     """Generates vector embeddings using a cached local model."""
 
-    def __init__(self, model_name: str | None = None):
+    def __init__(self, model_name: str | None = None, query_prefix: str | None = None):
         self.model_name = model_name or settings.embedding_model
+        # Some retrieval models (e.g. BGE) expect an instruction prepended
+        # to queries — but not to the documents being searched.
+        self.query_prefix = settings.embedding_query_prefix if query_prefix is None else query_prefix
         self._model = _load_model(self.model_name)
 
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
@@ -42,4 +45,4 @@ class EmbeddingService:
 
     def embed_query(self, text: str) -> list[float]:
         """Embed a single query string (e.g. a user question)."""
-        return self.embed_texts([text])[0]
+        return self.embed_texts([self.query_prefix + text])[0]

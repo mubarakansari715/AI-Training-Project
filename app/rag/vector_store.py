@@ -127,3 +127,17 @@ class VectorStore:
 
     def count(self) -> int:
         return self._collection.count()
+
+    def all_chunks(self) -> list[dict]:
+        """Every stored chunk as {chunk_id, text, source, page} — for
+        whole-corpus work like keyword (BM25) scoring or building test sets."""
+        stored = self._collection.get(include=["documents", "metadatas"])
+        return [
+            {
+                "chunk_id": chunk_id,
+                "text": text,
+                "source": meta.get("source"),
+                "page": None if meta.get("page") == -1 else meta.get("page"),
+            }
+            for chunk_id, text, meta in zip(stored["ids"], stored["documents"], stored["metadatas"])
+        ]

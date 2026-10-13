@@ -25,3 +25,6 @@ data/conversations/*
 .DS_Store
 .vscode/
 .idea/
+
+# Evaluation data is JSON — re-include it in case a global gitignore excludes *.json
+!evaluation/questions/*.json

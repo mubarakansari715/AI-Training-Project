@@ -53,6 +53,9 @@ up an earlier conversation later — even after restarting the app.
 **Retrieval & answers**
 - Local embeddings (`sentence-transformers`, no external embedding API)
 - Persistent ChromaDB vector store (no re-indexing after a restart)
+- Query rewriting before search: one short LLM call fixes typos ("wat is my
+  vitamn d") and turns follow-ups ("and my cholesterol?") into standalone
+  queries; falls back to your exact words if it fails
 - Semantic retrieval with a configurable similarity threshold; summary requests
   ("summarize this video", "what is the report about?") fetch more chunks and
   skip the threshold so the whole document is covered
@@ -226,6 +229,7 @@ See [`.env.example`](.env.example) for the full file with defaults:
 | `TOP_K` | Number of chunks retrieved per question | `5` |
 | `SIMILARITY_THRESHOLD` | Minimum cosine similarity ([-1, 1]) for a chunk to count as relevant | `0.2` |
 | `STRICT_DOCUMENT_MODE` | Refuse to answer beyond the documents | `false` |
+| `QUERY_REWRITING` | Rewrite questions with the LLM before searching (typos, follow-ups) | `true` |
 
 ## Running the Application
 
@@ -259,7 +263,8 @@ Opens at `http://localhost:8501`.
    sentence-transformers model.
 6. **Store** — chunks + vectors + metadata are saved in a persistent
    ChromaDB collection (survives app restarts).
-7. **Ask** — your question is embedded the same way and compared against
+7. **Ask** — your question is first rewritten by the LLM (typos fixed,
+   follow-ups made standalone), then embedded the same way and compared against
    stored chunks to find the most similar ones.
 8. **Generate** — only the retrieved chunks (not your whole document
    collection) are sent to the LLM, along with recent conversation history
@@ -312,10 +317,6 @@ pipeline integration test. The OpenRouter and Gemini APIs are mocked throughout,
 - Authentication
 - Cloud-hosted vector database option
 - Automated retrieval/answer quality evaluation
-- Query rewriting from conversation history before retrieval (so a
-  follow-up like "tell me more about that" resolves "that" before
-  searching — the LLM already sees history for continuity, but the
-  *retrieval* step still embeds each question independently)
 - Multilingual document support
 
 ## Quick Start

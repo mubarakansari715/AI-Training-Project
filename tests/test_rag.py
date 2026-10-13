@@ -30,9 +30,13 @@ class FakeUploadedFile:
 
 @pytest.fixture
 def pipeline(tmp_path):
-    return RAGPipeline(
+    pipeline = RAGPipeline(
         persist_dir=str(tmp_path / "chroma"), collection_name="rag_pipeline_test"
     )
+    # The mocked LLM returns the same text for every call, so it would also
+    # be used as the "rewritten" query; rewriting has its own tests below.
+    pipeline.rewrite_queries = False
+    return pipeline
 
 
 def _mock_gemini(pipeline, monkeypatch, answer_text: str):
@@ -192,3 +196,50 @@ def test_small_talk_does_not_attach_document_sources(pipeline, monkeypatch):
     assert result.answer == "I am ALLY AI."
     assert result.sources == []
     assert result.source == SOURCE_SMALL_TALK
+
+
+def test_retrieval_uses_rewritten_query(pipeline, monkeypatch):
+    _mock_gemini(pipeline, monkeypatch, "You get 24 days.")
+    pipeline.index_files([FakeUploadedFile("handbook.txt", b"Employees are entitled to 24 days of annual leave per year.")])
+    pipeline.rewrite_queries = True
+    calls = []
+
+    def fake_rewrite(generator, question, history, **kwargs):
+        calls.append((question, history))
+        return "How many days of annual leave are employees entitled to?"
+
+    monkeypatch.setattr("app.services.rag_service.rewrite_query", fake_rewrite)
+    history = [{"role": "user", "content": "hi"}]
+
+    result = pipeline.ask("hw mny leev dayz?", strict_mode=True, history=history)
+
+    assert calls == [("hw mny leev dayz?", history)]
+    assert result.search_query == "How many days of annual leave are employees entitled to?"
+    assert result.source == SOURCE_DOCUMENT
+    assert result.sources
+
+
+def test_rewrite_is_skipped_when_no_documents_are_indexed(pipeline, monkeypatch):
+    _mock_gemini(pipeline, monkeypatch, "Paris.")
+    pipeline.rewrite_queries = True
+    monkeypatch.setattr(
+        "app.services.rag_service.rewrite_query",
+        lambda *a, **k: (_ for _ in ()).throw(AssertionError("should not rewrite")),
+    )
+
+    result = pipeline.ask("What is the capital of France?")
+
+    assert result.search_query == "What is the capital of France?"
+
+
+def test_typo_question_recognised_as_small_talk_after_rewrite(pipeline, monkeypatch):
+    _mock_gemini(pipeline, monkeypatch, "I was built by the team.")
+    pipeline.index_files([FakeUploadedFile("handbook.txt", b"Who built the office? Contractors.")])
+    pipeline.rewrite_queries = True
+    monkeypatch.setattr("app.services.rag_service.rewrite_query", lambda *a, **k: "Who built you?")
+
+    result = pipeline.ask("whu bilt yu", strict_mode=True)
+
+    assert result.source == SOURCE_SMALL_TALK
+    assert result.sources == []
+

@@ -83,6 +83,10 @@ class Settings:
     # shown in the UI either way). True: only ever answer from documents,
     # refusing when nothing relevant is found.
     strict_document_mode: bool = _get_bool("STRICT_DOCUMENT_MODE", False)
+    # Rewrite each question with the LLM before searching (fixes typos,
+    # resolves follow-ups like "and my cholesterol?"); costs one short
+    # extra LLM call per question while documents are indexed.
+    query_rewriting: bool = _get_bool("QUERY_REWRITING", True)
 
 
 settings = Settings()

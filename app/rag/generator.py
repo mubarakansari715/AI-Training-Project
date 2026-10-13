@@ -114,6 +114,27 @@ class AnswerGenerator:
             return MISSING_KEY_MESSAGE
 
         prompt = build_prompt(question, chunks) if chunks else build_general_knowledge_prompt(question)
+        text = self.complete(
+            prompt,
+            history=history,
+            model_name=model_name,
+            temperature=temperature,
+            openrouter_model_name=openrouter_model_name,
+        )
+        return text or FALLBACK_MESSAGE
+
+    def complete(
+        self,
+        prompt: str,
+        history: list[dict] | None = None,
+        model_name: str | None = None,
+        temperature: float | None = None,
+        openrouter_model_name: str | None = None,
+    ) -> str:
+        """Send a ready-made prompt through the provider fallback chain
+        (see `generate`) and return the reply, or "" if every provider
+        failed or none is configured. Used directly for helper calls such
+        as query rewriting that don't need the RAG prompt."""
         history = history or []
         temp = self.temperature if temperature is None else temperature
 
@@ -137,8 +158,7 @@ class AnswerGenerator:
             text = provider()
             if text:
                 return text
-
-        return FALLBACK_MESSAGE
+        return ""
 
     def _generate_with_gemini(
         self,

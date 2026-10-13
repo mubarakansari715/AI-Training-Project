@@ -15,6 +15,7 @@ from app.config.settings import settings
 from app.rag.chunker import chunk_pages
 from app.rag.embeddings import EmbeddingService
 from app.rag.generator import AnswerGenerator
+from app.rag.query_rewriter import rewrite_query
 from app.rag.retriever import Retriever, RetrievedChunk
 from app.rag.small_talk import is_small_talk
 from app.rag.vector_store import VectorStore, VectorStoreError
@@ -44,6 +45,8 @@ class AskResult:
     # One of the SOURCE_* constants above, or None when no real answer
     # was generated (empty question, strict-mode refusal, error).
     source: str | None = None
+    # What retrieval actually searched for (the rewritten query, if any).
+    search_query: str | None = None
 
 
 class RAGPipeline:
@@ -61,6 +64,7 @@ class RAGPipeline:
         self.retriever = Retriever(self.vector_store, self.embedding_service)
         self.generator = AnswerGenerator()
         self.indexed_documents: set[str] = set()
+        self.rewrite_queries = settings.query_rewriting
 
     def index_files(self, files) -> tuple[int, dict[str, str]]:
         """Parse, clean, chunk, embed, and store uploaded files.
@@ -128,16 +132,26 @@ class RAGPipeline:
         strict = settings.strict_document_mode if strict_mode is None else strict_mode
         small_talk = is_small_talk(question)
 
+        # Fix typos and resolve follow-ups before searching (see
+        # app.rag.query_rewriter). Skipped when there's nothing to search.
+        search_query = question
+        if self.rewrite_queries and not small_talk and self.vector_store.count() > 0:
+            search_query = rewrite_query(
+                self.generator, question, history,
+                model_name=model_name, openrouter_model_name=openrouter_model_name,
+            )
+            small_talk = is_small_talk(search_query)
+
         # Small talk ("hi", "who are you?") never needs document
         # context — searching anyway attaches unrelated chunks as sources.
         try:
-            chunks = [] if small_talk else self.retriever.retrieve(question)
+            chunks = [] if small_talk else self.retriever.retrieve(search_query)
         except Exception:
             logger.exception("Retrieval failed")
             return AskResult(answer="Something went wrong while searching your documents.")
 
         if strict and not chunks and not small_talk:
-            return AskResult(answer=NOT_FOUND_MESSAGE, sources=[])
+            return AskResult(answer=NOT_FOUND_MESSAGE, sources=[], search_query=search_query)
 
         answer = self.generator.generate(
             question,
@@ -155,7 +169,10 @@ class RAGPipeline:
         else:
             source = SOURCE_GENERAL_KNOWLEDGE
 
-        return AskResult(answer=answer, sources=chunks, found_context=bool(chunks), source=source)
+        return AskResult(
+            answer=answer, sources=chunks, found_context=bool(chunks),
+            source=source, search_query=search_query,
+        )
 
     def clear_index(self) -> None:
         """Delete all indexed content (used by the 'clear index' button)."""

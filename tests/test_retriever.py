@@ -1,7 +1,7 @@
 import pytest
 
 from app.rag.chunker import Chunk
-from app.rag.retriever import Retriever
+from app.rag.retriever import Retriever, is_summary_request
 from app.rag.vector_store import VectorStore
 
 
@@ -91,3 +91,31 @@ def test_retrieve_on_empty_store_returns_no_results(tmp_path):
     retriever = Retriever(empty_store, embeddings)
 
     assert retriever.retrieve("question") == []
+
+
+@pytest.mark.parametrize(
+    "question",
+    ["Summarize this video", "What is this report about?", "Give me an overview of the PDF",
+     "key points of the uploaded file"],
+)
+def test_summary_requests_are_detected(question):
+    assert is_summary_request(question) is True
+
+
+@pytest.mark.parametrize(
+    "question",
+    ["Summarize the French Revolution", "How many leave days do I get?", "What is this about?"],
+)
+def test_other_questions_are_not_summary_requests(question):
+    assert is_summary_request(question) is False
+
+
+def test_summary_request_skips_score_threshold(populated_store):
+    question = "Summarize this document"
+    embeddings = FakeEmbeddingService({question: [1.0, 0.0, 0.0]})
+    retriever = Retriever(populated_store, embeddings, top_k=1, score_threshold=0.5)
+
+    results = retriever.retrieve(question)
+
+    # c2 is orthogonal (score 0) but still included, and top_k was widened.
+    assert [r.chunk_id for r in results] == ["c1", "c2"]

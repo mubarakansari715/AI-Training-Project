@@ -51,7 +51,9 @@ up an earlier conversation later — even after restarting the app.
 **Retrieval & answers**
 - Local embeddings (`sentence-transformers`, no external embedding API)
 - Persistent ChromaDB vector store (no re-indexing after a restart)
-- Semantic retrieval with a configurable similarity threshold
+- Semantic retrieval with a configurable similarity threshold; summary requests
+  ("summarize this video", "what is the report about?") fetch more chunks and
+  skip the threshold so the whole document is covered
 - Context-grounded answer generation via OpenRouter, falling back to Gemini
   (picking a Gemini model in the model picker sends it to Gemini first)
 - Source citations (filename + page number when available)

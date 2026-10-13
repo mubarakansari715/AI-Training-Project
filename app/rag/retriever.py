@@ -7,11 +7,31 @@ to the LLM instead of the entire document collection.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 from app.config.settings import settings
 from app.rag.embeddings import EmbeddingService
 from app.rag.vector_store import VectorStore
+
+# A request to summarize a whole document/video ("summarize this video",
+# "what is the report about?"). Those need broad coverage, not just the
+# single closest chunk — and generic wording like "summarize" scores low
+# against specific content, so the similarity threshold would drop most
+# of the document. Both an intent word and a document word are required,
+# so "summarize the French Revolution" is still a normal question.
+_SUMMARY_INTENT_RE = re.compile(
+    r"\b(summar\w*|overview|tl;?dr|gist|key\s+points|main\s+points|about)\b", re.IGNORECASE
+)
+_DOCUMENT_WORD_RE = re.compile(
+    r"\b(video|audio|recording|transcript|document|doc|file|report|pdf|upload\w*)s?\b", re.IGNORECASE
+)
+_SUMMARY_TOP_K_MULTIPLIER = 3
+_SUMMARY_TOP_K_MAX = 15
+
+
+def is_summary_request(question: str) -> bool:
+    return bool(_SUMMARY_INTENT_RE.search(question) and _DOCUMENT_WORD_RE.search(question))
 
 
 @dataclass
@@ -43,18 +63,25 @@ class Retriever:
         )
 
     def retrieve(self, question: str) -> list[RetrievedChunk]:
-        """Return relevant chunks for `question`, most similar first."""
+        """Return relevant chunks for `question`, most similar first.
+
+        Summary requests (see `is_summary_request`) fetch more chunks and
+        skip the similarity threshold, so the whole document is covered.
+        """
         if not question or not question.strip():
             return []
 
+        summary = is_summary_request(question)
+        top_k = min(self.top_k * _SUMMARY_TOP_K_MULTIPLIER, _SUMMARY_TOP_K_MAX) if summary else self.top_k
+
         query_embedding = self._embeddings.embed_query(question)
-        matches = self._vector_store.search(query_embedding, top_k=self.top_k)
+        matches = self._vector_store.search(query_embedding, top_k=top_k)
 
         results = []
         for match in matches:
             # Cosine distance in [0, 2] -> similarity score in [-1, 1].
             score = 1 - match["distance"]
-            if score < self.score_threshold:
+            if score < self.score_threshold and not summary:
                 continue
             results.append(
                 RetrievedChunk(

@@ -2,7 +2,9 @@
 
 import streamlit as st
 
-SUPPORTED_DOCUMENT_TYPES = ["pdf", "docx", "txt", "md"]
+from app.rag.document_loader import SUPPORTED_EXTENSIONS
+
+SUPPORTED_DOCUMENT_TYPES = sorted(SUPPORTED_EXTENSIONS)
 
 # ChatGPT-style chat layout: centered column, a rounded bubble
 # right-aligned for the user's turn, plain left-aligned text (with

@@ -58,6 +58,10 @@ class Settings:
     # creative ones — appropriate for a document-grounded QA assistant.
     gemini_temperature: float = _get_float("GEMINI_TEMPERATURE", 0.2)
 
+    # faster-whisper model for transcribing attached video/audio
+    # (tiny/base/small/medium); larger is more accurate but slower.
+    whisper_model: str = os.getenv("WHISPER_MODEL", "base")
+
     embedding_model: str = os.getenv(
         "EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
     )

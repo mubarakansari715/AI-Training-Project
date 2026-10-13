@@ -1,7 +1,8 @@
 """Document parsing.
 
-Converts raw file bytes (PDF, DOCX, TXT, Markdown) into a common
-list of DocumentPage objects, regardless of source format.
+Converts raw file bytes (PDF, DOCX, TXT, Markdown, and video/audio via
+transcription) into a common list of DocumentPage objects, regardless
+of source format.
 """
 
 from __future__ import annotations
@@ -17,7 +18,10 @@ from pypdf.errors import PdfReadError
 
 logger = logging.getLogger(__name__)
 
-SUPPORTED_EXTENSIONS = {"pdf", "docx", "txt", "md"}
+# Media types are transcribed by app.rag.media_transcriber (imported
+# lazily, since it depends on this module for DocumentPage).
+MEDIA_EXTENSIONS = {"mp4", "mov", "m4v", "webm", "mkv", "avi", "mp3", "wav", "m4a", "ogg", "flac"}
+SUPPORTED_EXTENSIONS = {"pdf", "docx", "txt", "md"} | MEDIA_EXTENSIONS
 
 
 class DocumentParsingError(Exception):
@@ -38,7 +42,9 @@ def parse_document(filename: str, data: bytes) -> list[DocumentPage]:
 
     Each PDF page becomes its own DocumentPage so page numbers are
     preserved. DOCX/TXT/Markdown have no reliable page concept, so a
-    single DocumentPage is returned with `page=None`.
+    single DocumentPage is returned with `page=None`. Video/audio files
+    are transcribed into an info page plus [mm:ss]-timestamped transcript
+    pages (see app.rag.media_transcriber).
 
     Returns an empty list if the file is readable but contains no
     extractable text. Raises DocumentParsingError for empty files,
@@ -60,6 +66,10 @@ def parse_document(filename: str, data: bytes) -> list[DocumentPage]:
             return _parse_pdf(data, filename)
         if extension == "docx":
             return _parse_docx(data, filename)
+        if extension in MEDIA_EXTENSIONS:
+            from app.rag.media_transcriber import transcribe_media
+
+            return transcribe_media(data, filename)
         return _parse_text(data, filename)  # txt, md
     except DocumentParsingError:
         raise

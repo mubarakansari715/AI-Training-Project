@@ -22,8 +22,9 @@ Gemini as a fallback).
 
 ## Overview
 
-Attach PDF, DOCX, TXT, or Markdown documents right from the chat box (the
-📎 icon, same as ChatGPT/Gemini) and ask questions about them. The
+Attach PDF, DOCX, TXT, or Markdown documents — or video/audio files, which
+are transcribed — right from the chat box (the 📎 icon, same as
+ChatGPT/Gemini) and ask questions about them. The
 assistant answers from your uploaded documents whenever they contain the
 answer — it retrieves the most relevant chunks, sends just that context to
 the LLM, and cites the source file (and page, when available). If nothing
@@ -38,6 +39,10 @@ up an earlier conversation later — even after restarting the app.
 **Document handling**
 - Multi-document upload directly from the chat input's attach icon
   (PDF, DOCX, TXT, Markdown) — ChatGPT/Gemini-style, no separate uploader
+- Video/audio support (MP4, MOV, WebM, MKV, AVI, MP3, WAV, M4A, OGG, FLAC):
+  speech is transcribed locally with `faster-whisper` into `[mm:ss]`-timestamped
+  text, plus an info page (duration, resolution, frame rate, language), so you
+  can ask what was said and when. On-screen visuals are not analysed.
 - Robust text extraction with graceful handling of empty/corrupted files
 - Text cleaning (whitespace, broken line breaks, extraction artifacts)
 - Structure-aware chunking (paragraph/sentence-boundary-first splitting)
@@ -103,6 +108,7 @@ and reloaded into the UI when you pick it from the sidebar.
 | Language | Python 3.11+ |
 | UI | Streamlit |
 | Document parsing | `pypdf`, `python-docx`, built-in text/Markdown handling |
+| Video/audio | `faster-whisper` (local speech-to-text, run in its own process), `av` for metadata |
 | Chunking | LangChain's `RecursiveCharacterTextSplitter` |
 | Embeddings | `sentence-transformers/all-MiniLM-L6-v2` (configurable) |
 | Vector store | ChromaDB (persistent, local) |
@@ -123,6 +129,8 @@ app/
 │   └── components.py            # Small reusable UI pieces
 ├── rag/
 │   ├── document_loader.py       # PDF/DOCX/TXT/MD -> DocumentPage
+│   ├── media_transcriber.py     # Video/audio -> info page + timestamped transcript
+│   ├── transcribe_worker.py     # Whisper speech-to-text, run as a separate process
 │   ├── text_cleaner.py          # Whitespace/artifact cleanup
 │   ├── chunker.py                # Text -> Chunk (with metadata)
 │   ├── embeddings.py             # Cached sentence-transformers wrapper
@@ -206,6 +214,7 @@ See [`.env.example`](.env.example) for the full file with defaults:
 | `GEMINI_MODEL` | Gemini model name | `gemini-3.5-flash-lite` |
 | `GEMINI_TEMPERATURE` | Sampling temperature (0.0-2.0); lower = more literal/consistent | `0.2` |
 | `EMBEDDING_MODEL` | sentence-transformers model name | `sentence-transformers/all-MiniLM-L6-v2` |
+| `WHISPER_MODEL` | faster-whisper model for video/audio (`tiny`/`base`/`small`/`medium`) | `base` |
 | `CHROMA_PERSIST_DIR` | Where the vector store is saved | `data/chroma` |
 | `CHROMA_COLLECTION_NAME` | ChromaDB collection name | `rag_documents` |
 | `CHUNK_SIZE` | Characters per chunk | `800` |
@@ -233,10 +242,11 @@ Opens at `http://localhost:8501`.
 
 ## How RAG Works
 
-1. **Upload** — you attach PDF/DOCX/TXT/MD files via the chat input's
-   📎 icon.
+1. **Upload** — you attach PDF/DOCX/TXT/MD or video/audio files via the
+   chat input's 📎 icon.
 2. **Parse** — each format is converted into plain text, preserving the
-   source filename and page number (PDF only).
+   source filename and page number (PDF only). Video/audio is transcribed,
+   each line prefixed with its `[mm:ss]` timestamp.
 3. **Clean** — whitespace and extraction artifacts are normalized.
 4. **Chunk** — text is split into ~800-character pieces (150-character
    overlap), preferring paragraph/sentence boundaries.
@@ -281,7 +291,8 @@ reopenable conversation history, ChatGPT-style:
 pytest
 ```
 
-Tests cover document parsing, text cleaning, chunking (including
+Tests cover document parsing (including video/audio transcription, with
+the Whisper model faked), text cleaning, chunking (including
 metadata/determinism), embeddings, the vector store, retrieval, prompt
 construction, small-talk detection, conversation persistence, and a full
 pipeline integration test. The OpenRouter and Gemini APIs are mocked throughout, so

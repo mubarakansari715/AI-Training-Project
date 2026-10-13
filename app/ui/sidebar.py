@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 import streamlit as st
 
-from app.config.settings import APP_NAME, settings
+from app.config.settings import APP_ICON, APP_NAME, settings
 from app.ui.components import render_document_list
 
 # Curated, known-good model IDs for the picker; "Custom..." lets you type
@@ -115,7 +115,8 @@ def render_sidebar(
     below "New chat", ChatGPT-style.
     """
     with st.sidebar:
-        st.title(f"🤖 {APP_NAME}")
+        st.logo(APP_ICON, size="large")
+        st.title(APP_NAME)
 
         new_chat = st.button(
             "New chat", icon=":material/edit_square:", width="stretch"

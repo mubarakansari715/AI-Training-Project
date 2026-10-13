@@ -19,6 +19,7 @@ import re
 
 import streamlit as st
 
+from app.config.settings import APP_ICON
 from app.rag.retriever import RetrievedChunk
 from app.services.conversation_service import ConversationStore
 from app.services.rag_service import (
@@ -139,7 +140,7 @@ def render_chat(
         st.session_state.chat_history = []
 
     for message in st.session_state.chat_history:
-        avatar = ":material/smart_toy:" if message["role"] == "assistant" else None
+        avatar = APP_ICON if message["role"] == "assistant" else None
         with st.chat_message(message["role"], avatar=avatar):
             for filename in message.get("attached_files", []):
                 st.caption(f"📎 {filename}")
@@ -191,7 +192,7 @@ def render_chat(
         }
     )
 
-    with st.chat_message("assistant", avatar=":material/smart_toy:"):
+    with st.chat_message("assistant", avatar=APP_ICON):
         index_note = _index_attached_files(pipeline, files) if files else None
         sources = []
         source_label = None

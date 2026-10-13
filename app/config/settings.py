@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -16,6 +17,8 @@ load_dotenv()
 # The assistant's display name, used in the UI and in the LLM's
 # system instructions so it introduces itself consistently.
 APP_NAME = "ALLY AI"
+# Compass logo: browser tab icon, sidebar logo, and assistant avatar.
+APP_ICON = str(Path(__file__).resolve().parent.parent / "assets" / "ally_icon.png")
 
 
 def _get_int(name: str, default: int) -> int:

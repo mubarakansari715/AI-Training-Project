@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import streamlit as st
 
-from app.config.settings import APP_NAME
+from app.config.settings import APP_ICON, APP_NAME
 from app.services.conversation_service import ConversationStore
 from app.services.rag_service import RAGPipeline
 from app.ui.chat import render_chat
@@ -85,7 +85,7 @@ def handle_document_management(pipeline: RAGPipeline, sidebar) -> None:
 def main() -> None:
     st.set_page_config(
         page_title=APP_NAME,
-        page_icon="🤖",
+        page_icon=APP_ICON,
         layout="wide",
     )
 

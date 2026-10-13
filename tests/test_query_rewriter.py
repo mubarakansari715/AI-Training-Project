@@ -63,4 +63,4 @@ def test_prompt_without_history_says_none():
     gen = _generator("Who built you?")
     rewrite_query(gen, "whu bilt yu")
     assert "Conversation so far:\n(none)" in gen.calls[0][0]
-    assert REWRITE_PROMPT.startswith("Rewrite the user's latest message")
+    assert REWRITE_PROMPT.startswith("Prepare the user's latest message")

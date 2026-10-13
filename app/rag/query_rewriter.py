@@ -4,7 +4,8 @@ Embedding search is sensitive to typos ("wat is my vitamn d levl" scores
 far lower than the correct spelling) and can't resolve follow-ups ("and
 my cholesterol?"), while the LLM handles both easily. So before
 searching, one short LLM call rewrites the user's message into a clean,
-self-contained search query — the standard "condense question" step of
+self-contained question (left unchanged when it already is one — rewriting
+a clear question into keywords was measured to hurt the reranker) — the standard "condense question" step of
 chat-style RAG apps. Only retrieval uses the rewrite; the answer step
 still sees the user's original words and the conversation.
 
@@ -25,13 +26,15 @@ logger = logging.getLogger(__name__)
 _HISTORY_MESSAGES = 6
 _HISTORY_CHARS = 300
 
-REWRITE_PROMPT = """Rewrite the user's latest message as a standalone search query \
-for finding information in their uploaded documents.
-- Fix spelling mistakes and typos.
-- If it is a follow-up, use the conversation to make it self-contained \
-(replace words like "it", "that" or "and my X?" with what they refer to).
-- Keep the user's meaning, names, numbers and language. Do not answer it.
-Return only the rewritten query, on a single line.
+REWRITE_PROMPT = """Prepare the user's latest message for searching their uploaded documents.
+- If it is already a clear, correctly spelled, self-contained question, return it \
+exactly unchanged.
+- Otherwise fix spelling mistakes and typos, and if it is a follow-up, use the \
+conversation to make it self-contained (replace words like "it", "that" or \
+"and my X?" with what they refer to).
+- Always return a natural-language question, never a keyword list, and keep the \
+user's meaning, names, numbers and language. Do not answer it.
+Return only the question, on a single line.
 
 Conversation so far:
 {history}

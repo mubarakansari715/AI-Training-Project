@@ -45,11 +45,14 @@ class EvalConfig:
     embedding_query_prefix: str = settings.embedding_query_prefix
     top_k: int = settings.top_k
     score_threshold: float = settings.similarity_threshold
+    reranker_model: str = settings.reranker_model  # "" = no reranking
+    rerank_candidates: int = settings.rerank_candidates
 
     @property
     def label(self) -> str:
         model = self.embedding_model.split("/")[-1]
-        return f"{model} | {self.chunk_size}/{self.chunk_overlap} | k={self.top_k} | th={self.score_threshold}"
+        rerank = f"rerank {self.reranker_model.split('/')[-1]}@{self.rerank_candidates}" if self.reranker_model else "no rerank"
+        return f"{model} | {self.chunk_size}/{self.chunk_overlap} | k={self.top_k} | th={self.score_threshold} | {rerank}"
 
 
 @dataclass
@@ -90,6 +93,8 @@ def build_pipeline(document: str | Path, config: EvalConfig | None = None) -> tu
         embedding_query_prefix=config.embedding_query_prefix,
         top_k=config.top_k,
         score_threshold=config.score_threshold,
+        reranker_model=config.reranker_model,
+        rerank_candidates=config.rerank_candidates,
     )
     num_chunks, errors = pipeline.index_files([_FileUpload(PROJECT_ROOT / document)])
     if errors or not num_chunks:

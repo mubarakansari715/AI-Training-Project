@@ -119,3 +119,53 @@ def test_summary_request_skips_score_threshold(populated_store):
 
     # c2 is orthogonal (score 0) but still included, and top_k was widened.
     assert [r.chunk_id for r in results] == ["c1", "c2"]
+
+
+class _ReverseReranker:
+    """Fake reranker: reverses candidate order, records what it was given."""
+
+    def __init__(self):
+        self.calls = []
+
+    def rerank(self, question, chunks, top_k):
+        self.calls.append((question, [c.chunk_id for c in chunks], top_k))
+        return list(reversed(chunks))[:top_k]
+
+
+def test_reranker_reorders_a_wider_candidate_set(populated_store):
+    question = "leave"
+    embeddings = FakeEmbeddingService({question: [0.9, 0.4, 0.0]})
+    reranker = _ReverseReranker()
+    retriever = Retriever(populated_store, embeddings, top_k=1, score_threshold=0.0,
+                          reranker=reranker, rerank_candidates=2)
+
+    results = retriever.retrieve(question)
+
+    assert reranker.calls == [("leave", ["c1", "c2"], 1)]  # fetched 2 candidates for top_k=1
+    assert [r.chunk_id for r in results] == ["c2"]
+
+
+def test_threshold_is_applied_before_reranking(populated_store):
+    question = "leave"
+    embeddings = FakeEmbeddingService({question: [1.0, 0.0, 0.0]})  # c2 scores 0
+    reranker = _ReverseReranker()
+    retriever = Retriever(populated_store, embeddings, top_k=2, score_threshold=0.5,
+                          reranker=reranker, rerank_candidates=5)
+
+    retriever.retrieve(question)
+
+    assert reranker.calls[0][1] == ["c1"]  # the below-threshold chunk never reaches the reranker
+
+
+def test_cross_encoder_reranker_puts_the_answering_chunk_first():
+    from app.rag.reranker import Reranker
+    from app.rag.retriever import RetrievedChunk
+
+    chunks = [RetrievedChunk(text=t, source="d", page=i, score=0.5, chunk_id=str(i)) for i, t in enumerate([
+        "The office is located downtown near the river.",
+        "Titles cataloged 34,367. Publications sold 334,798. Passports produced 15,901,600.",
+    ])]
+
+    ranked = Reranker("cross-encoder/ms-marco-MiniLM-L-6-v2").rerank("How many publications were sold?", chunks, 2)
+
+    assert ranked[0].chunk_id == "1"

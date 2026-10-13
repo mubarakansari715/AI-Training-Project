@@ -81,6 +81,12 @@ class Settings:
     # question/chunk pairs well under 0.1 and genuinely relevant ones
     # 0.25+, so 0.2 filters noise without dropping real matches.
     similarity_threshold: float = _get_float("SIMILARITY_THRESHOLD", 0.2)
+    # Cross-encoder that reorders the retrieved candidates (empty = off).
+    # It fixes chunks that are found but ranked too low, e.g. dense
+    # "by the numbers" pages; see app/rag/reranker.py.
+    reranker_model: str = os.getenv("RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
+    # How many embedding-search candidates the reranker chooses top_k from.
+    rerank_candidates: int = _get_int("RERANK_CANDIDATES", 20)
     # False (default): answer from documents when they have the answer,
     # otherwise fall back to the model's general knowledge (source is
     # shown in the UI either way). True: only ever answer from documents,

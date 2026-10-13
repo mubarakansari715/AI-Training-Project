@@ -16,6 +16,7 @@ from app.rag.chunker import chunk_pages
 from app.rag.embeddings import EmbeddingService
 from app.rag.generator import AnswerGenerator
 from app.rag.query_rewriter import rewrite_query
+from app.rag.reranker import Reranker
 from app.rag.retriever import Retriever, RetrievedChunk
 from app.rag.small_talk import is_small_talk
 from app.rag.vector_store import VectorStore, VectorStoreError
@@ -67,6 +68,8 @@ class RAGPipeline:
         embedding_query_prefix: str | None = None,
         top_k: int | None = None,
         score_threshold: float | None = None,
+        reranker_model: str | None = None,
+        rerank_candidates: int | None = None,
     ):
         self.chunk_size = chunk_size or settings.chunk_size
         self.chunk_overlap = settings.chunk_overlap if chunk_overlap is None else chunk_overlap
@@ -74,8 +77,11 @@ class RAGPipeline:
         self.vector_store = VectorStore(
             persist_dir=persist_dir, collection_name=collection_name
         )
+        reranker_model = settings.reranker_model if reranker_model is None else reranker_model
         self.retriever = Retriever(
-            self.vector_store, self.embedding_service, top_k=top_k, score_threshold=score_threshold
+            self.vector_store, self.embedding_service, top_k=top_k, score_threshold=score_threshold,
+            reranker=Reranker(reranker_model) if reranker_model else None,
+            rerank_candidates=rerank_candidates,
         )
         self.generator = AnswerGenerator()
         self.indexed_documents: set[str] = set()

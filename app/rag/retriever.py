@@ -54,6 +54,8 @@ class Retriever:
         embedding_service: EmbeddingService,
         top_k: int | None = None,
         score_threshold: float | None = None,
+        reranker=None,
+        rerank_candidates: int | None = None,
     ):
         self._vector_store = vector_store
         self._embeddings = embedding_service
@@ -61,12 +63,18 @@ class Retriever:
         self.score_threshold = (
             settings.similarity_threshold if score_threshold is None else score_threshold
         )
+        # Optional second stage (app.rag.reranker.Reranker): fetch a wider
+        # candidate set, then let the reranker pick the best top_k.
+        self.reranker = reranker
+        self.rerank_candidates = rerank_candidates or settings.rerank_candidates
 
     def retrieve(self, question: str) -> list[RetrievedChunk]:
         """Return relevant chunks for `question`, most similar first.
 
         Summary requests (see `is_summary_request`) fetch more chunks and
         skip the similarity threshold, so the whole document is covered.
+        With a reranker, `rerank_candidates` chunks are fetched, filtered
+        by the threshold, and reranked down to top_k.
         """
         if not question or not question.strip():
             return []
@@ -74,8 +82,9 @@ class Retriever:
         summary = is_summary_request(question)
         top_k = min(self.top_k * _SUMMARY_TOP_K_MULTIPLIER, _SUMMARY_TOP_K_MAX) if summary else self.top_k
 
+        fetch = max(top_k, self.rerank_candidates) if self.reranker else top_k
         query_embedding = self._embeddings.embed_query(question)
-        matches = self._vector_store.search(query_embedding, top_k=top_k)
+        matches = self._vector_store.search(query_embedding, top_k=fetch)
 
         results = []
         for match in matches:
@@ -92,4 +101,6 @@ class Retriever:
                     chunk_id=match["chunk_id"],
                 )
             )
-        return results
+        if self.reranker:
+            return self.reranker.rerank(question, results, top_k)
+        return results[:top_k]

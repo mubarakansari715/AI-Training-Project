@@ -39,6 +39,9 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--embedding-query-prefix", default=settings.embedding_query_prefix)
     parser.add_argument("--top-k", type=int, default=settings.top_k)
     parser.add_argument("--threshold", type=float, default=settings.similarity_threshold)
+    parser.add_argument("--reranker", default=settings.reranker_model,
+                        help='Cross-encoder reranker model ("" or "none" to disable)')
+    parser.add_argument("--rerank-candidates", type=int, default=settings.rerank_candidates)
     parser.add_argument("--model", default=settings.gemini_model,
                         help="Pinned answer model (Gemini) — default: GEMINI_MODEL")
     parser.add_argument("--judge-model", help="Judge model (default: same as --model)")
@@ -53,8 +56,10 @@ def main(argv: list[str] | None = None) -> None:
     questions_file = load_questions(args.questions)
     document = args.document or questions_file["document"]
     questions = questions_file["questions"]
+    reranker = "" if args.reranker.lower() in {"", "none", "off"} else args.reranker
     config = EvalConfig(args.chunk_size, args.chunk_overlap, args.embedding_model,
-                        args.embedding_query_prefix, args.top_k, args.threshold)
+                        args.embedding_query_prefix, args.top_k, args.threshold,
+                        reranker, args.rerank_candidates)
 
     print(f"Indexing {document} with {config.label} ...")
     pipeline, num_chunks = build_pipeline(document, config)

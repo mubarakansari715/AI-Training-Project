@@ -145,6 +145,7 @@ app/
 │   ├── retriever.py              # Question -> relevant chunks
 │   ├── prompt.py                 # RAG prompt template
 │   ├── generator.py              # OpenRouter/Gemini answer generation
+│   ├── reranker.py               # Cross-encoder reranking of retrieved chunks
 │   └── small_talk.py             # Greeting/intro/recall detection
 └── services/
     ├── document_service.py      # Parse+clean orchestration, per-file errors
@@ -229,6 +230,8 @@ See [`.env.example`](.env.example) for the full file with defaults:
 | `CHUNK_OVERLAP` | Character overlap between chunks | `150` |
 | `TOP_K` | Number of chunks retrieved per question | `5` |
 | `SIMILARITY_THRESHOLD` | Minimum cosine similarity ([-1, 1]) for a chunk to count as relevant | `0.2` |
+| `RERANKER_MODEL` | Cross-encoder that reorders retrieved candidates (empty = off) | `cross-encoder/ms-marco-MiniLM-L-6-v2` |
+| `RERANK_CANDIDATES` | Candidates fetched for the reranker to choose `TOP_K` from | `20` |
 | `STRICT_DOCUMENT_MODE` | Refuse to answer beyond the documents | `false` |
 | `QUERY_REWRITING` | Rewrite questions with the LLM before searching (typos, follow-ups) | `true` |
 

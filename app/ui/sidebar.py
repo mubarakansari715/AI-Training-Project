@@ -20,6 +20,7 @@ from app.ui.components import render_document_list
 # Gemini's are the fallback. Check what your key offers with Groq's
 # GET /openai/v1/models.
 GROQ_MODEL_OPTIONS = [
+    "auto",  # simple questions -> fast model, complex -> strong (app/rag/model_router.py)
     "openai/gpt-oss-120b",
     "openai/gpt-oss-20b",
     "qwen/qwen3.8-27b",
@@ -89,7 +90,9 @@ def render_model_picker() -> tuple[str | None, str | None]:
         width=280,
         help="Groq models are tried first, Gemini models as the "
         "fallback — picking one here overrides that provider's model, "
-        "the other keeps its configured default.",
+        "the other keeps its configured default. 'auto' sends simple "
+        "questions to a fast model and complex ones (comparisons, "
+        "explanations, multi-part) to a stronger one.",
     )
     if model_choice == CUSTOM_MODEL_OPTION:
         model_name = (

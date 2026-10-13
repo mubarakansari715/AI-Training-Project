@@ -22,6 +22,7 @@ from google import genai
 from google.genai import types
 
 from app.config.settings import settings
+from app.rag.model_router import AUTO_MODEL
 from app.rag.prompt import build_general_knowledge_prompt, build_prompt
 from app.rag.retriever import RetrievedChunk
 
@@ -196,7 +197,7 @@ class AnswerGenerator:
         model_name: str | None,
         temperature: float,
     ) -> str:
-        model = model_name or self.groq_model
+        model = self._concrete_groq_model(model_name)
         messages = _build_chat_messages(history, prompt)
         try:
             response = requests.post(
@@ -218,6 +219,13 @@ class AnswerGenerator:
         except Exception:
             logger.exception("Groq generation failed")
             return ""
+
+    def _concrete_groq_model(self, model_name: str | None) -> str:
+        """The model to send to Groq. "auto" should already have been
+        resolved per question (see app.rag.model_router); if it reaches
+        here — e.g. a helper call like query rewriting — use the fast model."""
+        model = model_name or self.groq_model
+        return settings.groq_fast_model if model == AUTO_MODEL else model
 
 
 def _build_gemini_contents(history: list[dict], current_prompt: str) -> list[dict]:

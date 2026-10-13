@@ -15,6 +15,7 @@ from app.config.settings import settings
 from app.rag.chunker import chunk_pages
 from app.rag.embeddings import EmbeddingService
 from app.rag.generator import AnswerGenerator
+from app.rag.model_router import resolve_groq_model
 from app.rag.query_rewriter import rewrite_query
 from app.rag.reranker import Reranker
 from app.rag.retriever import Retriever, RetrievedChunk
@@ -48,6 +49,8 @@ class AskResult:
     source: str | None = None
     # What retrieval actually searched for (the rewritten query, if any).
     search_query: str | None = None
+    # The Groq model used (after resolving "auto"), for display.
+    model: str | None = None
 
 
 class RAGPipeline:
@@ -152,6 +155,8 @@ class RAGPipeline:
 
         strict = settings.strict_document_mode if strict_mode is None else strict_mode
         small_talk = is_small_talk(question)
+        gemini_picked = model_name is not None and groq_model_name is None
+        groq_model = resolve_groq_model(groq_model_name or self.generator.groq_model, question)
 
         # Fix typos and resolve follow-ups before searching (see
         # app.rag.query_rewriter). Skipped when there's nothing to search.
@@ -159,7 +164,7 @@ class RAGPipeline:
         if self.rewrite_queries and not small_talk and self.vector_store.count() > 0:
             search_query = rewrite_query(
                 self.generator, question, history,
-                model_name=model_name, groq_model_name=groq_model_name,
+                model_name=model_name, groq_model_name=groq_model,
             )
             small_talk = is_small_talk(search_query)
 
@@ -180,7 +185,7 @@ class RAGPipeline:
             history=history,
             model_name=model_name,
             temperature=temperature,
-            groq_model_name=groq_model_name,
+            groq_model_name=groq_model,
         )
 
         if small_talk:
@@ -193,6 +198,7 @@ class RAGPipeline:
         return AskResult(
             answer=answer, sources=chunks, found_context=bool(chunks),
             source=source, search_query=search_query,
+            model=None if gemini_picked else groq_model,
         )
 
     def clear_index(self) -> None:

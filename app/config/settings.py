@@ -44,8 +44,13 @@ def _get_float(name: str, default: float) -> float:
 class Settings:
     # Primary LLM provider. Get a key at https://console.groq.com/keys.
     groq_api_key: str = os.getenv("GROQ_API_KEY", "")
-    # Any chat model your Groq key can use (GET /openai/v1/models).
-    groq_model: str = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+    # Any chat model your Groq key can use (GET /openai/v1/models), or
+    # "auto": simple questions go to the fast model, complex ones
+    # (comparisons, explanations, multi-part) to the strong one — see
+    # app/rag/model_router.py.
+    groq_model: str = os.getenv("GROQ_MODEL", "auto")
+    groq_fast_model: str = os.getenv("GROQ_FAST_MODEL", "openai/gpt-oss-20b")
+    groq_strong_model: str = os.getenv("GROQ_STRONG_MODEL", "openai/gpt-oss-120b")
 
     # OpenRouter — the previous primary provider, disabled for now (see
     # app/rag/generator.py). Uncomment to bring its settings back.

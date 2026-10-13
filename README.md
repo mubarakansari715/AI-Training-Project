@@ -59,6 +59,8 @@ up an earlier conversation later — even after restarting the app.
 - Semantic retrieval with a configurable similarity threshold; summary requests
   ("summarize this video", "what is the report about?") fetch more chunks and
   skip the threshold so the whole document is covered
+- **Auto model**: simple questions go to a fast Groq model, complex ones
+  (comparisons, explanations, multi-part) to a stronger one
 - Context-grounded answer generation via Groq, falling back to Gemini
   (picking a Gemini model in the model picker sends it to Gemini first)
 - Source citations (filename + page number when available)
@@ -145,6 +147,7 @@ app/
 │   ├── retriever.py              # Question -> relevant chunks
 │   ├── prompt.py                 # RAG prompt template
 │   ├── generator.py              # Groq/Gemini answer generation
+│   ├── model_router.py           # "auto" model: fast vs strong per question
 │   ├── reranker.py               # Cross-encoder reranking of retrieved chunks
 │   └── small_talk.py             # Greeting/intro/recall detection
 └── services/
@@ -217,7 +220,8 @@ See [`.env.example`](.env.example) for the full file with defaults:
 | Variable | Purpose | Default |
 |---|---|---|
 | `GROQ_API_KEY` | Groq API key (primary provider) | _(none)_ |
-| `GROQ_MODEL` | Default Groq model ID | `openai/gpt-oss-120b` |
+| `GROQ_MODEL` | Groq model ID, or `auto` (simple questions → fast model, complex → strong) | `auto` |
+| `GROQ_FAST_MODEL` / `GROQ_STRONG_MODEL` | Models `auto` chooses between | `openai/gpt-oss-20b` / `openai/gpt-oss-120b` |
 | `GEMINI_API_KEY` | Gemini API key (fallback provider) | _(none)_ |
 | `GEMINI_MODEL` | Gemini model name | `gemini-3.5-flash-lite` |
 | `GEMINI_TEMPERATURE` | Sampling temperature (0.0-2.0); lower = more literal/consistent | `0.2` |

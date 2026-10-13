@@ -17,11 +17,16 @@ from app.config.settings import settings
 logger = logging.getLogger(__name__)
 
 
+def _device() -> str | None:
+    """settings.model_device, with "auto" meaning let the library decide."""
+    return None if settings.model_device == "auto" else settings.model_device
+
+
 @lru_cache(maxsize=4)
 def _load_model(model_name: str) -> SentenceTransformer:
     """Load (and cache) a sentence-transformers model by name."""
     logger.info("Loading embedding model: %s", model_name)
-    return SentenceTransformer(model_name)
+    return SentenceTransformer(model_name, device=_device())
 
 
 class EmbeddingService:

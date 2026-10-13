@@ -65,6 +65,10 @@ class Settings:
     embedding_model: str = os.getenv(
         "EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
     )
+    # Device for the local models (embeddings, reranker). "cpu" by default:
+    # on Intel Macs the "mps" GPU backend measured 4-10x slower than CPU for
+    # these small models. "auto" lets sentence-transformers choose.
+    model_device: str = os.getenv("MODEL_DEVICE", "cpu")
     # Instruction some models expect before each query (e.g. BGE:
     # "Represent this sentence for searching relevant passages: ").
     embedding_query_prefix: str = os.getenv("EMBEDDING_QUERY_PREFIX", "")

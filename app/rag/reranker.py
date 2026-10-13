@@ -17,6 +17,7 @@ from functools import lru_cache
 
 from sentence_transformers import CrossEncoder
 
+from app.config.settings import settings
 from app.rag.retriever import RetrievedChunk
 
 logger = logging.getLogger(__name__)
@@ -25,7 +26,8 @@ logger = logging.getLogger(__name__)
 @lru_cache(maxsize=2)
 def _load_model(model_name: str) -> CrossEncoder:
     logger.info("Loading reranker model: %s", model_name)
-    return CrossEncoder(model_name)
+    device = None if settings.model_device == "auto" else settings.model_device
+    return CrossEncoder(model_name, device=device)
 
 
 class Reranker:

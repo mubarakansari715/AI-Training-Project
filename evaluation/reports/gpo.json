@@ -1,0 +1,383 @@
+{
+  "document": "notebooks/GPO-Anual-report.pdf",
+  "config": {
+    "chunk_size": 800,
+    "chunk_overlap": 150,
+    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "embedding_query_prefix": "",
+    "top_k": 5,
+    "score_threshold": 0.2,
+    "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    "rerank_candidates": 20
+  },
+  "answer_model": "gemini-3.5-flash-lite",
+  "retrieval": {
+    "summary": {
+      "hit_rate": 1.0,
+      "mrr": 0.944,
+      "avg_chunks": 5.0
+    },
+    "rows": [
+      {
+        "id": "sample-1",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          5,
+          21,
+          5,
+          19,
+          19
+        ]
+      },
+      {
+        "id": "sample-2",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          39,
+          10,
+          8,
+          22,
+          22
+        ]
+      },
+      {
+        "id": "sample-3",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          5,
+          14,
+          73,
+          23,
+          15
+        ]
+      },
+      {
+        "id": "copies-distributed",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          5,
+          15,
+          19,
+          8,
+          19
+        ]
+      },
+      {
+        "id": "passports",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          18,
+          6,
+          15,
+          14,
+          6
+        ]
+      },
+      {
+        "id": "fdlp-webinars",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          5,
+          20,
+          21,
+          21,
+          8
+        ]
+      },
+      {
+        "id": "revenues",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          6,
+          25,
+          26,
+          25,
+          14
+        ]
+      },
+      {
+        "id": "staff",
+        "hit": true,
+        "rank": 3,
+        "retrieved_pages": [
+          21,
+          12,
+          14,
+          15,
+          4
+        ]
+      },
+      {
+        "id": "libraries-nationwide",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          15,
+          19,
+          5,
+          19,
+          20
+        ]
+      },
+      {
+        "id": "nara-renovation",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          17,
+          5,
+          5,
+          17,
+          16
+        ]
+      },
+      {
+        "id": "preservation-stewards",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          5,
+          4,
+          6,
+          6,
+          4
+        ]
+      },
+      {
+        "id": "govinfo-beta",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          22,
+          22,
+          39,
+          22,
+          8
+        ]
+      }
+    ]
+  },
+  "answers": {
+    "summary": {
+      "accuracy": 1.0,
+      "citation_accuracy": 1.0
+    },
+    "rows": [
+      {
+        "id": "sample-1",
+        "question": "How many depository libraries did GPO staff visit in FY 2018?",
+        "search_query": "GPO staff depository library visits FY 2018 count",
+        "retrieved_pages": [
+          5,
+          21,
+          21,
+          5,
+          21
+        ],
+        "answer": "In FY 2018, GPO staff visited 166 depository libraries (GPO-Anual-report.pdf, pages 5 and 21).",
+        "correct": true,
+        "judge_reason": "The system answer correctly identifies the number of depository libraries visited in FY 2018 as 166, which matches the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "sample-2",
+        "question": "What new digital system replaced FDsys, and when was it fully deployed?",
+        "search_query": "What new digital system replaced FDsys, and when was it fully deployed?",
+        "retrieved_pages": [
+          39,
+          10,
+          8,
+          22,
+          22
+        ],
+        "answer": "The digital system that replaced FDsys is **govinfo** (www.govinfo.gov). It was moved out of beta in **December 2017**, and FDsys was scheduled to be completely retired and replaced by govinfo in **December 2018**.\n\n*Source: GPO-Anual-report.pdf, pages 8, 22, and 39*",
+        "correct": true,
+        "judge_reason": "The system accurately identified govinfo as the replacement system and provided the correct deployment timeline matching the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "sample-3",
+        "question": "How much did GPO procure in printing and information products in FY 2018 on behalf of federal agencies?",
+        "search_query": "GPO procurement amount for printing and information products in FY 2018 on behalf of federal agencies",
+        "retrieved_pages": [
+          5,
+          17,
+          14,
+          73,
+          23
+        ],
+        "answer": "In FY 2018, GPO procured more than $375 million (specifically valued at approximately $375.7 million) in printing and other information products on behalf of Federal agency partners. \n\nSources:\n- `GPO-Anual-report.pdf`, page 5\n- `GPO-Anual-report.pdf`, page 17\n- `GPO-Anual-report.pdf`, page 14",
+        "correct": true,
+        "judge_reason": "The system answer accurately captures both the approximate figure ('more than $375 million') and the specific amount ('approximately $375.7 million') mentioned in the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "copies-distributed",
+        "question": "How many copies and titles did GPO distribute to depository libraries in FY 2018?",
+        "search_query": "GPO distributed copies and titles to depository libraries FY 2018",
+        "retrieved_pages": [
+          5,
+          15,
+          19,
+          19,
+          5
+        ],
+        "answer": "In FY 2018, GPO distributed 802,834 copies of 4,211 titles to depository libraries nationwide (GPO-Anual-report.pdf, pages 5, 15, and 19).",
+        "correct": true,
+        "judge_reason": "The system answer accurately provides both the number of copies and titles distributed in FY 2018 as stated in the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "passports",
+        "question": "How many passports did GPO produce in FY 2018?",
+        "search_query": "GPO passports produced FY 2018",
+        "retrieved_pages": [
+          18,
+          6,
+          14,
+          6,
+          26
+        ],
+        "answer": "In FY 2018, GPO produced approximately 16 million passports (or 15,901,600 passports) for the State Department (Source: *GPO-Anual-report.pdf*, pages 6, 14, and 18).",
+        "correct": true,
+        "judge_reason": "The system answer includes both the exact figure and the rounded figure mentioned in the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "fdlp-webinars",
+        "question": "How many FDLP Academy webinars were hosted in FY 2018, and how many participants did they serve?",
+        "search_query": "How many FDLP Academy webinars were hosted in FY 2018, and how many participants did they serve?",
+        "retrieved_pages": [
+          5,
+          20,
+          21,
+          21,
+          8
+        ],
+        "answer": "In FY 2018, the FDLP Academy hosted over 85 webinars (with 10,214 combined registrants noted on page 20) that served more than 10,000 participants. \n\nSource: `GPO-Anual-report.pdf`, page 5 (and page 20)",
+        "correct": true,
+        "judge_reason": "The system answer accurately captures both key facts from the reference answer (over 85 webinars and more than 10,000 participants) and includes additional matching details without contradiction.",
+        "citation_ok": true
+      },
+      {
+        "id": "revenues",
+        "question": "What were GPO's total revenues in FY 2018?",
+        "search_query": "GPO total revenues FY 2018",
+        "retrieved_pages": [
+          26,
+          25,
+          14,
+          25,
+          27
+        ],
+        "answer": "GPO's operating revenues were $874.5 million in FY 2018 (or specifically $874,466,000) (Source: GPO-Anual-report.pdf, pages 14, 25, and 26).",
+        "correct": true,
+        "judge_reason": "The system answer accurately provides the total revenues for FY 2018 in both exact and rounded formats, matching the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "staff",
+        "question": "How many staff did GPO have in FY 2018?",
+        "search_query": "GPO staff count in FY 2018",
+        "retrieved_pages": [
+          21,
+          14,
+          15,
+          12,
+          27
+        ],
+        "answer": "In FY 2018, GPO had 1,737 staff (or employees) on board, as reported in *GPO-Anual-report.pdf* (pages 12, 14, and 15).",
+        "correct": true,
+        "judge_reason": "The system answer accurately provides the correct number of staff (1,737) for FY 2018 as stated in the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "libraries-nationwide",
+        "question": "How many depository libraries are there nationwide?",
+        "search_query": "How many depository libraries are there nationwide?",
+        "retrieved_pages": [
+          15,
+          19,
+          5,
+          19,
+          20
+        ],
+        "answer": "There are 1,133 depository libraries nationwide, according to *GPO-Anual-report.pdf* (pages 15 and 19).",
+        "correct": true,
+        "judge_reason": "The system answer accurately provides the correct number of depository libraries nationwide, matching the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "nara-renovation",
+        "question": "How much space did GPO renovate in Building A for NARA's Center for Legislative Archives?",
+        "search_query": "How much space did GPO renovate in Building A for NARA's Center for Legislative Archives?",
+        "retrieved_pages": [
+          17,
+          5,
+          5,
+          17,
+          16
+        ],
+        "answer": "GPO renovated approximately 25,000 square feet of space in Building A to serve as Phase I of NARA’s Center for Legislative Archives (Source: GPO-Anual-report.pdf, page 17). *(Note: Page 5 of the same report mentions the project involved the renovation and build-out of over 24,000 square feet of space).*",
+        "correct": true,
+        "judge_reason": "The system answer accurately captures the figures (25,000 and over 24,000 square feet) mentioned in the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "preservation-stewards",
+        "question": "How many additional Preservation Steward agreements did GPO sign in FY 2018?",
+        "search_query": "GPO Preservation Steward agreements signed in FY 2018",
+        "retrieved_pages": [
+          5,
+          6,
+          73,
+          6,
+          16
+        ],
+        "answer": "In FY 2018, GPO signed 20 additional Preservation Steward agreements with libraries across the country (GPO-Anual-report.pdf, page 5).",
+        "correct": true,
+        "judge_reason": "The system answer accurately provides the correct number of Preservation Steward agreements signed in FY 2018 as stated in the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "govinfo-beta",
+        "question": "When did the govinfo website move out of beta?",
+        "search_query": "When did the govinfo website move out of beta",
+        "retrieved_pages": [
+          22,
+          39,
+          22,
+          8,
+          22
+        ],
+        "answer": "The govinfo website moved out of beta in December 2017 (GPO-Anual-report.pdf, page 22).",
+        "correct": true,
+        "judge_reason": "The system answer accurately states that the govinfo website moved out of beta in December 2017, matching the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "trap-not-in-report",
+        "question": "What was GPO's budget for fiscal year 2025?",
+        "search_query": "GPO budget fiscal year 2025",
+        "retrieved_pages": [
+          77,
+          78,
+          77,
+          77,
+          77
+        ],
+        "answer": "The information was not found in the uploaded documents.",
+        "correct": true,
+        "judge_reason": "The system correctly stated that the information was not found in the documents, matching the reference answer.",
+        "citation_ok": null
+      }
+    ]
+  }
+}

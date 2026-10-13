@@ -1,0 +1,731 @@
+{
+  "document": "notebooks/GPO-Anual-report.pdf",
+  "config": {
+    "chunk_size": 800,
+    "chunk_overlap": 150,
+    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "embedding_query_prefix": "",
+    "top_k": 5,
+    "score_threshold": 0.2,
+    "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    "rerank_candidates": 20
+  },
+  "answer_model": "gemini-3.5-flash-lite",
+  "retrieval": {
+    "summary": {
+      "hit_rate": 1.0,
+      "mrr": 1.0,
+      "avg_chunks": 5.0
+    },
+    "rows": [
+      {
+        "id": "gen-01",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          13,
+          4,
+          14,
+          17,
+          12
+        ]
+      },
+      {
+        "id": "gen-02",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          5,
+          20,
+          20,
+          21,
+          15
+        ]
+      },
+      {
+        "id": "gen-03",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          7,
+          61,
+          35,
+          39,
+          16
+        ]
+      },
+      {
+        "id": "gen-04",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          8,
+          8,
+          11,
+          11,
+          63
+        ]
+      },
+      {
+        "id": "gen-05",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          9,
+          9,
+          35,
+          7,
+          8
+        ]
+      },
+      {
+        "id": "gen-06",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          12,
+          12,
+          11,
+          24,
+          63
+        ]
+      },
+      {
+        "id": "gen-07",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          12,
+          76,
+          63,
+          25,
+          14
+        ]
+      },
+      {
+        "id": "gen-08",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          13,
+          13,
+          23,
+          11,
+          13
+        ]
+      },
+      {
+        "id": "gen-09",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          17,
+          22,
+          13,
+          8,
+          14
+        ]
+      },
+      {
+        "id": "gen-10",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          17,
+          17,
+          5,
+          5,
+          29
+        ]
+      },
+      {
+        "id": "gen-11",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          19,
+          5,
+          39,
+          21,
+          21
+        ]
+      },
+      {
+        "id": "gen-12",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          19,
+          15,
+          20,
+          4,
+          7
+        ]
+      },
+      {
+        "id": "gen-13",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          20,
+          20,
+          5,
+          21,
+          8
+        ]
+      },
+      {
+        "id": "gen-14",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          21,
+          21,
+          21,
+          5,
+          5
+        ]
+      },
+      {
+        "id": "gen-15",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          23,
+          15,
+          8,
+          4,
+          19
+        ]
+      },
+      {
+        "id": "gen-16",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          24,
+          24,
+          7,
+          61,
+          35
+        ]
+      },
+      {
+        "id": "gen-17",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          24,
+          62,
+          24,
+          24,
+          24
+        ]
+      },
+      {
+        "id": "gen-18",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          25,
+          26,
+          52,
+          59,
+          60
+        ]
+      },
+      {
+        "id": "gen-19",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          26,
+          26,
+          44,
+          25,
+          26
+        ]
+      },
+      {
+        "id": "gen-20",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          36,
+          62,
+          24,
+          36,
+          24
+        ]
+      },
+      {
+        "id": "gen-21",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          37,
+          66,
+          76,
+          78,
+          76
+        ]
+      },
+      {
+        "id": "gen-22",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          38,
+          38,
+          16,
+          37,
+          18
+        ]
+      },
+      {
+        "id": "gen-23",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          40,
+          26,
+          26,
+          27,
+          69
+        ]
+      },
+      {
+        "id": "gen-24",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          40,
+          70,
+          70,
+          70,
+          40
+        ]
+      },
+      {
+        "id": "gen-25",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          49,
+          40,
+          37,
+          78,
+          26
+        ]
+      }
+    ]
+  },
+  "answers": {
+    "summary": {
+      "accuracy": 0.96,
+      "citation_accuracy": 0.96
+    },
+    "rows": [
+      {
+        "id": "gen-01",
+        "question": "How many pages long was the Official Congressional Directory for the 115th Congress produced by the U.S. Government Publishing Office in FY 2018?",
+        "search_query": "Official Congressional Directory 115th Congress U.S. Government Publishing Office FY 2018 page count length",
+        "retrieved_pages": [
+          13,
+          4,
+          14,
+          15,
+          11
+        ],
+        "answer": "The Official Congressional Directory for the 115th Congress was 1,242 pages long (Source: GPO-Anual-report.pdf, pages 4 and 13).",
+        "correct": true,
+        "judge_reason": "The system answer accurately provides the correct page count of 1,242 pages as stated in the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "gen-02",
+        "question": "How many additional Preservation Steward agreements did the Government Publishing Office sign with libraries across the country in FY 2018?",
+        "search_query": "Government Publishing Office Preservation Steward agreements signed with libraries FY 2018",
+        "retrieved_pages": [
+          20,
+          5,
+          20,
+          21,
+          23
+        ],
+        "answer": "In FY 2018, the Government Publishing Office signed 20 additional Preservation Steward agreements with libraries across the country (Source: GPO-Anual-report.pdf, page 5 and page 20).",
+        "correct": true,
+        "judge_reason": "The system answer correctly identifies the number of additional Preservation Steward agreements as 20 for FY 2018.",
+        "citation_ok": true
+      },
+      {
+        "id": "gen-03",
+        "question": "Under which title of the U.S. Code is the U.S. Government Publishing Office responsible for the production and distribution of information products for all three branches of the Government?",
+        "search_query": "U.S. Code title Government Publishing Office production and distribution information products all three branches",
+        "retrieved_pages": [
+          7,
+          61,
+          39,
+          35,
+          11
+        ],
+        "answer": "Under Title 44 of the U.S. Code, the U.S. Government Publishing Office is responsible for the production and distribution of information products for all three branches of the Government (Source: GPO-Anual-report.pdf, page 7).",
+        "correct": true,
+        "judge_reason": "The system answer correctly identifies Title 44 as the relevant title from the U.S. Code, matching the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "gen-04",
+        "question": "What section of the Constitution requires each House of Congress to keep and publish a journal of its proceedings?",
+        "search_query": "What section of the Constitution requires each House of Congress to keep and publish a journal of its proceedings?",
+        "retrieved_pages": [
+          8,
+          8,
+          11,
+          11,
+          63
+        ],
+        "answer": "Article I, section 5 of the Constitution requires that each House keep and publish a journal of its proceedings (Source: GPO-Anual-report.pdf, page 8).",
+        "correct": true,
+        "judge_reason": "The system answer correctly identifies 'Article I, section 5' as the required section from the Constitution, while adding harmless extra detail and source information.",
+        "citation_ok": true
+      },
+      {
+        "id": "gen-05",
+        "question": "What three words emphasize the blueprint for how the Government Publishing Office (GPO) will continue to achieve its mission?",
+        "search_query": "Three words emphasize the blueprint for how the Government Publishing Office (GPO) will continue to achieve its mission",
+        "retrieved_pages": [
+          9,
+          9,
+          35,
+          7,
+          7
+        ],
+        "answer": "The three words that emphasize the blueprint for how GPO will continue to achieve its mission are **OFFICIAL, DIGITAL, SECURE** (Source: GPO-Anual-report.pdf, page 9).",
+        "correct": true,
+        "judge_reason": "The system answer successfully identifies the three key words required by the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "gen-06",
+        "question": "What was the appropriation for Congressional Publishing in FY 1980?",
+        "search_query": "Congressional Publishing FY 1980 appropriation",
+        "retrieved_pages": [
+          12,
+          12,
+          11,
+          63,
+          24
+        ],
+        "answer": "In FY 1980, the appropriation for Congressional Publishing was $91.6 million (which was the equivalent of $285.4 million in constant dollars) (GPO-Anual-report.pdf, pages 11 and 12).",
+        "correct": true,
+        "judge_reason": "The system answer correctly identifies the appropriation amount for Congressional Publishing in FY 1980 as $91.6 million, and the extra detail provided does not contradict the reference.",
+        "citation_ok": true
+      },
+      {
+        "id": "gen-07",
+        "question": "What was the approved funding for the U.S. Government Publishing Office for fiscal year 2018?",
+        "search_query": "U.S. Government Publishing Office approved funding fiscal year 2018",
+        "retrieved_pages": [
+          12,
+          32,
+          60,
+          76,
+          63
+        ],
+        "answer": "The approved funding for the U.S. Government Publishing Office for fiscal year 2018 was $79.5 million (Source: GPO-Anual-report.pdf, page 12).",
+        "correct": true,
+        "judge_reason": "The system answer accurately provides the requested funding amount of $79.5 million for fiscal year 2018.",
+        "citation_ok": true
+      },
+      {
+        "id": "gen-08",
+        "question": "What format are the digitally signed copies made available in through the Bulk Data Repository?",
+        "search_query": "Bulk Data Repository digitally signed copies file format",
+        "retrieved_pages": [
+          13,
+          23,
+          13,
+          11,
+          13
+        ],
+        "answer": "The digitally signed copies made available through the Bulk Data Repository are in PDF format (Source: GPO-Anual-report.pdf, page 13).",
+        "correct": true,
+        "judge_reason": "The system answer correctly identifies that the copies are available in PDF format, matching the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "gen-09",
+        "question": "How many individual issues of the Federal Register were digitized by the U.S. Government Publishing Office in FY 2018?",
+        "search_query": "How many individual issues of the Federal Register were digitized by the U.S. Government Publishing Office in FY 2018?",
+        "retrieved_pages": [
+          17,
+          22,
+          13,
+          8,
+          14
+        ],
+        "answer": "In FY 2018, the U.S. Government Publishing Office digitized more than 14,587 individual issues of the Federal Register (Source: GPO-Anual-report.pdf, page 17).",
+        "correct": true,
+        "judge_reason": "The system answer accurately provides the key fact from the reference answer ('more than 14,587') along with appropriate context.",
+        "citation_ok": true
+      },
+      {
+        "id": "gen-10",
+        "question": "In what fiscal year was space in the Government Publishing Office's Building A expanded for NARA's Center for Legislative Archives?",
+        "search_query": "fiscal year space in Government Publishing Office Building A expanded for NARA Center for Legislative Archives",
+        "retrieved_pages": [
+          17,
+          5,
+          17,
+          5,
+          7
+        ],
+        "answer": "Space in GPO's Building A was expanded for NARA's Center for Legislative Archives in fiscal year 2018 (Source: GPO-Anual-report.pdf, pages 5 and 17).",
+        "correct": true,
+        "judge_reason": "The system answer correctly identifies fiscal year 2018 as the time when the space was expanded, matching the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "gen-11",
+        "question": "How many libraries were part of the Federal Depository Library Program network served by the FDLP?",
+        "search_query": "number of libraries in the Federal Depository Library Program network served by the FDLP",
+        "retrieved_pages": [
+          19,
+          5,
+          39,
+          21,
+          21
+        ],
+        "answer": "The Federal Depository Library Program (FDLP) network serves a total of 1,133 public, academic, law, and other libraries located across the nation (GPO-Anual-report.pdf, page 19 and page 39).",
+        "correct": true,
+        "judge_reason": "The system answer correctly identifies the number of libraries as 1,133, matching the reference answer while providing additional context from the document.",
+        "citation_ok": true
+      },
+      {
+        "id": "gen-12",
+        "question": "How many titles did GPO's Library Services and Content Management staff catalog through the Catalog of U.S. Government Publications?",
+        "search_query": "How many titles did GPO's Library Services and Content Management staff catalog through the Catalog of U.S. Government Publications?",
+        "retrieved_pages": [
+          19,
+          15,
+          20,
+          4,
+          7
+        ],
+        "answer": "GPO's Library Services and Content Management staff cataloged a total of 34,367 titles through the CGP (Source: GPO-Anual-report.pdf, pages 15 and 19).",
+        "correct": true,
+        "judge_reason": "The system answer correctly provides the exact number of titles (34,367) found in the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "gen-13",
+        "question": "In what fiscal year was the FDLP Academy launched by the GPO?",
+        "search_query": "FDLP Academy launch fiscal year GPO",
+        "retrieved_pages": [
+          20,
+          5,
+          20,
+          5,
+          8
+        ],
+        "answer": "The FDLP Academy was launched by GPO in fiscal year (FY) 2014 (Source: GPO-Anual-report.pdf, page 20).",
+        "correct": true,
+        "judge_reason": "The system answer correctly identifies the fiscal year 2014 as the launch year of the FDLP Academy, matching the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "gen-14",
+        "question": "Who introduced the Federal Depository Library Program Modernization Act of 2018?",
+        "search_query": "Who introduced the Federal Depository Library Program Modernization Act of 2018?",
+        "retrieved_pages": [
+          21,
+          21,
+          21,
+          5,
+          5
+        ],
+        "answer": "The Federal Depository Library Program Modernization Act of 2018 (H.R. 5305) was introduced by Committee on House Administration Chairman Gregg Harper on March 15, 2018 (Source: GPO-Anual-report.pdf, page 21).",
+        "correct": true,
+        "judge_reason": "The system answer correctly identifies Gregg Harper, Committee on House Administration Chairman, as the person who introduced the act.",
+        "citation_ok": true
+      },
+      {
+        "id": "gen-15",
+        "question": "How many titles were available online through the Government Publishing Office (GPO) in fiscal year 2018?",
+        "search_query": "Government Publishing Office GPO number of online titles available fiscal year 2018",
+        "retrieved_pages": [
+          23,
+          15,
+          8,
+          4,
+          14
+        ],
+        "answer": "In fiscal year 2018, there were 2,500,000 titles available online through GPO (Source: *GPO-Anual-report.pdf*, page 23).",
+        "correct": true,
+        "judge_reason": "The system answer correctly identifies the number of titles available online through the GPO in fiscal year 2018 as 2,500,000, matching the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "gen-16",
+        "question": "What functions as the checking account for the Government Publishing Office with the U.S. Treasury?",
+        "search_query": "Government Publishing Office checking account with the U.S. Treasury",
+        "retrieved_pages": [
+          24,
+          69,
+          61,
+          73,
+          7
+        ],
+        "answer": "The Business Operations Revolving Fund functions as GPO's checking account with the U.S. Treasury (GPO-Anual-report.pdf, page 24).",
+        "correct": true,
+        "judge_reason": "The system answer accurately identifies the Business Operations Revolving Fund as the checking account for the Government Publishing Office with the U.S. Treasury, matching the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "gen-17",
+        "question": "What revolving fund is used for the costs of publishing documents required for the use of Congress in digital and tangible formats?",
+        "search_query": "revolving fund for publishing documents required for the use of Congress in digital and tangible formats",
+        "retrieved_pages": [
+          24,
+          11,
+          62,
+          24,
+          24
+        ],
+        "answer": "The revolving fund used for the costs of publishing documents required for the use of Congress in digital and tangible formats is the **Business Operations Revolving Fund** (Source: GPO-Anual-report.pdf, page 24).",
+        "correct": true,
+        "judge_reason": "The system correctly identified the Business Operations Revolving Fund as the answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "gen-18",
+        "question": "How many consecutive years had the Government Publishing Office earned an unmodified audit opinion on its finances as of FY 2018?",
+        "search_query": "Government Publishing Office consecutive years unmodified audit opinion finances FY 2018",
+        "retrieved_pages": [
+          26,
+          52,
+          36,
+          59,
+          51
+        ],
+        "answer": "Based on the provided documents, the information regarding how many *consecutive* years the Government Publishing Office earned an unmodified audit opinion is not found in the uploaded documents (Source [1], page 26, notes only that GPO received an unmodified opinion for FY 2018, but does not mention the number of consecutive years).",
+        "correct": false,
+        "judge_reason": "The system stated that the information was not in the document, but the ground truth indicates the answer is present.",
+        "citation_ok": false
+      },
+      {
+        "id": "gen-19",
+        "question": "What was the net income after capital projects reserve and workers' compensation liability adjustment for GPO in FY 2018?",
+        "search_query": "GPO net income after capital projects reserve and workers compensation liability adjustment FY 2018",
+        "retrieved_pages": [
+          26,
+          44,
+          26,
+          25,
+          26
+        ],
+        "answer": "In FY 2018, GPO's net income after the capital projects reserve and workers' compensation liability adjustment was $20.4 million (or $20,384 thousand). \n\nSources: *GPO-Anual-report.pdf*, pages 26 and 44.",
+        "correct": true,
+        "judge_reason": "The system accurately provided the net income of $20.4 million for FY 2018 as stated in the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "gen-20",
+        "question": "What are the major sources of reimbursement to the Government Publishing Office's Revolving Fund?",
+        "search_query": "What are the major sources of reimbursement to the Government Publishing Office's Revolving Fund?",
+        "retrieved_pages": [
+          36,
+          62,
+          24,
+          36,
+          24
+        ],
+        "answer": "The major sources of reimbursement to GPO's Revolving Fund are:\n\n* Payments from Federal customers for printing and binding (including U.S. Passports and other secure credential documents and cards, blank paper and paper products, and information products distribution and design services).\n* Sales of Government publications and information products to the general public, bookstores, bookdealers, and businesses.\n* Fund transfers from the Congressional Publishing Appropriation (CP) and the Public Information Programs of the Superintendent of Documents (Salaries and Expenses or S&E) Appropriation for work performed and authorized to be billed to these appropriations.\n\n*(Source: GPO-Anual-report.pdf, page 36)*",
+        "correct": true,
+        "judge_reason": "The system answer accurately captures all the key sources of reimbursement to the Revolving Fund as stated in the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "gen-21",
+        "question": "After how many years are unexpended annual appropriations for the U.S. Government Publishing Office canceled and returned to the Department of the Treasury?",
+        "search_query": "U.S. Government Publishing Office unexpended annual appropriations cancellation years Treasury Department",
+        "retrieved_pages": [
+          37,
+          76,
+          78,
+          66,
+          76
+        ],
+        "answer": "Unexpended annual appropriations are canceled and returned to the Department of the Treasury after five years (GPO-Anual-report.pdf, page 37 and page 66).",
+        "correct": true,
+        "judge_reason": "The system answer correctly identifies 'five years' as the time period while providing helpful additional context from the document.",
+        "citation_ok": true
+      },
+      {
+        "id": "gen-22",
+        "question": "What kind of smart cards are used in all federal agencies for physical and logical access to government facilities and computer systems, as personalized by the Government Publishing Office?",
+        "search_query": "smart cards used in federal agencies for physical and logical access to government facilities and computer systems personalized by the Government Publishing Office",
+        "retrieved_pages": [
+          38,
+          38,
+          16,
+          22,
+          8
+        ],
+        "answer": "The smart cards are the Nation's HSPD-12 PIV smart cards (Source: GPO-Anual-report.pdf, page 38).",
+        "correct": true,
+        "judge_reason": "The system answer correctly identifies the smart cards as HSPD-12 PIV smart cards, matching the key facts of the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "gen-23",
+        "question": "By how much did GPO's cash (Fund Balance with Treasury) increase for fiscal year 2018?",
+        "search_query": "GPO's cash Fund Balance with Treasury increase amount for fiscal year 2018",
+        "retrieved_pages": [
+          40,
+          26,
+          26,
+          27,
+          69
+        ],
+        "answer": "GPO's cash (Fund Balance with Treasury) increased by $58.9 million (or 10.1%) as of September 30, 2018, compared to September 30, 2017 (Source: *GPO-Anual-report.pdf*, pages 26, 40, and 69).",
+        "correct": true,
+        "judge_reason": "The system answer accurately states the exact figure from the reference answer along with relevant context.",
+        "citation_ok": true
+      },
+      {
+        "id": "gen-24",
+        "question": "What was the net accounts receivable as of September 30, 2018?",
+        "search_query": "net accounts receivable as of September 30 2018",
+        "retrieved_pages": [
+          40,
+          70,
+          70,
+          70,
+          40
+        ],
+        "answer": "As of September 30, 2018, net accounts receivable was $138.6 million (or $138,551 thousand) (Source: GPO-Anual-report.pdf, pages 40 and 70).",
+        "correct": true,
+        "judge_reason": "The system answer accurately provides the net accounts receivable as of September 30, 2018, matching the reference answer while including helpful additional context.",
+        "citation_ok": true
+      },
+      {
+        "id": "gen-25",
+        "question": "What fiscal year's operating budget plans for the Government Publishing Office (GPO) to achieve at least break-even before the long-term FECA adjustment?",
+        "search_query": "Government Publishing Office GPO operating budget fiscal year break-even before long-term FECA adjustment",
+        "retrieved_pages": [
+          49,
+          25,
+          40,
+          37,
+          78
+        ],
+        "answer": "The fiscal 2019 operating budget plans for the GPO to achieve at least break-even before the long-term FECA adjustment (Source: GPO-Anual-report.pdf, page 49).",
+        "correct": true,
+        "judge_reason": "The system answer correctly identifies the fiscal year as 2019, matching the reference answer.",
+        "citation_ok": true
+      }
+    ]
+  }
+}

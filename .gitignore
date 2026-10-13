@@ -28,3 +28,4 @@ data/conversations/*
 
 # Evaluation data is JSON — re-include it in case a global gitignore excludes *.json
 !evaluation/questions/*.json
+!evaluation/reports/*.json

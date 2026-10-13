@@ -109,6 +109,11 @@ class Settings:
     # resolves follow-ups like "and my cholesterol?"); costs one short
     # extra LLM call per question while documents are indexed.
     query_rewriting: bool = _get_bool("QUERY_REWRITING", True)
+    # Auto (agent) mode: the LLM gets a document-search tool and decides
+    # whether, how often and with what wording to search before answering,
+    # like ChatGPT/Claude — see app/rag/agent.py. Needs Groq (tool calling).
+    agent_mode: bool = _get_bool("AGENT_MODE", True)
+    agent_max_searches: int = _get_int("AGENT_MAX_SEARCHES", 3)
 
 
 settings = Settings()

@@ -257,3 +257,74 @@ def test_pipeline_settings_can_be_overridden_per_instance(tmp_path):
     assert num_chunks > 1  # 200-char chunks split this text, the 800 default wouldn't twice over
     assert pipeline.retriever.top_k == 2
     assert pipeline.retriever.score_threshold == 0.5
+
+
+def _agent_pipeline(pipeline, monkeypatch, run_agent_impl):
+    pipeline.index_files([FakeUploadedFile("handbook.txt", b"Employees are entitled to 24 days of annual leave per year.")])
+    pipeline.generator.groq_api_key = "fake-groq"
+    monkeypatch.setattr("app.services.rag_service.run_agent", run_agent_impl)
+    return pipeline
+
+
+def test_auto_mode_uses_the_agent_and_reports_its_searches(pipeline, monkeypatch):
+    from app.rag.agent import AgentResult
+
+    captured = {}
+
+    def fake_agent(question, generator, retriever, history, **kwargs):
+        captured.update(kwargs)
+        chunks = retriever.retrieve("annual leave days")
+        return AgentResult(answer="24 days (handbook.txt).", sources=chunks, searches=["annual leave days"])
+
+    _agent_pipeline(pipeline, monkeypatch, fake_agent)
+    result = pipeline.ask("How many leave days?", auto_mode=True, groq_model_name="auto")
+
+    assert result.answer == "24 days (handbook.txt)."
+    assert result.searches == ["annual leave days"]
+    assert result.source == SOURCE_DOCUMENT
+    assert result.model == captured["model_name"]  # "auto" resolved to a concrete model
+    assert result.model != "auto"
+
+
+def test_auto_mode_falls_back_to_standard_pipeline_on_agent_error(pipeline, monkeypatch):
+    from app.rag.agent import AgentError
+
+    def failing_agent(*args, **kwargs):
+        raise AgentError("rate limited")
+
+    _agent_pipeline(pipeline, monkeypatch, failing_agent)
+    pipeline.rewrite_queries = False
+    _mock_gemini(pipeline, monkeypatch, "You get 24 days.")
+    pipeline.generator.groq_api_key = "fake-groq"
+    monkeypatch.setattr(pipeline.generator, "_generate_with_groq", lambda *a, **k: "")  # Groq down -> Gemini
+
+    result = pipeline.ask("How many leave days?", auto_mode=True)
+
+    assert result.answer == "You get 24 days."
+    assert result.searches == []
+    assert result.source == SOURCE_DOCUMENT
+
+
+def test_auto_mode_strict_guard_refuses_when_agent_found_nothing(pipeline, monkeypatch):
+    from app.rag.agent import AgentResult
+
+    _agent_pipeline(pipeline, monkeypatch, lambda *a, **k: AgentResult(answer="Probably 30 days.", sources=[], searches=["x"]))
+
+    result = pipeline.ask("How many sick days?", auto_mode=True, strict_mode=True)
+
+    assert result.answer == NOT_FOUND_MESSAGE
+
+
+def test_auto_mode_skipped_when_gemini_model_picked(pipeline, monkeypatch):
+    def must_not_run(*a, **k):
+        raise AssertionError("agent should not run")
+
+    _agent_pipeline(pipeline, monkeypatch, must_not_run)
+    pipeline.rewrite_queries = False
+    _mock_gemini(pipeline, monkeypatch, "You get 24 days.")
+    pipeline.generator.groq_api_key = "fake-groq"
+
+    result = pipeline.ask("How many leave days?", auto_mode=True, model_name="gemini-3.5-flash-lite")
+
+    assert result.answer == "You get 24 days."
+    assert result.model is None

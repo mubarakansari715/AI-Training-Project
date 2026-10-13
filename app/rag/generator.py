@@ -227,6 +227,46 @@ class AnswerGenerator:
         model = model_name or self.groq_model
         return settings.groq_fast_model if model == AUTO_MODEL else model
 
+    def chat_with_tools(
+        self,
+        messages: list[dict],
+        tools: list[dict],
+        model_name: str | None = None,
+        temperature: float | None = None,
+        tool_choice: str = "auto",
+    ) -> dict:
+        """One Groq chat turn with tool calling (OpenAI-compatible).
+
+        Returns the assistant message dict (with `content` and/or
+        `tool_calls`). Raises ToolCallingError on any failure, so the caller
+        can fall back to the non-agent pipeline (which also has the Gemini
+        fallback). Groq only: tool calling isn't wired up for Gemini.
+        """
+        if not self.groq_api_key:
+            raise ToolCallingError("Groq is not configured")
+        try:
+            response = requests.post(
+                GROQ_URL,
+                headers={"Authorization": f"Bearer {self.groq_api_key}"},
+                json={
+                    "model": self._concrete_groq_model(model_name),
+                    "messages": messages,
+                    "tools": tools,
+                    "tool_choice": tool_choice,
+                    "temperature": self.temperature if temperature is None else temperature,
+                },
+                timeout=GROQ_TIMEOUT_SECONDS,
+            )
+            response.raise_for_status()
+            return response.json()["choices"][0]["message"]
+        except Exception as exc:
+            logger.exception("Groq tool-calling turn failed")
+            raise ToolCallingError(str(exc)) from exc
+
+
+class ToolCallingError(Exception):
+    """A tool-calling turn failed (provider error, rate limit, bad response)."""
+
 
 def _build_gemini_contents(history: list[dict], current_prompt: str) -> list[dict]:
     """Turn chat history + the current RAG prompt into Gemini's multi-turn format."""

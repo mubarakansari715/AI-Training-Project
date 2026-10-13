@@ -136,6 +136,7 @@ def main() -> None:
         show_debug=sidebar.show_debug,
         strict_mode=sidebar.strict_mode,
         temperature=sidebar.temperature,
+        auto_mode=sidebar.auto_mode,
     )
 
 

@@ -55,6 +55,15 @@ def _render_source_label(source: str | None) -> None:
         st.caption(label)
 
 
+def _render_agent_trace(searches: list[str], model: str | None) -> None:
+    """Auto mode transparency: what the agent searched for, and which
+    model answered — like ChatGPT's "Searched …" line."""
+    if searches:
+        st.caption("🔎 Searched: " + " · ".join(f"“{q}”" for q in searches))
+    if model:
+        st.caption(f"⚡ {model.split('/')[-1]}")
+
+
 def _normalize_question(text: str) -> str:
     return re.sub(r"\s+", " ", text.strip().lower())
 
@@ -153,6 +162,7 @@ def render_chat(
     show_debug: bool,
     strict_mode: bool,
     temperature: float | None = None,
+    auto_mode: bool | None = None,
 ) -> None:
     """Render chat history and input box, storing messages in session state
     and persisting each exchange to `conversation_id` via `conversation_store`.
@@ -171,6 +181,7 @@ def render_chat(
                 st.write(message["content"])
             if message["role"] == "assistant":
                 _render_source_label(message.get("source"))
+                _render_agent_trace(message.get("searches", []), message.get("model"))
                 _render_sources(message.get("sources", []))
                 if message.get("show_debug"):
                     _render_debug(message.get("sources", []))
@@ -231,6 +242,7 @@ def render_chat(
         index_note = _index_attached_files(pipeline, files) if files else None
         sources = []
         source_label = None
+        searches, answer_model = [], None
 
         if question:
             # Skip the cache when files were just attached — newly
@@ -242,6 +254,7 @@ def render_chat(
                     cached.get("sources", []),
                     cached.get("source"),
                 )
+                searches, answer_model = cached.get("searches", []), cached.get("model")
             else:
                 with st.spinner("Thinking..."):
                     try:
@@ -252,8 +265,10 @@ def render_chat(
                             model_name=model_name,
                             groq_model_name=groq_model_name,
                             temperature=temperature,
+                            auto_mode=auto_mode,
                         )
                         answer, sources, source_label = result.answer, result.sources, result.source
+                        searches, answer_model = result.searches, result.model
                     except Exception:
                         answer, sources, source_label = (
                             "Something went wrong while generating the answer. Please try again.",
@@ -266,6 +281,7 @@ def render_chat(
 
         st.write(display_answer)
         _render_source_label(source_label)
+        _render_agent_trace(searches, answer_model)
         _render_sources(sources)
         if show_debug:
             _render_debug(sources)
@@ -277,6 +293,8 @@ def render_chat(
             "sources": sources,
             "source": source_label,
             "show_debug": show_debug,
+            "searches": searches,
+            "model": answer_model,
         }
     )
     conversation_store.save(conversation_id, st.session_state.chat_history)

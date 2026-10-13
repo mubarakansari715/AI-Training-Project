@@ -12,7 +12,9 @@ import logging
 from dataclasses import dataclass, field
 
 from app.config.settings import settings
+from app.rag.agent import AgentError, run_agent
 from app.rag.chunker import chunk_pages
+from app.rag.citations import cited_chunks
 from app.rag.embeddings import EmbeddingService
 from app.rag.generator import AnswerGenerator
 from app.rag.model_router import resolve_groq_model
@@ -49,6 +51,8 @@ class AskResult:
     source: str | None = None
     # What retrieval actually searched for (the rewritten query, if any).
     search_query: str | None = None
+    # Auto mode: every search the agent decided to run, in order.
+    searches: list[str] = field(default_factory=list)
     # The Groq model used (after resolving "auto"), for display.
     model: str | None = None
 
@@ -123,6 +127,7 @@ class RAGPipeline:
         model_name: str | None = None,
         temperature: float | None = None,
         groq_model_name: str | None = None,
+        auto_mode: bool | None = None,
     ) -> AskResult:
         """Answer a question using retrieved document context.
 
@@ -149,6 +154,13 @@ class RAGPipeline:
         `AskResult.source` tells the two apart so the UI can label
         which one produced the answer. Strict mode keeps the old
         behavior of refusing outright in that case.
+
+        Auto mode (`auto_mode`, default AGENT_MODE) hands the question to
+        the agent (app.rag.agent), which decides whether and how often to
+        search. It needs Groq and indexed documents, is skipped when a
+        Gemini model was picked explicitly, and falls back to the standard
+        path below on any agent failure. A Groq model of "auto" is resolved
+        per question to the fast or strong model (app.rag.model_router).
         """
         if not question or not question.strip():
             return AskResult(answer="Please enter a question.")
@@ -157,6 +169,38 @@ class RAGPipeline:
         small_talk = is_small_talk(question)
         gemini_picked = model_name is not None and groq_model_name is None
         groq_model = resolve_groq_model(groq_model_name or self.generator.groq_model, question)
+
+        agent_on = settings.agent_mode if auto_mode is None else auto_mode
+        if agent_on and not gemini_picked and self.generator.groq_api_key and self.vector_store.count() > 0:
+            try:
+                result = run_agent(
+                    question, self.generator, self.retriever, history,
+                    strict=strict, must_search=strict and not small_talk,
+                    model_name=groq_model, temperature=temperature,
+                    max_searches=settings.agent_max_searches,
+                )
+            except AgentError:
+                logger.warning("Auto mode failed; falling back to the standard pipeline", exc_info=True)
+            else:
+                if strict and not result.sources and not small_talk:
+                    return AskResult(answer=NOT_FOUND_MESSAGE, searches=result.searches, model=groq_model)
+                # Show only what the answer actually cites: when the agent
+                # searched but answered "not found" or from general knowledge,
+                # its unrelated search results aren't sources.
+                chunks = cited_chunks(result.answer, result.sources)
+                if chunks:
+                    source = SOURCE_DOCUMENT
+                elif small_talk:
+                    source = SOURCE_SMALL_TALK
+                elif strict:
+                    source = None  # strict mode: the agent declined; nothing to label
+                else:
+                    source = SOURCE_GENERAL_KNOWLEDGE
+                return AskResult(
+                    answer=result.answer, sources=chunks, found_context=bool(chunks), source=source,
+                    search_query=result.searches[0] if result.searches else None,
+                    searches=result.searches, model=groq_model,
+                )
 
         # Fix typos and resolve follow-ups before searching (see
         # app.rag.query_rewriter). Skipped when there's nothing to search.

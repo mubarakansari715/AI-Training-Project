@@ -28,6 +28,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from app.config.settings import settings
+from app.rag.citations import cited_pages
 from app.rag.generator import AnswerGenerator
 from app.rag.retriever import RetrievedChunk
 from app.services.rag_service import RAGPipeline
@@ -117,17 +118,6 @@ def first_hit_rank(chunks: list[RetrievedChunk], expected_pages: list[int]) -> i
         if chunk.page in expected_pages:
             return rank
     return None
-
-
-_PAGE_REF_RE = re.compile(r"\b(?:pp?|pages?)\.?\s*(\d+(?:\s*(?:,|and|&|–|-|to)\s*\d+)*)", re.IGNORECASE)
-
-
-def cited_pages(answer: str) -> set[int]:
-    """Page numbers an answer cites, e.g. 'p. 5', 'pages 14 and 15', 'pp. 4–5'."""
-    pages: set[int] = set()
-    for match in _PAGE_REF_RE.finditer(answer):
-        pages.update(int(n) for n in re.findall(r"\d+", match.group(1)))
-    return pages
 
 
 JUDGE_PROMPT = """You are grading the answer of a document question-answering system.
@@ -225,18 +215,24 @@ def evaluate_answers(
     judge_model: str | None = None,
     strict_mode: bool = True,
     calls_per_minute: int | None = None,
+    groq_model_name: str | None = None,
+    auto_mode: bool | None = False,
 ) -> list[dict]:
     """Ask every question through `pipeline.ask` and grade it with the judge.
 
-    `model_name` pins the answering model (a Gemini model) so runs are
-    comparable. Answers use temperature 0.
+    Pin the answering model so runs are comparable: `model_name` for a
+    Gemini model, `groq_model_name` for a Groq model (or "auto"). Auto
+    (agent) mode is off unless `auto_mode` is True. Answers use
+    temperature 0. The judge defaults to the configured Gemini model — a
+    different model family from the Groq answerer, so it isn't grading itself.
     """
     throttle = Throttle(calls_per_minute)
-    judge_model = judge_model or model_name
+    judge_model = judge_model or settings.gemini_model
     rows = []
     for q in questions:
-        throttle.wait(calls=2)  # query rewrite + answer
-        result = pipeline.ask(q["question"], strict_mode=strict_mode, model_name=model_name, temperature=0.0)
+        throttle.wait(calls=3 if auto_mode else 2)  # agent turns / rewrite + answer
+        result = pipeline.ask(q["question"], strict_mode=strict_mode, model_name=model_name, temperature=0.0,
+                              groq_model_name=groq_model_name, auto_mode=auto_mode)
         throttle.wait()
         grade = grade_answer(pipeline.generator, q["question"], q["reference_answer"], result.answer, judge_model)
         expected = set(q.get("expected_pages") or [])
@@ -244,6 +240,8 @@ def evaluate_answers(
             "id": q["id"],
             "question": q["question"],
             "search_query": result.search_query,
+            "searches": result.searches,
+            "model": result.model,
             "retrieved_pages": [c.page for c in result.sources],
             "answer": result.answer,
             "correct": grade["correct"],

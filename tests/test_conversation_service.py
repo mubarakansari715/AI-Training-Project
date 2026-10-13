@@ -41,6 +41,8 @@ def test_save_and_load_round_trips_messages(store):
         "show_debug": False,
         "attached_files": [],
         "voice": False,
+        "searches": [],
+        "model": None,
     }
     assert loaded[1]["content"] == "You get 24 days."
     assert loaded[1]["source"] == "document"
@@ -150,4 +152,16 @@ def test_save_and_load_round_trips_voice_flag(store):
     loaded = store.load(conversation_id)
 
     assert loaded[0]["voice"] is True
+
+
+def test_save_and_load_round_trips_agent_trace(store):
+    conversation_id = store.new_id()
+    store.save(conversation_id, [{"role": "assistant", "content": "15,901,600.",
+                                  "searches": ["How many passports?", "How many staff?"],
+                                  "model": "openai/gpt-oss-120b"}])
+
+    loaded = store.load(conversation_id)
+
+    assert loaded[0]["searches"] == ["How many passports?", "How many staff?"]
+    assert loaded[0]["model"] == "openai/gpt-oss-120b"
 

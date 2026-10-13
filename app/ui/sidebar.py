@@ -64,6 +64,7 @@ class SidebarState:
     show_debug: bool = False
     strict_mode: bool = settings.strict_document_mode
     temperature: float = settings.gemini_temperature
+    auto_mode: bool = settings.agent_mode
 
 
 def render_model_picker() -> tuple[str | None, str | None]:
@@ -170,6 +171,17 @@ def render_sidebar(
         st.divider()
 
         with st.expander("⚙️ Advanced settings"):
+            auto_mode = st.checkbox(
+                "🤖 Auto mode",
+                value=st.session_state.get("auto_mode", settings.agent_mode),
+                help="On: the AI decides whether to search your documents, "
+                "how many times, and with what wording — e.g. one search per "
+                "part of a comparison — then answers with sources, like "
+                "ChatGPT/Claude. Off: every question runs one search first. "
+                "Needs Groq; falls back to the standard flow if Groq fails.",
+            )
+            st.session_state.auto_mode = auto_mode
+
             strict_mode = st.checkbox(
                 "Strict document mode",
                 value=st.session_state.get("strict_mode", settings.strict_document_mode),
@@ -211,4 +223,5 @@ def render_sidebar(
         show_debug=show_debug,
         strict_mode=strict_mode,
         temperature=temperature,
+        auto_mode=auto_mode,
     )

@@ -8,7 +8,6 @@ from app.services.rag_service import AskResult
 from evaluation.harness import (
     JUDGE_PROMPT,
     Throttle,
-    cited_pages,
     evaluate_answers,
     first_hit_rank,
     load_questions,
@@ -26,14 +25,6 @@ def test_first_hit_rank_finds_first_expected_page():
     chunks = [_chunk(9), _chunk(5), _chunk(21)]
     assert first_hit_rank(chunks, [5, 21]) == 2
     assert first_hit_rank(chunks, [40]) is None
-
-
-@pytest.mark.parametrize(
-    ("answer", "pages"),
-    [("166 libraries (p. 5).", {5}), ("See pages 14 and 15.", {14, 15}), ("No citation here, 2018.", set())],
-)
-def test_cited_pages(answer, pages):
-    assert cited_pages(answer) == pages
 
 
 @pytest.mark.parametrize(
@@ -71,7 +62,7 @@ def test_throttle_spaces_calls(monkeypatch):
 def test_evaluate_answers_uses_pipeline_ask_and_judge():
     asked, judged = [], []
 
-    def ask(question, strict_mode, model_name, temperature):
+    def ask(question, strict_mode, model_name, temperature, groq_model_name, auto_mode):
         asked.append((question, strict_mode, model_name, temperature))
         return AskResult(answer="GPO visited 166 libraries (p. 5).", sources=[_chunk(5)], search_query=question)
 

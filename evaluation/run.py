@@ -42,9 +42,11 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--reranker", default=settings.reranker_model,
                         help='Cross-encoder reranker model ("" or "none" to disable)')
     parser.add_argument("--rerank-candidates", type=int, default=settings.rerank_candidates)
-    parser.add_argument("--model", default=settings.gemini_model,
-                        help="Pinned answer model (Gemini) — default: GEMINI_MODEL")
-    parser.add_argument("--judge-model", help="Judge model (default: same as --model)")
+    parser.add_argument("--model", default=settings.groq_model,
+                        help='Pinned answer model: a Groq model, "auto", or a gemini-* model (default: GROQ_MODEL)')
+    parser.add_argument("--auto-mode", action=argparse.BooleanOptionalAction, default=False,
+                        help="Answer in auto (agent) mode (default: off, the standard pipeline)")
+    parser.add_argument("--judge-model", default=settings.gemini_model, help="Judge model (default: GEMINI_MODEL)")
     parser.add_argument("--calls-per-minute", type=int, default=12,
                         help="LLM call rate limit (Gemini free tier allows 15/min)")
     parser.add_argument("--retrieval-only", action="store_true", help="Skip answering (no LLM calls)")
@@ -70,9 +72,13 @@ def main(argv: list[str] | None = None) -> None:
 
     answer_rows = None
     if not args.retrieval_only:
-        print(f"Answering {len(questions)} questions with {args.model} (judge: {args.judge_model or args.model}) ...")
-        answer_rows = evaluate_answers(pipeline, questions, model_name=args.model, judge_model=args.judge_model,
-                                       calls_per_minute=args.calls_per_minute)
+        print(f"Answering {len(questions)} questions with {args.model}, auto mode {'on' if args.auto_mode else 'off'} "
+              f"(judge: {args.judge_model}) ...")
+        gemini = args.model.startswith("gemini")
+        answer_rows = evaluate_answers(pipeline, questions, judge_model=args.judge_model,
+                                       model_name=args.model if gemini else None,
+                                       groq_model_name=None if gemini else args.model,
+                                       auto_mode=args.auto_mode, calls_per_minute=args.calls_per_minute)
         print("Answers:", summarize_answers(answer_rows))
         for r in answer_rows:
             print(f"  {'PASS' if r['correct'] else 'FAIL'}  {r['id']}: {r['judge_reason']}")

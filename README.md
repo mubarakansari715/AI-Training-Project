@@ -59,6 +59,10 @@ up an earlier conversation later — even after restarting the app.
 - Semantic retrieval with a configurable similarity threshold; summary requests
   ("summarize this video", "what is the report about?") fetch more chunks and
   skip the threshold so the whole document is covered
+- **Auto mode** (agentic RAG): the LLM gets a document-search tool and decides
+  whether to search, how many times and with what wording — e.g. one search per
+  part of a comparison — then answers with citations, like ChatGPT/Claude.
+  Each answer shows what was searched. Falls back to the standard flow on failure
 - **Auto model**: simple questions go to a fast Groq model, complex ones
   (comparisons, explanations, multi-part) to a stronger one
 - Context-grounded answer generation via Groq, falling back to Gemini
@@ -146,7 +150,8 @@ app/
 │   ├── vector_store.py           # Persistent ChromaDB wrapper
 │   ├── retriever.py              # Question -> relevant chunks
 │   ├── prompt.py                 # RAG prompt template
-│   ├── generator.py              # Groq/Gemini answer generation
+│   ├── generator.py              # Groq/Gemini answer generation (+ Groq tool calling)
+│   ├── agent.py                  # Auto mode: LLM-driven search with a tool
 │   ├── model_router.py           # "auto" model: fast vs strong per question
 │   ├── reranker.py               # Cross-encoder reranking of retrieved chunks
 │   └── small_talk.py             # Greeting/intro/recall detection
@@ -239,6 +244,8 @@ See [`.env.example`](.env.example) for the full file with defaults:
 | `RERANK_CANDIDATES` | Candidates fetched for the reranker to choose `TOP_K` from | `20` |
 | `STRICT_DOCUMENT_MODE` | Refuse to answer beyond the documents | `false` |
 | `QUERY_REWRITING` | Rewrite questions with the LLM before searching (typos, follow-ups) | `true` |
+| `AGENT_MODE` | Auto mode: the LLM decides whether/how often to search (needs Groq) | `true` |
+| `AGENT_MAX_SEARCHES` | Most searches auto mode may run per question | `3` |
 
 ## Running the Application
 

@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 
-from app.rag.generator import MISSING_KEY_MESSAGE, FALLBACK_MESSAGE, AnswerGenerator
+from app.rag.generator import FALLBACK_MESSAGE, MISSING_KEY_MESSAGE, AnswerGenerator
 from app.rag.retriever import RetrievedChunk
 
 

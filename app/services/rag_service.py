@@ -20,7 +20,7 @@ from app.rag.generator import AnswerGenerator
 from app.rag.model_router import resolve_groq_model
 from app.rag.query_rewriter import rewrite_query
 from app.rag.reranker import Reranker
-from app.rag.retriever import Retriever, RetrievedChunk
+from app.rag.retriever import RetrievedChunk, Retriever
 from app.rag.small_talk import is_small_talk
 from app.rag.vector_store import VectorStore, VectorStoreError
 from app.services.document_service import parse_uploaded_files

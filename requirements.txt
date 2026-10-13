@@ -32,6 +32,7 @@ python-docx>=1.1
 markdown>=3.6
 # Video/audio transcription (CTranslate2, no PyTorch; bundles FFmpeg via av)
 faster-whisper==1.2.1
+av>=12  # video/audio metadata; imported directly by app/rag/media_transcriber.py
 
 # --- Testing ---
 pytest>=8.0

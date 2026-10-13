@@ -8,7 +8,7 @@ one bad file crash the whole upload.
 from __future__ import annotations
 
 import logging
-from typing import Iterable
+from collections.abc import Iterable
 
 from app.rag.document_loader import DocumentPage, DocumentParsingError, parse_document
 from app.rag.text_cleaner import clean_text

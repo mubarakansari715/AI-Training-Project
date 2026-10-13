@@ -130,6 +130,7 @@ def render_chat(
     conversation_id: str,
     show_debug: bool,
     strict_mode: bool,
+    temperature: float | None = None,
 ) -> None:
     """Render chat history and input box, storing messages in session state
     and persisting each exchange to `conversation_id` via `conversation_store`.
@@ -214,6 +215,7 @@ def render_chat(
                             history=history,
                             model_name=model_name,
                             openrouter_model_name=openrouter_model_name,
+                            temperature=temperature,
                         )
                         answer, sources, source_label = result.answer, result.sources, result.source
                     except Exception:

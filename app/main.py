@@ -134,6 +134,7 @@ def main() -> None:
         st.session_state.conversation_id,
         show_debug=sidebar.show_debug,
         strict_mode=sidebar.strict_mode,
+        temperature=sidebar.temperature,
     )
 
 

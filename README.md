@@ -48,6 +48,7 @@ up an earlier conversation later — even after restarting the app.
 - Gemini-powered, context-grounded answer generation
 - Source citations (filename + page number when available)
 - Strict document mode (on by default) — refuses to guess beyond the docs
+- Model picker next to the chat box and a temperature slider in settings
 - Small talk — greetings, self-introductions ("hi, my name is..."), and
   conversational-recall questions ("what's my name?", "what did I say?")
   always get a normal reply, even in strict mode. Strict mode only guards
@@ -218,8 +219,9 @@ Opens at `http://localhost:8501`.
 2. Ask questions in the same chat box (with or without an attachment).
 3. Use **New chat** to start a fresh conversation, or click any past
    conversation in the sidebar to reopen it.
-4. Open **⚙️ Advanced settings** to toggle strict document mode or the
-   retrieval debug view.
+4. Pick a model from the dropdown next to the chat box.
+5. Open **⚙️ Advanced settings** to toggle strict document mode, the
+   retrieval debug view, or adjust the temperature.
 
 ## How RAG Works
 

@@ -56,6 +56,7 @@ class SidebarState:
     clear_index: bool = False
     show_debug: bool = False
     strict_mode: bool = settings.strict_document_mode
+    temperature: float = settings.gemini_temperature
 
 
 def render_model_picker() -> tuple[str | None, str | None]:
@@ -180,6 +181,19 @@ def render_sidebar(
             )
             st.session_state.show_debug = show_debug
 
+            temperature = st.slider(
+                "Temperature",
+                min_value=0.0,
+                max_value=2.0,
+                value=float(st.session_state.get("temperature", settings.gemini_temperature)),
+                step=0.1,
+                help="Lower (e.g. 0.2) gives literal, consistent answers "
+                "grounded in your documents. Higher (1.0+) gives more "
+                "varied, creative phrasing but can drift from the source "
+                "text — keep it low for factual document Q&A.",
+            )
+            st.session_state.temperature = temperature
+
     return SidebarState(
         new_chat=new_chat,
         selected_conversation_id=selected_conversation_id,
@@ -187,4 +201,5 @@ def render_sidebar(
         clear_index=clear_index,
         show_debug=show_debug,
         strict_mode=strict_mode,
+        temperature=temperature,
     )

@@ -1,0 +1,43 @@
+# ALLY AI theme: neutral surfaces with an emerald accent matching the
+# compass logo. Defining both light and dark variants lets users switch
+# modes from the app's Settings menu (defaults to their OS mode).
+
+[theme]
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+codeFont = "'JetBrains Mono':https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
+headingFontWeights = [700, 600, 600, 600, 500, 500]
+baseRadius = "10px"
+buttonRadius = "10px"
+showWidgetBorder = true
+showSidebarBorder = true
+linkUnderline = false
+
+[theme.light]
+primaryColor = "#047857"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f4f6f5"
+textColor = "#18211d"
+borderColor = "#dfe5e2"
+linkColor = "#047857"
+greenColor = "#047857"
+
+[theme.light.sidebar]
+backgroundColor = "#f6f8f7"
+secondaryBackgroundColor = "#eaefec"
+borderColor = "#dfe5e2"
+
+[theme.dark]
+# Soft charcoal layers (not pure black) so sidebar, page, message
+# bubbles and inputs read as distinct surfaces.
+primaryColor = "#10a37f"
+backgroundColor = "#212624"
+secondaryBackgroundColor = "#2e3532"
+textColor = "#ececec"
+borderColor = "#3d4642"
+linkColor = "#4fd1a5"
+greenColor = "#4fd1a5"
+
+[theme.dark.sidebar]
+backgroundColor = "#181c1b"
+secondaryBackgroundColor = "#262c2a"
+borderColor = "#2c3330"

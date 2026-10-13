@@ -30,6 +30,10 @@ from app.services.rag_service import (
 from app.ui.components import SUPPORTED_DOCUMENT_TYPES
 from app.ui.sidebar import render_model_picker
 
+# Neutral icon so the user avatar follows the theme instead of
+# Streamlit's default red.
+USER_AVATAR = ":material/person:"
+
 # Small-talk answers aren't labeled — only these two are worth calling out.
 _SOURCE_LABELS = {
     SOURCE_DOCUMENT: "📄 Source: your uploaded documents",
@@ -140,7 +144,7 @@ def render_chat(
         st.session_state.chat_history = []
 
     for message in st.session_state.chat_history:
-        avatar = APP_ICON if message["role"] == "assistant" else None
+        avatar = APP_ICON if message["role"] == "assistant" else USER_AVATAR
         with st.chat_message(message["role"], avatar=avatar):
             for filename in message.get("attached_files", []):
                 st.caption(f"📎 {filename}")
@@ -179,7 +183,7 @@ def render_chat(
         if m["content"]
     ]
 
-    with st.chat_message("user"):
+    with st.chat_message("user", avatar=USER_AVATAR):
         for file in files:
             st.caption(f"📎 {file.name}")
         if question:

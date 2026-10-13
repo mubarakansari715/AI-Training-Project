@@ -1,7 +1,8 @@
 # RAG Chatbot
 
 A document-grounded RAG (Retrieval-Augmented Generation) chatbot built with
-Python, Streamlit, ChromaDB, local embeddings, and Google Gemini.
+Python, Streamlit, ChromaDB, local embeddings, and OpenRouter (with Google
+Gemini as a fallback).
 
 ## Table of Contents
 
@@ -23,10 +24,11 @@ Python, Streamlit, ChromaDB, local embeddings, and Google Gemini.
 
 Attach PDF, DOCX, TXT, or Markdown documents right from the chat box (the
 📎 icon, same as ChatGPT/Gemini) and ask questions about them. The
-assistant answers **only from the content of your uploaded documents** —
-it retrieves the most relevant chunks, sends just that context to Gemini,
-and cites the source file (and page, when available) for every answer.
-If nothing relevant is found, it says so instead of guessing.
+assistant answers from your uploaded documents whenever they contain the
+answer — it retrieves the most relevant chunks, sends just that context to
+the LLM, and cites the source file (and page, when available). If nothing
+relevant is found, it answers from general knowledge and labels it as such;
+with strict document mode on, it says so instead of guessing.
 
 Conversations are saved to disk and listed in the sidebar, so you can pick
 up an earlier conversation later — even after restarting the app.
@@ -45,9 +47,10 @@ up an earlier conversation later — even after restarting the app.
 - Local embeddings (`sentence-transformers`, no external embedding API)
 - Persistent ChromaDB vector store (no re-indexing after a restart)
 - Semantic retrieval with a configurable similarity threshold
-- Gemini-powered, context-grounded answer generation
+- Context-grounded answer generation via OpenRouter, falling back to Gemini
 - Source citations (filename + page number when available)
-- Strict document mode (on by default) — refuses to guess beyond the docs
+- Every answer is labeled: 📄 from your documents or 🌐 general knowledge
+- Strict document mode (off by default) — refuses to answer beyond the docs
 - Model picker next to the chat box and a temperature slider in settings
 - Small talk — greetings, self-introductions ("hi, my name is..."), and
   conversational-recall questions ("what's my name?", "what did I say?")
@@ -83,7 +86,7 @@ flowchart TD
     I --> G
     G --> J[Relevant Chunks]
     J --> K[Context Builder / Prompt]
-    K --> L[Gemini LLM]
+    K --> L[OpenRouter LLM / Gemini fallback]
     L --> M[Answer + Sources]
     M --> B
 ```
@@ -102,7 +105,7 @@ and reloaded into the UI when you pick it from the sidebar.
 | Chunking | LangChain's `RecursiveCharacterTextSplitter` |
 | Embeddings | `sentence-transformers/all-MiniLM-L6-v2` (configurable) |
 | Vector store | ChromaDB (persistent, local) |
-| LLM | Google Gemini (`google-genai`) |
+| LLM | OpenRouter (`requests`), Google Gemini fallback (`google-genai`) |
 | Conversation storage | Plain JSON files on disk |
 | Config | `.env` via `python-dotenv` |
 
@@ -125,7 +128,7 @@ app/
 │   ├── vector_store.py           # Persistent ChromaDB wrapper
 │   ├── retriever.py              # Question -> relevant chunks
 │   ├── prompt.py                 # RAG prompt template
-│   ├── generator.py              # Gemini answer generation
+│   ├── generator.py              # OpenRouter/Gemini answer generation
 │   └── small_talk.py             # Greeting/intro/recall detection
 └── services/
     ├── document_service.py      # Parse+clean orchestration, per-file errors
@@ -178,8 +181,10 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Edit `.env` and set `GEMINI_API_KEY` (get one at
-[Google AI Studio](https://aistudio.google.com/app/apikey)). Never commit
+Edit `.env` and set `OPENROUTER_API_KEY` (get one at
+[openrouter.ai/keys](https://openrouter.ai/keys)) and/or `GEMINI_API_KEY`
+(get one at [Google AI Studio](https://aistudio.google.com/app/apikey)).
+At least one is needed for answers. Never commit
 your real `.env` file — it's already excluded via `.gitignore`.
 
 > **Free tier note:** Google's free tier caps requests per day per project
@@ -194,7 +199,9 @@ See [`.env.example`](.env.example) for the full file with defaults:
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `GEMINI_API_KEY` | Your Gemini API key (required for answers) | _(none — required)_ |
+| `OPENROUTER_API_KEY` | OpenRouter API key (primary provider) | _(none)_ |
+| `OPENROUTER_MODEL` | Default OpenRouter model ID | `openrouter/auto` |
+| `GEMINI_API_KEY` | Gemini API key (fallback provider) | _(none)_ |
 | `GEMINI_MODEL` | Gemini model name | `gemini-3.5-flash-lite` |
 | `GEMINI_TEMPERATURE` | Sampling temperature (0.0-2.0); lower = more literal/consistent | `0.2` |
 | `EMBEDDING_MODEL` | sentence-transformers model name | `sentence-transformers/all-MiniLM-L6-v2` |
@@ -204,7 +211,7 @@ See [`.env.example`](.env.example) for the full file with defaults:
 | `CHUNK_OVERLAP` | Character overlap between chunks | `150` |
 | `TOP_K` | Number of chunks retrieved per question | `5` |
 | `SIMILARITY_THRESHOLD` | Minimum cosine similarity ([-1, 1]) for a chunk to count as relevant | `0.2` |
-| `STRICT_DOCUMENT_MODE` | Refuse to answer beyond the documents | `true` |
+| `STRICT_DOCUMENT_MODE` | Refuse to answer beyond the documents | `false` |
 
 ## Running the Application
 
@@ -239,13 +246,13 @@ Opens at `http://localhost:8501`.
 7. **Ask** — your question is embedded the same way and compared against
    stored chunks to find the most similar ones.
 8. **Generate** — only the retrieved chunks (not your whole document
-   collection) are sent to Gemini, along with recent conversation history
+   collection) are sent to the LLM, along with recent conversation history
    for continuity, with instructions to answer document questions using
    only that context.
 9. **Answer + Sources** — the response is shown along with which
-   document(s)/page(s) it came from. If nothing relevant was found and
-   strict mode is on, you get a clear "not found" message instead of a
-   guess.
+   document(s)/page(s) it came from. If nothing relevant was found, the
+   answer comes from general knowledge and is labeled that way — or, with
+   strict mode on, you get a clear "not found" message instead.
 
 ## Example Usage
 
@@ -276,7 +283,7 @@ pytest
 Tests cover document parsing, text cleaning, chunking (including
 metadata/determinism), embeddings, the vector store, retrieval, prompt
 construction, small-talk detection, conversation persistence, and a full
-pipeline integration test. The Gemini API is mocked throughout, so
+pipeline integration test. The OpenRouter and Gemini APIs are mocked throughout, so
 `pytest` never requires a real API key.
 
 ## Future Improvements

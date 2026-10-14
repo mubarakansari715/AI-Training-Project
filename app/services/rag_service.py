@@ -111,6 +111,11 @@ class RAGPipeline:
             return 0, errors
 
         try:
+            # Re-uploading a document replaces it. Unchanged content with the
+            # same settings yields the same chunk IDs (a cheap no-op below);
+            # anything else — edited file, new chunking/section settings —
+            # would otherwise leave the old chunks next to the new ones.
+            chunks = self._replace_changed_sources(chunks)
             embeddings = self.embedding_service.embed_texts([c.text for c in chunks])
             num_added = self.vector_store.add_chunks(chunks, embeddings)
         except VectorStoreError as exc:
@@ -120,6 +125,22 @@ class RAGPipeline:
 
         self.indexed_documents.update(page.source for page in pages)
         return num_added, errors
+
+    def _replace_changed_sources(self, chunks: list) -> list:
+        """Drop chunks already stored unchanged; delete a document's old
+        chunks when its new chunk set differs. Returns the chunks to add."""
+        by_source: dict[str, set[str]] = {}
+        for chunk in chunks:
+            by_source.setdefault(chunk.source, set()).add(chunk.chunk_id)
+        unchanged: set[str] = set()
+        for source, new_ids in by_source.items():
+            old_ids = self.vector_store.chunk_ids_for_source(source)
+            if old_ids == new_ids:
+                unchanged.add(source)
+            elif old_ids:
+                logger.info("Re-indexing %s: replacing %d old chunks", source, len(old_ids))
+                self.vector_store.delete_ids(old_ids)
+        return [c for c in chunks if c.source not in unchanged]
 
     def ask(
         self,

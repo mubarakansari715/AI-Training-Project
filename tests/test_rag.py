@@ -344,6 +344,35 @@ def test_not_found_answer_is_not_labelled_as_from_documents(pipeline, monkeypatc
     assert result.source is None
 
 
+def test_reupload_unchanged_document_is_a_no_op(pipeline):
+    file = FakeUploadedFile("handbook.txt", b"Employees are entitled to 24 days of annual leave per year.")
+    first, _ = pipeline.index_files([file])
+    second, _ = pipeline.index_files([file])
+
+    assert first >= 1 and second == 0
+    assert pipeline.vector_store.count() == first
+
+
+def test_reupload_with_new_chunking_replaces_old_chunks(tmp_path):
+    long_text = ("Employees get 24 days of annual leave. " * 40).encode()
+    store_dir = str(tmp_path / "chroma")
+    RAGPipeline(persist_dir=store_dir, collection_name="reupload", chunk_size=800).index_files(
+        [FakeUploadedFile("handbook.txt", long_text)])
+    rechunked = RAGPipeline(persist_dir=store_dir, collection_name="reupload", chunk_size=200)
+
+    added, _ = rechunked.index_files([FakeUploadedFile("handbook.txt", long_text)])
+
+    assert rechunked.vector_store.count() == added  # only the new chunks remain, no duplicates
+
+
+def test_reupload_leaves_other_documents_alone(pipeline):
+    pipeline.index_files([FakeUploadedFile("a.txt", b"Alpha policy text about leave days.")])
+    before = pipeline.vector_store.chunk_ids_for_source("a.txt")
+    pipeline.index_files([FakeUploadedFile("b.txt", b"Beta policy text about office hours.")])
+
+    assert pipeline.vector_store.chunk_ids_for_source("a.txt") == before
+
+
 def test_section_aware_toggle_disables_labels_and_filtering(monkeypatch):
     """Fast check of the SECTION_AWARE switch (no real model or PDF needed)."""
     from app.rag import document_loader

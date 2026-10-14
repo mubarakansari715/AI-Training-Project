@@ -149,6 +149,19 @@ class VectorStore:
             for chunk_id, text, meta in zip(stored["ids"], stored["documents"], stored["metadatas"])
         ]
 
+    def chunk_ids_for_source(self, source: str) -> set[str]:
+        """IDs of every stored chunk from one document."""
+        return set(self._collection.get(where={"source": source}, include=[])["ids"])
+
+    def delete_ids(self, ids: set[str]) -> None:
+        if not ids:
+            return
+        try:
+            self._collection.delete(ids=sorted(ids))
+        except Exception as exc:
+            logger.exception("Failed to delete chunks from ChromaDB")
+            raise VectorStoreError("Could not update the document index.") from exc
+
     def sections(self) -> list[str]:
         """Distinct section labels in the index (empty for unstructured documents)."""
         stored = self._collection.get(include=["metadatas"])

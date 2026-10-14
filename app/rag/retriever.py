@@ -14,6 +14,7 @@ from app.config.settings import settings
 from app.rag.embeddings import EmbeddingService
 from app.rag.structure import is_front_matter, sections_mentioned
 from app.rag.vector_store import VectorStore
+from app.rag.visual import footnote_label
 
 # A request to summarize a whole document/video ("summarize this video",
 # "what is the report about?"). Those need broad coverage, not just the
@@ -34,6 +35,12 @@ _SUMMARY_TOP_K_MAX = 15
 # forecast, a chapter's key numbers) sit on its opening page but often in a
 # chunk that scored lower than its neighbours. Capped to bound the prompt.
 _EXPAND_MAX_PAGES = 2
+# A footnote marker in a retrieved passage ("more than 15 percent recycled
+# content.[1]") pulls in that note's passage from the same page (see
+# app.rag.visual), since the note itself rarely shares the question's words.
+_FOOTNOTE_MARKER_RE = re.compile(r"\[(\d{1,3})\]")
+_FOOTNOTE_TEXT_RE = re.compile(r"\[Footnote (\d{1,3}), referenced on page")
+_FOOTNOTES_MAX = 3
 
 
 def is_summary_request(question: str) -> bool:
@@ -107,13 +114,42 @@ class Retriever:
                     if chunk.chunk_id not in seen:
                         seen.add(chunk.chunk_id)
                         results.append(chunk)
-            return results
+            return self._attach_footnotes(results)
         results = self._search(question, query_embedding, top_k, where, summary)
         if named and not results:  # named section exists but nothing relevant there: search everything
             results = self._search(question, query_embedding, top_k, None, summary)
         elif len(named) == 1:
             results = self._expand_to_pages(results)
-        return results
+        return self._attach_footnotes(results)
+
+    def _attach_footnotes(self, results: list[RetrievedChunk]) -> list[RetrievedChunk]:
+        """Append the footnote passages that retrieved chunks refer to with
+        an [n] marker (same document and page, at most `_FOOTNOTES_MAX`).
+        A note referenced from several pages has the same text on each, so
+        it is added once, and not at all if it was already retrieved."""
+        notes = {(c.source, int(n)) for c in results for n in _FOOTNOTE_TEXT_RE.findall(c.text)}
+        wanted = []
+        for chunk in results:
+            if chunk.page is None:
+                continue
+            for number in map(int, _FOOTNOTE_MARKER_RE.findall(chunk.text)):
+                if (chunk.source, number) not in notes:
+                    notes.add((chunk.source, number))
+                    wanted.append((chunk.source, chunk.page, footnote_label(number, chunk.page), chunk.score))
+        seen = {chunk.chunk_id for chunk in results}
+        added = []
+        for source, page, label, score in wanted:
+            if len(added) == _FOOTNOTES_MAX:
+                break
+            for match in self._vector_store.page_chunks(source, page):
+                if label in match["text"] and match["chunk_id"] not in seen:
+                    seen.add(match["chunk_id"])
+                    added.append(RetrievedChunk(
+                        text=match["text"], source=source, page=page, score=score,
+                        chunk_id=match["chunk_id"], section=match["section"],
+                    ))
+                    break
+        return results + added
 
     def _expand_to_pages(self, results: list[RetrievedChunk]) -> list[RetrievedChunk]:
         """Replace the hits on the top `_EXPAND_MAX_PAGES` pages with those

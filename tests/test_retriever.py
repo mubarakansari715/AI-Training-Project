@@ -249,3 +249,50 @@ def test_page_expansion_is_off_without_a_named_section(tmp_path):
     q = "question"
     retriever = Retriever(store, FakeEmbeddingService({q: [1.0, 0.0, 0.0]}), top_k=1, score_threshold=0.5)
     assert [r.chunk_id for r in retriever.retrieve(q)] == ["r.pdf:1:0:a"]
+
+
+def _footnoted_store(tmp_path):
+    store = VectorStore(persist_dir=str(tmp_path / "chroma"), collection_name="footnotes")
+    specs = [  # (chunk_id, page, text, embedding): only the claim matches the query
+        ("i.pdf:4:0:a", 4, "iMac contains more than 15 percent recycled content.[1]", [1.0, 0.0, 0.0]),
+        ("i.pdf:4:1:b", 4, "Plastic. At least 50 percent recycled plastic in 13 components.", [0.0, 1.0, 0.0]),
+        ("i.pdf:4:2:c", 4, "[Footnote 1, referenced on page 4] Mass of certified recycled material.", [0.0, 0.0, 1.0]),
+        ("i.pdf:4:3:d", 4, "[Footnote 2, referenced on page 4] Share of renewable electricity.", [0.0, 0.0, 1.0]),
+        ("i.pdf:1:0:e", 1, "[Footnote 1, referenced on page 1] Mass of certified recycled material.", [0.0, 0.0, 1.0]),
+    ]
+    store.add_chunks(
+        [Chunk(text=text, source="i.pdf", page=page, chunk_id=cid) for cid, page, text, _ in specs],
+        [emb for *_, emb in specs],
+    )
+    return store
+
+
+def test_footnote_referenced_by_a_retrieved_chunk_is_attached(tmp_path):
+    q = "What does the 15 percent recycled content claim measure?"
+    retriever = Retriever(_footnoted_store(tmp_path), FakeEmbeddingService({q: [1.0, 0.0, 0.0]}),
+                          top_k=1, score_threshold=0.5)
+
+    # Footnote 1 of the same page only: not note 2 (unreferenced), not page 1's copy.
+    assert [r.chunk_id for r in retriever.retrieve(q)] == ["i.pdf:4:0:a", "i.pdf:4:2:c"]
+
+
+def test_no_footnote_is_attached_without_a_marker(tmp_path):
+    q = "How much recycled plastic?"
+    retriever = Retriever(_footnoted_store(tmp_path), FakeEmbeddingService({q: [0.0, 1.0, 0.0]}),
+                          top_k=1, score_threshold=0.5)
+
+    assert [r.chunk_id for r in retriever.retrieve(q)] == ["i.pdf:4:1:b"]
+
+
+def test_a_footnote_is_attached_once_even_when_several_pages_reference_it(tmp_path):
+    store = _footnoted_store(tmp_path)
+    store.add_chunks(  # page 1 makes the same claim, also marked [1]
+        [Chunk(text="More than 15% recycled content [1]", source="i.pdf", page=1, chunk_id="i.pdf:1:1:f")],
+        [[0.99, 0.0, 0.14]],
+    )
+    q = "What does the 15 percent recycled content claim measure?"
+    retriever = Retriever(store, FakeEmbeddingService({q: [1.0, 0.0, 0.0]}), top_k=2, score_threshold=0.5)
+
+    ids = [r.chunk_id for r in retriever.retrieve(q)]
+    assert ids[:2] == ["i.pdf:4:0:a", "i.pdf:1:1:f"]
+    assert sum("Footnote 1," in t for t in (c.text for c in retriever.retrieve(q))) == 1

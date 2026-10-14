@@ -146,11 +146,13 @@ general sentence nearby.
   the device…`
 - **Result:** 14/14 correct, 100% right page cited.
 
-### Remaining risk
-- That footnote passage is only the 5th of the 5 retrieved for the question,
-  so a small retrieval change could push it out again. A sturdier fix would
-  add the matching footnote automatically whenever a retrieved chunk carries
-  its marker.
+### Follow-up: footnotes no longer depend on their search rank
+- **Problem:** the footnote passage was only the 5th of the 5 retrieved for
+  the question, so a small retrieval change could push it out again.
+- **Fix:** when a retrieved passage carries a footnote marker such as `[1]`,
+  the retriever adds that note's passage from the same page (once per
+  document, at most 3 notes per question), wherever the note itself ranked.
+- **Result:** the definition always reaches the model when the claim does.
 
 ---
 

@@ -103,13 +103,18 @@ def superscript_markers(page) -> list[str]:
     return markers
 
 
+def footnote_label(number: int, page: int) -> str:
+    """How a footnote passage starts; the retriever finds notes by it."""
+    return f"[Footnote {number}, referenced on page {page}]"
+
+
 def footnote_pages(markers_by_page: dict[int, list[str]], notes: dict[int, str], filename: str) -> list[DocumentPage]:
     """One DocumentPage per note a page refers to (each once per page)."""
     pages = []
     for page, markers in markers_by_page.items():
         for number in dict.fromkeys(int(m) for m in markers if int(m) in notes):
             pages.append(DocumentPage(
-                text=f"[Footnote {number}, referenced on page {page}] {notes[number]}", source=filename, page=page,
+                text=f"{footnote_label(number, page)} {notes[number]}", source=filename, page=page,
             ))
     return pages
 

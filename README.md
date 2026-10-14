@@ -48,7 +48,8 @@ up an earlier conversation later — even after restarting the app.
 - Charts, tables and footnotes in short visual PDFs (up to
   `VISUAL_READING_MAX_PAGES` pages): a vision model transcribes each page's
   charts, tables and call-outs (cached once read), and every footnote is
-  attached to the page that references it
+  attached to the page that references it; a retrieved passage with a
+  footnote marker (`[1]`) brings that note along
 - Robust text extraction with graceful handling of empty/corrupted files
 - Text cleaning (whitespace, broken line breaks, extraction artifacts)
 - Structure-aware chunking (paragraph/sentence-boundary-first splitting)

@@ -1,0 +1,396 @@
+{
+  "document": "notebooks/iMac_PER_Oct2024.pdf",
+  "config": {
+    "chunk_size": 800,
+    "chunk_overlap": 150,
+    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "embedding_query_prefix": "",
+    "top_k": 5,
+    "score_threshold": 0.2,
+    "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    "rerank_candidates": 20,
+    "section_aware": true,
+    "read_visuals": false
+  },
+  "answer_model": "openai/gpt-oss-120b",
+  "retrieval": {
+    "summary": {
+      "hit_rate": 1.0,
+      "mrr": 1.0,
+      "avg_chunks": 5.0
+    },
+    "rows": [
+      {
+        "id": "sample-energy-star",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          7,
+          7,
+          12,
+          7,
+          11
+        ]
+      },
+      {
+        "id": "sample-carbon-footprint",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          10,
+          2,
+          2,
+          11,
+          1
+        ]
+      },
+      {
+        "id": "sample-stand",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          4,
+          1,
+          4,
+          6,
+          11
+        ]
+      },
+      {
+        "id": "power-idle",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          12,
+          12,
+          12,
+          7,
+          7
+        ]
+      },
+      {
+        "id": "power-sleep-230v",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          12,
+          12,
+          7,
+          7,
+          10
+        ]
+      },
+      {
+        "id": "adapter-efficiency",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          12,
+          12,
+          12,
+          7,
+          7
+        ]
+      },
+      {
+        "id": "four-ports-footprint",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          10,
+          2,
+          11,
+          11,
+          1
+        ]
+      },
+      {
+        "id": "baseline-emissions",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          2,
+          2,
+          11,
+          11,
+          10
+        ]
+      },
+      {
+        "id": "transport-end-of-life",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          10,
+          10,
+          11,
+          2,
+          11
+        ]
+      },
+      {
+        "id": "packaging-recycled",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          6,
+          1,
+          1,
+          11,
+          2
+        ]
+      },
+      {
+        "id": "rare-earth",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          4,
+          4,
+          1,
+          2,
+          4
+        ]
+      },
+      {
+        "id": "footnote-energy-star-basis",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          7,
+          7,
+          12,
+          7,
+          1
+        ]
+      },
+      {
+        "id": "footnote-recycled-content",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          1,
+          2,
+          4,
+          1,
+          9
+        ]
+      }
+    ]
+  },
+  "answers": {
+    "summary": {
+      "accuracy": 0.857,
+      "citation_accuracy": 0.923
+    },
+    "rows": [
+      {
+        "id": "sample-energy-star",
+        "question": "How much less energy does iMac use compared to the ENERGY STAR requirement?",
+        "search_query": "How much less energy does iMac use compared to the ENERGY STAR requirement?",
+        "searches": [],
+        "model": "openai/gpt-oss-120b",
+        "retrieved_pages": [
+          7,
+          7,
+          7
+        ],
+        "answer": "iMac uses **58 percent less energy** than the ENERGY STAR requirement (iMac_PER_Oct2024.pdf, page 7).",
+        "correct": true,
+        "judge_reason": "The system answer correctly states that the iMac uses 58 percent less energy than the ENERGY STAR requirement, matching the key fact in the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "sample-carbon-footprint",
+        "question": "What is the total carbon footprint of the iMac, and how much of that comes from product use versus manufacturing?",
+        "search_query": "What is the total carbon footprint of the iMac, and how much of that comes from product use versus manufacturing?",
+        "searches": [],
+        "model": "openai/gpt-oss-120b",
+        "retrieved_pages": [
+          10,
+          2,
+          2
+        ],
+        "answer": "The report provides two total‑footprint values, depending on the iMac configuration:\n\n* **iMac (four‑port, 512 GB)** – total product carbon footprint **391 kg CO₂e** (iMac_PER_Oct2024.pdf, page 10).  \n* **iMac (two‑port, 256 GB)** – total product carbon footprint **346 kg CO₂e** (iMac_PER_Oct2024.pdf, page 10).\n\nThe document breaks the footprint down into categories such as “Materials and process emissions,” “Electricity for manufacturing,” and “Electricity for product use” (iMac_PER_Oct2024.pdf, page 2), but it does **not** give the specific kilogram‑CO₂e amounts for the “product‑use” versus “manufacturing” portions. Therefore, the exact split between product‑use emissions and manufacturing emissions is not provided in the uploaded documents.",
+        "correct": false,
+        "judge_reason": "The system answer incorrectly claims that the split between product-use and manufacturing emissions is not provided in the document, whereas the reference answer explicitly states that manufacturing accounts for 50% and product use for 45%.",
+        "citation_ok": true
+      },
+      {
+        "id": "sample-stand",
+        "question": "What material is the iMac stand made from, and what percentage of it is recycled?",
+        "search_query": "What material is the iMac stand made from, and what percentage of it is recycled?",
+        "searches": [],
+        "model": "openai/gpt-oss-120b",
+        "retrieved_pages": [
+          4,
+          1,
+          4
+        ],
+        "answer": "The iMac stand is made from **aluminum**, and **100 % of the aluminum used in the stand is recycled** (iMac PER, page 4; iMac PER, page 1).",
+        "correct": true,
+        "judge_reason": "The system answer correctly identifies the material as aluminum and states that 100% of it is recycled, matching the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "power-idle",
+        "question": "What is the iMac's power consumption at idle with the display on, at 115V?",
+        "search_query": "What is the iMac's power consumption at idle with the display on, at 115V?",
+        "searches": [],
+        "model": "openai/gpt-oss-120b",
+        "retrieved_pages": [
+          12,
+          12,
+          12
+        ],
+        "answer": "The iMac consumes **20.6 W** when it is idle with the display on and operating on a 115 V power source. (iMac_PER_Oct2024.pdf, page 12)",
+        "correct": true,
+        "judge_reason": "The system answer correctly states the power consumption as 20.6 W at 115V for the idle display-on state, matching the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "power-sleep-230v",
+        "question": "How much power does iMac draw in sleep mode at 230V?",
+        "search_query": "How much power does iMac draw in sleep mode at 230V?",
+        "searches": [],
+        "model": "openai/gpt-oss-120b",
+        "retrieved_pages": [
+          12,
+          12
+        ],
+        "answer": "The iMac draws **0.59 W** in sleep mode when operating on a 230 V supply. (iMac_PER_Oct2024.pdf, page 12)",
+        "correct": true,
+        "judge_reason": "The system answer correctly states the power consumption as 0.59 W in sleep mode at 230V, matching the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "adapter-efficiency",
+        "question": "What is the iMac power adapter's efficiency at 100V?",
+        "search_query": "What is the iMac power adapter's efficiency at 100 V?",
+        "searches": [],
+        "model": "openai/gpt-oss-120b",
+        "retrieved_pages": [
+          12,
+          12,
+          12
+        ],
+        "answer": "The iMac’s 143 W power adapter is rated at **91.1 % efficiency when operating on a 100 V supply** (see the “Power adapter efficiency” entry in the table)【iMac_PER_Oct2024.pdf, page 12】. This figure reflects the average measured efficiency of the adapter (tested at 100 %, 75 %, 50 % and 25 % of its rated output current) while it is connected to AC power but not to the iMac itself【iMac_PER_Oct2024.pdf, page 12】.",
+        "correct": true,
+        "judge_reason": "The system answer correctly states the efficiency as 91.1% at 100V, matching the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "four-ports-footprint",
+        "question": "What is the carbon footprint of the iMac (four ports) 512GB configuration?",
+        "search_query": "What is the carbon footprint of the iMac (four ports) 512GB configuration?",
+        "searches": [],
+        "model": "openai/gpt-oss-120b",
+        "retrieved_pages": [
+          10
+        ],
+        "answer": "The iMac (four ports) 512 GB configuration has a carbon footprint of **391 kg CO₂e** (iMac_PER_Oct2024.pdf, page 10).",
+        "correct": true,
+        "judge_reason": "The system answer correctly states the carbon footprint as 391 kg CO2e, matching the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "baseline-emissions",
+        "question": "In the carbon-neutral progress chart, what were the baseline emissions and how much were emissions reduced?",
+        "search_query": "In the carbon-neutral progress chart, what were the baseline emissions and how much were emissions reduced?",
+        "searches": [],
+        "model": "openai/gpt-oss-120b",
+        "retrieved_pages": [
+          2,
+          2
+        ],
+        "answer": "The chart shows that the iMac’s baseline carbon footprint was **445 kg CO₂e**, and the emissions have been reduced by **about 99 kg CO₂e** (a reduction of roughly 20 %). (iMac_PER_Oct2024.pdf, page 2)",
+        "correct": true,
+        "judge_reason": "The system answer correctly identifies the baseline emissions as 445 kg CO2e and the reduction as 99 kg CO2e, matching the key facts in the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "transport-end-of-life",
+        "question": "What share of the iMac's life cycle carbon emissions comes from transportation and from end-of-life processing?",
+        "search_query": "What share of the iMac's life cycle carbon emissions comes from transportation and from end-of-life processing?",
+        "searches": [],
+        "model": "openai/gpt-oss-120b",
+        "retrieved_pages": [
+          10,
+          10
+        ],
+        "answer": "The iMac’s life‑cycle carbon emissions are broken down as follows:\n\n- **Transportation:** 5 % of the total life‑cycle emissions  \n- **End‑of‑life processing:** less than 1 % (reported as < 1 %) of the total life‑cycle emissions  \n\nThese percentages are given in the product environmental report (iMac_PER_Oct2024.pdf, page 10).",
+        "correct": true,
+        "judge_reason": "The system answer correctly identifies transportation as 5% and end-of-life processing as less than 1%, matching the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "packaging-recycled",
+        "question": "What percentage of recycled content is in the iMac's fiber packaging?",
+        "search_query": "What percentage of recycled content is in the iMac's fiber packaging?",
+        "searches": [],
+        "model": "openai/gpt-oss-120b",
+        "retrieved_pages": [
+          6
+        ],
+        "answer": "The iMac’s fiber‑based packaging contains **76 % recycled content** (iMac Product Environmental Report, page 6).",
+        "correct": true,
+        "judge_reason": "The system answer correctly states that the iMac's fiber packaging contains 76% recycled content, which matches the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "rare-earth",
+        "question": "How much recycled rare earth content does iMac use in its magnets?",
+        "search_query": "How much recycled rare earth content does iMac use in its magnets?",
+        "searches": [],
+        "model": "openai/gpt-oss-120b",
+        "retrieved_pages": [
+          4,
+          4,
+          4
+        ],
+        "answer": "iMac uses **100 percent recycled rare earth elements in all of its magnets**, which represent **about 99 percent of the total rare earth elements in the device** (iMac_PER_Oct2024.pdf, page 4).",
+        "correct": true,
+        "judge_reason": "The system answer accurately states that iMac uses 100 percent recycled rare earth elements in its magnets, which represent 99 percent of the total rare earth elements in the device, matching the key facts in the reference answer.",
+        "citation_ok": true
+      },
+      {
+        "id": "footnote-energy-star-basis",
+        "question": "What is the 58 percent ENERGY STAR energy claim based on, and what equipment was iMac tested with?",
+        "search_query": "What is the 58 percent ENERGY STAR energy claim based on, and what equipment was iMac tested with?",
+        "searches": [],
+        "model": "openai/gpt-oss-120b",
+        "retrieved_pages": [
+          12
+        ],
+        "answer": "The 58 percent ENERGY STAR claim comes from Apple’s comparison of the iMac’s power use to the **ENERGY STAR Program Requirements for Computers** – specifically the maximum energy allowance that ENERGY STAR sets for iMac models (i.e., the iMac uses 58 % less energy than the ENERGY STAR requirement)【iMac_PER_Oct2024.pdf, page 12】.\n\nThe iMac’s energy testing was performed with the following equipment:  \n\n* **143 W Power Adapter**  \n* **AC Cable (1 m)**  \n* **DC Cable (2 m)**【iMac_PER_Oct2024.pdf, page 12】.",
+        "correct": true,
+        "judge_reason": "The system answer correctly identifies the basis of the claim (ENERGY STAR Program Requirements for Computers and maximum energy allowance) and lists the exact testing equipment (143W Power Adapter, AC Cable 1m, DC Cable 2m) as stated in the reference.",
+        "citation_ok": true
+      },
+      {
+        "id": "footnote-recycled-content",
+        "question": "What exactly does the 'more than 15 percent recycled content' claim measure, according to its footnote?",
+        "search_query": "What exactly does the 'more than 15 percent recycled content' claim measure, according to its footnote?",
+        "searches": [],
+        "model": "openai/gpt-oss-120b",
+        "retrieved_pages": [],
+        "answer": "The uploaded documents do not include the text of footnote 1, so the specific definition of what the “more than 15 percent recycled content” claim measures is not provided in the available material.",
+        "correct": false,
+        "judge_reason": "The system answer claims the information is unavailable, whereas the reference answer provides the specific definition of the claim.",
+        "citation_ok": false
+      },
+      {
+        "id": "trap-display-resolution",
+        "question": "What is the display resolution of the iMac?",
+        "search_query": "What is the display resolution of the iMac?",
+        "searches": [],
+        "model": "openai/gpt-oss-120b",
+        "retrieved_pages": [],
+        "answer": "The uploaded documents do not contain information about the iMac’s display resolution.",
+        "correct": true,
+        "judge_reason": "The system correctly identifies that the document does not contain the requested information, aligning with the reference answer.",
+        "citation_ok": null
+      }
+    ]
+  }
+}

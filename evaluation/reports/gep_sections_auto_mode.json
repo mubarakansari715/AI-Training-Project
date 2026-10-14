@@ -1,0 +1,413 @@
+{
+  "document": "notebooks/GEP-Jun-2026.pdf",
+  "config": {
+    "chunk_size": 800,
+    "chunk_overlap": 150,
+    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "embedding_query_prefix": "",
+    "top_k": 5,
+    "score_threshold": 0.2,
+    "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    "rerank_candidates": 20,
+    "section_aware": true
+  },
+  "answer_model": "auto",
+  "retrieval": {
+    "summary": {
+      "hit_rate": 1.0,
+      "mrr": 0.964,
+      "avg_chunks": 6.1
+    },
+    "rows": [
+      {
+        "id": "sample-south-asia",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          96,
+          96,
+          96,
+          97,
+          96
+        ]
+      },
+      {
+        "id": "sample-ch3-debt",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          109,
+          109,
+          110,
+          116,
+          116
+        ]
+      },
+      {
+        "id": "sample-exec-risks",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          19,
+          19,
+          19,
+          19,
+          19
+        ]
+      },
+      {
+        "id": "eap-growth",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          83,
+          83,
+          82,
+          81,
+          82
+        ]
+      },
+      {
+        "id": "ssa-growth",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          99,
+          99,
+          100,
+          102,
+          100
+        ]
+      },
+      {
+        "id": "lac-growth",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          91,
+          88,
+          90,
+          88,
+          89
+        ]
+      },
+      {
+        "id": "eca-growth",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          87,
+          84,
+          84,
+          84,
+          84
+        ]
+      },
+      {
+        "id": "mna-growth",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          95,
+          92,
+          93,
+          95,
+          93
+        ]
+      },
+      {
+        "id": "sar-vs-ssa",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          98,
+          96,
+          96,
+          96,
+          97,
+          99,
+          100,
+          99,
+          102,
+          99
+        ]
+      },
+      {
+        "id": "global-growth",
+        "hit": true,
+        "rank": 2,
+        "retrieved_pages": [
+          40,
+          19,
+          27,
+          27,
+          51
+        ]
+      },
+      {
+        "id": "box-1-1-ai",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          30,
+          32,
+          31,
+          35,
+          34
+        ]
+      },
+      {
+        "id": "box-2-1-lics",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          76,
+          79,
+          28,
+          79,
+          40
+        ]
+      },
+      {
+        "id": "box-3-1-hidden-debt",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          116,
+          116,
+          119,
+          116,
+          117,
+          118,
+          116,
+          118,
+          116,
+          118,
+          117,
+          116,
+          116,
+          119,
+          119
+        ]
+      },
+      {
+        "id": "ch4-commodity",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          145,
+          148,
+          157,
+          157,
+          157
+        ]
+      }
+    ]
+  },
+  "answers": {
+    "summary": {
+      "accuracy": 0.0,
+      "citation_accuracy": 0.143
+    },
+    "rows": [
+      {
+        "id": "sample-south-asia",
+        "question": "What is the growth outlook for South Asia in this report?",
+        "search_query": "What is the growth outlook for South Asia in this report?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [],
+        "answer": "Unable to generate an answer right now. Please check your API configuration and try again.",
+        "correct": false,
+        "judge_reason": "Unparseable judge output: ''",
+        "citation_ok": false
+      },
+      {
+        "id": "sample-ch3-debt",
+        "question": "What does Chapter 3 say about sovereign debt in developing economies?",
+        "search_query": "What does Chapter 3 say about sovereign debt in developing economies?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [],
+        "answer": "Unable to generate an answer right now. Please check your API configuration and try again.",
+        "correct": false,
+        "judge_reason": "Unparseable judge output: ''",
+        "citation_ok": false
+      },
+      {
+        "id": "sample-exec-risks",
+        "question": "According to the executive summary, what are the main risks to the global outlook?",
+        "search_query": "executive summary main risks to the global outlook",
+        "searches": [
+          "executive summary main risks to the global outlook"
+        ],
+        "model": "openai/gpt-oss-120b",
+        "retrieved_pages": [
+          19,
+          19,
+          19,
+          19
+        ],
+        "answer": "The executive summary says that the outlook is most at risk from a combination of **inflationary pressures, food‑insecurity, financial stress and lower growth**.  It adds that **energy‑supply disruptions, persistent trade‑policy uncertainty, geopolitical strains and weather‑related shocks** could also material‑ise as material risks to the global outlook. (GEP‑Jun‑2026.pdf, page 19)",
+        "correct": false,
+        "judge_reason": "The answer omits the key risk of a renewed escalation of hostilities or prolonged commodity‑flow disruptions that raise commodity prices, which is explicitly mentioned in the reference.",
+        "citation_ok": true
+      },
+      {
+        "id": "eap-growth",
+        "question": "What is the growth forecast for East Asia and Pacific in 2026?",
+        "search_query": "What is the growth forecast for East Asia and Pacific in 2026?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [],
+        "answer": "Unable to generate an answer right now. Please check your API configuration and try again.",
+        "correct": false,
+        "judge_reason": "Unparseable judge output: ''",
+        "citation_ok": false
+      },
+      {
+        "id": "ssa-growth",
+        "question": "What is the growth forecast for Sub-Saharan Africa in 2026?",
+        "search_query": "What is the growth forecast for Sub-Saharan Africa in 2026?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [],
+        "answer": "Unable to generate an answer right now. Please check your API configuration and try again.",
+        "correct": false,
+        "judge_reason": "Unparseable judge output: ''",
+        "citation_ok": false
+      },
+      {
+        "id": "lac-growth",
+        "question": "What is the growth forecast for Latin America and the Caribbean in 2026?",
+        "search_query": "What is the growth forecast for Latin America and the Caribbean in 2026?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [],
+        "answer": "Unable to generate an answer right now. Please check your API configuration and try again.",
+        "correct": false,
+        "judge_reason": "Unparseable judge output: ''",
+        "citation_ok": false
+      },
+      {
+        "id": "eca-growth",
+        "question": "What is the growth forecast for Europe and Central Asia in 2026?",
+        "search_query": "What is the growth forecast for Europe and Central Asia in 2026?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [],
+        "answer": "Unable to generate an answer right now. Please check your API configuration and try again.",
+        "correct": false,
+        "judge_reason": "Unparseable judge output: ''",
+        "citation_ok": false
+      },
+      {
+        "id": "mna-growth",
+        "question": "What is the growth forecast for the Middle East, North Africa, Afghanistan, and Pakistan region in 2026?",
+        "search_query": "What is the growth forecast for the Middle East, North Africa, Afghanistan, and Pakistan region in 2026?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [],
+        "answer": "Unable to generate an answer right now. Please check your API configuration and try again.",
+        "correct": false,
+        "judge_reason": "Unparseable judge output: ''",
+        "citation_ok": false
+      },
+      {
+        "id": "sar-vs-ssa",
+        "question": "Compare the 2026 growth forecasts for South Asia and Sub-Saharan Africa.",
+        "search_query": "2026 growth forecast South Asia",
+        "searches": [
+          "2026 growth forecast South Asia",
+          "2026 growth forecast Sub-Saharan Africa"
+        ],
+        "model": "openai/gpt-oss-120b",
+        "retrieved_pages": [
+          96,
+          96,
+          96,
+          96,
+          99,
+          99,
+          99
+        ],
+        "answer": "**South Asia (2026)**  \n- The report says “Growth in SAR is expected to soften to **6.3 percent in 2026**” (GEP‑Jun‑2026.pdf, page 96).  \n\n**Sub‑Saharan Africa (2026)**  \n- The outlook notes that “Growth in SSA is forecast to edge down to **4 percent in 2026**” (GEP‑Jun‑2026.pdf, page 99).  \n\n**Comparison**  \n- South Asia’s 2026 growth forecast (≈ 6.3 %) is higher than Sub‑Saharan Africa’s forecast (≈ 4 %). The South Asian projection suggests a moderate slowdown but still a growth rate about two and a half percentage points above the Sub‑Saharan Africa projection.",
+        "correct": false,
+        "judge_reason": "Unparseable judge output: ''",
+        "citation_ok": true
+      },
+      {
+        "id": "global-growth",
+        "question": "What is the global growth forecast for 2026?",
+        "search_query": "What is the global growth forecast for 2026?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [],
+        "answer": "Unable to generate an answer right now. Please check your API configuration and try again.",
+        "correct": false,
+        "judge_reason": "The system answer does not provide the forecasted growth figure or any of the key facts from the reference.",
+        "citation_ok": false
+      },
+      {
+        "id": "box-1-1-ai",
+        "question": "What does Box 1.1 say about how AI could affect global growth?",
+        "search_query": "What does Box 1.1 say about how AI could affect global growth?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [],
+        "answer": "Unable to generate an answer right now. Please check your API configuration and try again.",
+        "correct": false,
+        "judge_reason": "Unparseable judge output: ''",
+        "citation_ok": false
+      },
+      {
+        "id": "box-2-1-lics",
+        "question": "What growth does the report expect for low-income countries in 2026?",
+        "search_query": "What growth does the report expect for low-income countries in 2026?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [],
+        "answer": "Unable to generate an answer right now. Please check your API configuration and try again.",
+        "correct": false,
+        "judge_reason": "Unparseable judge output: ''",
+        "citation_ok": false
+      },
+      {
+        "id": "box-3-1-hidden-debt",
+        "question": "What does the report find about the costs of hidden debt?",
+        "search_query": "What does the report find about the costs of hidden debt?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [],
+        "answer": "Unable to generate an answer right now. Please check your API configuration and try again.",
+        "correct": false,
+        "judge_reason": "Unparseable judge output: ''",
+        "citation_ok": false
+      },
+      {
+        "id": "ch4-commodity",
+        "question": "According to Chapter 4, how do commodity price increases affect revenues and spending in commodity-exporting economies?",
+        "search_query": "According to Chapter 4, how do commodity price increases affect revenues and spending in commodity-exporting economies?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [],
+        "answer": "Unable to generate an answer right now. Please check your API configuration and try again.",
+        "correct": false,
+        "judge_reason": "Unparseable judge output: ''",
+        "citation_ok": false
+      },
+      {
+        "id": "trap-japan-unemployment",
+        "question": "What was Japan's unemployment rate in 2025 according to the report?",
+        "search_query": "What was Japan's unemployment rate in 2025 according to the report?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [],
+        "answer": "Unable to generate an answer right now. Please check your API configuration and try again.",
+        "correct": false,
+        "judge_reason": "Unparseable judge output: ''",
+        "citation_ok": null
+      }
+    ]
+  }
+}

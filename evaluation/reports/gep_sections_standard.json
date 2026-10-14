@@ -1,0 +1,458 @@
+{
+  "document": "notebooks/GEP-Jun-2026.pdf",
+  "config": {
+    "chunk_size": 800,
+    "chunk_overlap": 150,
+    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "embedding_query_prefix": "",
+    "top_k": 5,
+    "score_threshold": 0.2,
+    "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    "rerank_candidates": 20,
+    "section_aware": true
+  },
+  "answer_model": "auto",
+  "retrieval": {
+    "summary": {
+      "hit_rate": 1.0,
+      "mrr": 0.964,
+      "avg_chunks": 6.1
+    },
+    "rows": [
+      {
+        "id": "sample-south-asia",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          96,
+          96,
+          96,
+          97,
+          96
+        ]
+      },
+      {
+        "id": "sample-ch3-debt",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          109,
+          109,
+          110,
+          116,
+          116
+        ]
+      },
+      {
+        "id": "sample-exec-risks",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          19,
+          19,
+          19,
+          19,
+          19
+        ]
+      },
+      {
+        "id": "eap-growth",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          83,
+          83,
+          82,
+          81,
+          82
+        ]
+      },
+      {
+        "id": "ssa-growth",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          99,
+          99,
+          100,
+          102,
+          100
+        ]
+      },
+      {
+        "id": "lac-growth",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          91,
+          88,
+          90,
+          88,
+          89
+        ]
+      },
+      {
+        "id": "eca-growth",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          87,
+          84,
+          84,
+          84,
+          84
+        ]
+      },
+      {
+        "id": "mna-growth",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          95,
+          92,
+          93,
+          95,
+          93
+        ]
+      },
+      {
+        "id": "sar-vs-ssa",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          98,
+          96,
+          96,
+          96,
+          97,
+          99,
+          100,
+          99,
+          102,
+          99
+        ]
+      },
+      {
+        "id": "global-growth",
+        "hit": true,
+        "rank": 2,
+        "retrieved_pages": [
+          40,
+          19,
+          27,
+          27,
+          51
+        ]
+      },
+      {
+        "id": "box-1-1-ai",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          30,
+          32,
+          31,
+          35,
+          34
+        ]
+      },
+      {
+        "id": "box-2-1-lics",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          76,
+          79,
+          28,
+          79,
+          40
+        ]
+      },
+      {
+        "id": "box-3-1-hidden-debt",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          116,
+          116,
+          119,
+          116,
+          117,
+          118,
+          116,
+          118,
+          116,
+          118,
+          117,
+          116,
+          116,
+          119,
+          119
+        ]
+      },
+      {
+        "id": "ch4-commodity",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          145,
+          148,
+          157,
+          157,
+          157
+        ]
+      }
+    ]
+  },
+  "answers": {
+    "summary": {
+      "accuracy": 0.8,
+      "citation_accuracy": 0.929
+    },
+    "rows": [
+      {
+        "id": "sample-south-asia",
+        "question": "What is the growth outlook for South Asia in this report?",
+        "search_query": "What is the growth outlook for South Asia in this report?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [
+          96,
+          96,
+          96,
+          96
+        ],
+        "answer": "The report projects that South Asia’s growth will slow in 2026 but remain positive.  Overall, the South‑Asia region (SAR) is expected to grow at about **6.3 % in 2026** (a modest upgrade from earlier forecasts) and is projected to rebound to an average of **around 7 % per year in 2027‑28** (GEP‑Jun‑2026.pdf, page 96, [Ch. 2 Regional Outlooks › South Asia]).  If India is excluded, the region’s growth is forecast to rise to **4 % in 2026** from 3.9 % in 2025, driven mainly by Bangladesh’s recovery (GEP‑Jun‑2026.pdf, page 96, [Ch. 2 Regional Outlooks › South Asia]).",
+        "correct": false,
+        "judge_reason": "The system answer omits the key fact that India is projected to grow 6.6% in fiscal year 2026/27.",
+        "citation_ok": true
+      },
+      {
+        "id": "sample-ch3-debt",
+        "question": "What does Chapter 3 say about sovereign debt in developing economies?",
+        "search_query": "What does Chapter 3 say about sovereign debt in developing economies?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [
+          109,
+          109,
+          110,
+          116,
+          116
+        ],
+        "answer": "Chapter 3 highlights that sovereign debt is a growing problem for emerging‑market and developing economies (EMDEs).  It shows that higher debt levels are linked to higher dollar‑denominated sovereign bond spreads and higher domestic‑currency yields, and that the cost of borrowing rises more steeply when debt‑to‑GDP ratios are already high (GEP‑Jun‑2026.pdf, page 109).  The chapter notes that the share of low‑ and middle‑income countries that are either in or at high risk of debt distress has jumped from about 26 % in 2015 to roughly 50 % in 2026, underscoring the vulnerability of EMDEs (GEP‑Jun‑2026.pdf, page 110).  It also discusses how “hidden” debt—liabilities that have not been fully disclosed—can trigger large increases in sovereign spreads when revealed, pointing to the need for better debt transparency (GEP‑Jun‑2026.pdf, page 116).  Finally, the chapter recommends measures to strengthen fiscal positions, such as stronger domestic revenue mobilization, more efficient public spending, improved debt management, support for domestic debt markets, and, where appropriate, debt‑for‑development swaps, to help contain borrowing costs and preserve fiscal space (GEP‑Jun‑2026.pdf, page 109).",
+        "correct": false,
+        "judge_reason": "The system answer omits the specific debt‑to‑GDP rise (under 40% to over 70%) and the basis‑point increases (110 and 30 bps) and does not mention the larger effects for countries with default history, low ratings, frontier status, short‑term debt reliance or weak governance, which are key facts in the reference.",
+        "citation_ok": true
+      },
+      {
+        "id": "sample-exec-risks",
+        "question": "According to the executive summary, what are the main risks to the global outlook?",
+        "search_query": "According to the executive summary, what are the main risks to the global outlook?",
+        "searches": [],
+        "model": "openai/gpt-oss-120b",
+        "retrieved_pages": [
+          19,
+          19,
+          19,
+          19,
+          19
+        ],
+        "answer": "The executive summary lists several downside risks to the global outlook, including:\n\n* **Inflationary pressures and food insecurity** that can trigger financial stress and lower growth.  \n* **Energy‑supply disruptions** that, if more severe than expected, could sharply cut global growth.  \n* **Persistent trade‑policy uncertainty** and broader **geopolitical strains** (e.g., renewed hostilities).  \n* **Weather‑related shocks** and prolonged **commodity‑flow disruptions**, which can raise commodity prices and intensify inflation and food‑security problems.  \n\nThese risks are highlighted in the executive summary of the Global Economic Prospects (GEP‑Jun‑2026.pdf, page 19).",
+        "correct": true,
+        "judge_reason": "The system answer lists all the main downside risks mentioned in the reference, matching the key facts without contradiction.",
+        "citation_ok": true
+      },
+      {
+        "id": "eap-growth",
+        "question": "What is the growth forecast for East Asia and Pacific in 2026?",
+        "search_query": "What is the growth forecast for East Asia and Pacific in 2026?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [
+          83,
+          83,
+          81
+        ],
+        "answer": "The growth forecast for the East Asia and Pacific (EAP) region in 2026 is **4.2 percent** (GEP‑Jun‑2026.pdf, page 81; table 2.1 on page 83).",
+        "correct": true,
+        "judge_reason": "The system answer correctly states the 2026 growth forecast of 4.2 percent for East Asia and Pacific, matching the key fact in the reference.",
+        "citation_ok": true
+      },
+      {
+        "id": "ssa-growth",
+        "question": "What is the growth forecast for Sub-Saharan Africa in 2026?",
+        "search_query": "What is the growth forecast for Sub-Saharan Africa in 2026?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [
+          99,
+          99
+        ],
+        "answer": "The growth forecast for Sub‑Saharan Africa in 2026 is 4 percent (GEP-Jun-2026.pdf, page 99).",
+        "correct": true,
+        "judge_reason": "It correctly states the 2026 growth forecast of 4 percent.",
+        "citation_ok": true
+      },
+      {
+        "id": "lac-growth",
+        "question": "What is the growth forecast for Latin America and the Caribbean in 2026?",
+        "search_query": "What is the growth forecast for Latin America and the Caribbean in 2026?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [
+          88,
+          88
+        ],
+        "answer": "The growth forecast for Latin America and the Caribbean in 2026 is 2.2 percent. (GEP-Jun-2026.pdf, page 88)",
+        "correct": true,
+        "judge_reason": "The answer correctly states the 2026 growth forecast of 2.2 percent, matching the reference.",
+        "citation_ok": true
+      },
+      {
+        "id": "eca-growth",
+        "question": "What is the growth forecast for Europe and Central Asia in 2026?",
+        "search_query": "What is the growth forecast for Europe and Central Asia in 2026?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [
+          84,
+          84,
+          84,
+          84
+        ],
+        "answer": "The growth forecast for Europe and Central Asia in 2026 is **about 2.8 percent** (excluding Russia and Türkiye) (GEP‑Jun‑2026.pdf, page 84).",
+        "correct": false,
+        "judge_reason": "The system answer gives 2.8% instead of the reference’s 2.1% and omits the weakening in about 70% of economies, contradicting the key facts.",
+        "citation_ok": true
+      },
+      {
+        "id": "mna-growth",
+        "question": "What is the growth forecast for the Middle East, North Africa, Afghanistan, and Pakistan region in 2026?",
+        "search_query": "What is the growth forecast for the Middle East, North Africa, Afghanistan, and Pakistan region in 2026?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [
+          92
+        ],
+        "answer": "The growth forecast for the Middle East, North Africa, Afghanistan, and Pakistan (MNA) region in 2026 is 1.6 percent (GEP-Jun-2026.pdf, page 92).",
+        "correct": true,
+        "judge_reason": "The system answer correctly states the 2026 growth forecast of 1.6 percent for the MNA region, matching the key fact in the reference.",
+        "citation_ok": true
+      },
+      {
+        "id": "sar-vs-ssa",
+        "question": "Compare the 2026 growth forecasts for South Asia and Sub-Saharan Africa.",
+        "search_query": "Compare the 2026 growth forecasts for South Asia and Sub-Saharan Africa.",
+        "searches": [],
+        "model": "openai/gpt-oss-120b",
+        "retrieved_pages": [
+          96,
+          96,
+          96,
+          99,
+          99,
+          99
+        ],
+        "answer": "- **South Asia (SAR)** – The regional growth forecast is expected to soften to **about 6.3 % in 2026** (GEP‑Jun‑2026, page 96, “Growth in SAR is expected to soften to 6.3 percent in 2026”)【4】.  \n\n- **Sub‑Saharan Africa (SSA)** – The regional growth forecast is projected to **decline to roughly 4 % in 2026** (GEP‑Jun‑2026, page 99, “Growth in SSA is forecast to edge down to 4 percent in 2026”)【8】.  \n\n**Comparison:** South Asia’s 2026 growth outlook (≈6.3 %) is markedly higher—about 2.3 percentage points—than Sub‑Saharan Africa’s outlook (≈4 %). This reflects stronger domestic demand and export performance in South Asia relative to the weaker external demand and higher commodity‑price pressures affecting Sub‑Saharan Africa.",
+        "correct": true,
+        "judge_reason": "The answer correctly states the 2026 growth forecasts for South Asia (6.3%) and Sub‑Saharan Africa (4%) and notes that South Asia is forecast to grow faster, matching the reference facts.",
+        "citation_ok": true
+      },
+      {
+        "id": "global-growth",
+        "question": "What is the global growth forecast for 2026?",
+        "search_query": "What is the global growth forecast for 2026?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [
+          19
+        ],
+        "answer": "The Global Economic Prospects report projects global growth to slow to **2.5 percent in 2026** (GEP-Jun-2026.pdf, page 19).",
+        "correct": true,
+        "judge_reason": "The system answer correctly states the 2026 global growth forecast of 2.5 percent, matching the key fact in the reference.",
+        "citation_ok": true
+      },
+      {
+        "id": "box-1-1-ai",
+        "question": "What does Box 1.1 say about how AI could affect global growth?",
+        "search_query": "What does Box 1.1 say about how AI could affect global growth?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [
+          30,
+          32,
+          34
+        ],
+        "answer": "Box 1.1 explains that artificial intelligence is seen as a potential catalyst for economic growth, especially in a period of structural slowdown. In the near term it is expected to lift growth mainly through higher investment, particularly in advanced economies. Over the medium term its biggest contribution would come from faster productivity growth, though estimates of that impact vary widely—from modest gains to transformative effects. Illustrative scenarios suggest that under optimistic assumptions AI could push 2030s growth above the average recorded in the 2000s, with some estimates of productivity gains of 50 % or more (GEP-Jun-2026.pdf, page 30‑31). The box also notes that AI can benefit less‑experienced or lower‑performing workers, narrowing performance gaps, but adoption remains concentrated among highly educated white‑collar professionals, and in some cases expert users see limited or even negative productivity effects (GEP-Jun-2026.pdf, page 32). Finally, the analysis highlights that the long‑term macroeconomic impact is still uncertain, calling for further research on how micro‑level gains translate into macro outcomes, the employment effects, and the specific constraints faced by emerging markets and developing economies (GEP-Jun-2026.pdf, page 34‑35).",
+        "correct": true,
+        "judge_reason": "The answer includes all key facts from the reference—near‑term investment boost, medium‑term productivity growth, wide estimate range, optimistic 2030s growth exceeding 2000s average, and smaller gains under less optimistic assumptions—without contradiction.",
+        "citation_ok": true
+      },
+      {
+        "id": "box-2-1-lics",
+        "question": "What growth does the report expect for low-income countries in 2026?",
+        "search_query": "What growth does the report expect for low-income countries in 2026?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [],
+        "answer": "The report expects low‑income countries to grow at **about 5.4 percent in 2026** (a 0.3‑percentage‑point drop from earlier forecasts)【1】.",
+        "correct": true,
+        "judge_reason": "The system answer correctly states the 5.4% growth forecast for 2026 and the 0.3‑percentage‑point drop from earlier forecasts, matching the key facts of the reference.",
+        "citation_ok": false
+      },
+      {
+        "id": "box-3-1-hidden-debt",
+        "question": "What does the report find about the costs of hidden debt?",
+        "search_query": "What does the report find about the costs of hidden debt?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [
+          116,
+          116,
+          116,
+          118,
+          116,
+          118,
+          116,
+          118,
+          116,
+          116
+        ],
+        "answer": "The report shows that when previously undisclosed (“hidden”) debt is revealed, sovereign borrowing costs jump sharply.  Hidden‑debt episodes are linked to large, statistically significant increases in sovereign spreads, meaning that markets demand higher compensation for the added risk.  The findings also highlight that these higher spreads can persist for some time, reflecting ongoing uncertainty about the true size of a country’s debt.  In short, hidden debt raises borrowing costs and underscores the importance of improving debt transparency to keep those costs down. (GEP-Jun-2026.pdf, page 116; GEP-Jun-2026.pdf, page 118)",
+        "correct": true,
+        "judge_reason": "The system answer accurately states the key facts from the reference: hidden debt revelations lead to large, significant increases in sovereign spreads (higher borrowing costs) and highlight the need for better debt transparency.",
+        "citation_ok": true
+      },
+      {
+        "id": "ch4-commodity",
+        "question": "According to Chapter 4, how do commodity price increases affect revenues and spending in commodity-exporting economies?",
+        "search_query": "According to Chapter 4, how do commodity price increases affect revenues and spending in commodity-exporting economies?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [
+          148,
+          157,
+          157,
+          157
+        ],
+        "answer": "Commodity price increases raise both revenues and primary spending in commodity‑exporting economies, but the effects unfold gradually.  \n- A 1 percent rise in the commodity price index lifts government revenues by about 0.3 percent immediately and about 0.4 percent after five years (GEP-Jun-2026.pdf, page 148).  \n- Primary spending rises only modestly at first, but accumulates to roughly 0.4 percent over the same five‑year horizon, indicating that the windfall is gradually spent rather than saved (GEP-Jun-2026.pdf, page 148).  \n- The response is pro‑cyclical: during price booms revenue and spending rise, while in slumps revenue shortfalls are met with expenditure cuts (GEP-Jun-2026.pdf, page 157).  \n- The magnitude varies by commodity type, with energy exporters experiencing the largest revenue windfall and a 0.5 percent increase in spending after five years, and agricultural exporters seeing a 0.4 percent increase in spending over the same period (GEP-Jun-2026.pdf, page 157).",
+        "correct": true,
+        "judge_reason": "The system answer correctly states that a 1% rise in commodity prices raises both revenues and primary spending by about 0.4% after five years and that the windfall is gradually spent, matching the reference facts while adding permissible extra detail.",
+        "citation_ok": true
+      },
+      {
+        "id": "trap-japan-unemployment",
+        "question": "What was Japan's unemployment rate in 2025 according to the report?",
+        "search_query": "What was Japan's unemployment rate in 2025 according to the report?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [],
+        "answer": "I’m sorry, but the uploaded report does not provide Japan’s unemployment rate for 2025.",
+        "correct": true,
+        "judge_reason": "The system answer correctly states that the report does not provide Japan’s unemployment rate for 2025, matching the reference answer.",
+        "citation_ok": null
+      }
+    ]
+  }
+}

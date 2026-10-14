@@ -30,6 +30,13 @@ Excerpts from structured reports start with their section in square
 brackets, e.g. "[Ch. 2 Regional Outlooks › South Asia]": use only the
 sections the question asks about, never mix up facts from different
 sections (e.g. two regions), and name the section in the citation.
+Be complete: include every point in the context that answers the
+question, with the qualifiers on a figure (what it covers or excludes,
+e.g. "excluding country X"). When asked about risks to an outlook, list
+the downside risks, then end with a separate "Upside risks:" line for
+anything in the context that could make the outlook better (often
+introduced as "On the upside, ..." and not called a risk); leave that
+line out only when the context has none.
 Video/audio transcripts have no pages — their lines start with [mm:ss]
 timestamps; cite those instead.
 

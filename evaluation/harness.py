@@ -29,7 +29,7 @@ from pathlib import Path
 
 from app.config.settings import settings
 from app.rag.citations import cited_pages
-from app.rag.generator import AnswerGenerator
+from app.rag.generator import FALLBACK_MESSAGE, AnswerGenerator
 from app.rag.retriever import RetrievedChunk
 from app.services.rag_service import RAGPipeline
 
@@ -126,6 +126,14 @@ def first_hit_rank(chunks: list[RetrievedChunk], expected_pages: list[int]) -> i
     return None
 
 
+_JUDGE_ATTEMPTS = 3
+_JUDGE_RETRY_SECONDS = 5.0
+# A failed answer (every provider errored, e.g. Groq's per-minute token
+# limit with the fallback's daily quota spent) is asked again after the
+# per-minute window resets, rather than graded as a wrong answer.
+_ANSWER_ATTEMPTS = 3
+_ANSWER_RETRY_SECONDS = 60.0
+
 JUDGE_PROMPT = """You are grading the answer of a document question-answering system.
 
 Question: {question}
@@ -150,13 +158,22 @@ Reply with JSON only: {{"verdict": "correct" or "incorrect", "reason": "<one sen
 def grade_answer(
     generator: AnswerGenerator, question: str, reference: str, answer: str, model_name: str | None = None
 ) -> dict:
-    """Ask the judge LLM whether `answer` matches `reference`."""
-    output = generator.complete(
-        JUDGE_PROMPT.format(question=question, reference=reference, answer=answer),
-        model_name=model_name,
-        temperature=0.0,
-    )
-    return parse_verdict(output)
+    """Ask the judge LLM whether `answer` matches `reference`. An empty or
+    unparseable reply (e.g. a provider hiccup) is retried, so a judge failure
+    isn't scored as a wrong answer; it only counts as incorrect if it persists."""
+    prompt = JUDGE_PROMPT.format(question=question, reference=reference, answer=answer)
+    verdict = {"correct": False, "reason": "Judge was not called"}
+    for attempt in range(1, _JUDGE_ATTEMPTS + 1):
+        gemini = model_name is None or model_name.startswith("gemini")
+        verdict = parse_verdict(generator.complete(
+            prompt, temperature=0.0,
+            model_name=model_name if gemini else None, groq_model_name=None if gemini else model_name,
+        ))
+        if not verdict["reason"].startswith("Unparseable"):
+            return verdict
+        if attempt < _JUDGE_ATTEMPTS:
+            time.sleep(_JUDGE_RETRY_SECONDS)
+    return verdict
 
 
 def parse_verdict(output: str) -> dict:
@@ -236,9 +253,13 @@ def evaluate_answers(
     judge_model = judge_model or settings.gemini_model
     rows = []
     for q in questions:
-        throttle.wait(calls=3 if auto_mode else 2)  # agent turns / rewrite + answer
-        result = pipeline.ask(q["question"], strict_mode=strict_mode, model_name=model_name, temperature=0.0,
-                              groq_model_name=groq_model_name, auto_mode=auto_mode)
+        for attempt in range(1, _ANSWER_ATTEMPTS + 1):
+            throttle.wait(calls=3 if auto_mode else 2)  # agent turns / rewrite + answer
+            result = pipeline.ask(q["question"], strict_mode=strict_mode, model_name=model_name, temperature=0.0,
+                                  groq_model_name=groq_model_name, auto_mode=auto_mode)
+            if result.answer != FALLBACK_MESSAGE or attempt == _ANSWER_ATTEMPTS:
+                break
+            time.sleep(_ANSWER_RETRY_SECONDS)
         throttle.wait()
         grade = grade_answer(pipeline.generator, q["question"], q["reference_answer"], result.answer, judge_model)
         expected = set(q.get("expected_pages") or [])

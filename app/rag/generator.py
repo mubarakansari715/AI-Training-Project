@@ -202,16 +202,7 @@ class AnswerGenerator:
         model = self._concrete_groq_model(model_name)
         messages = _build_chat_messages(history, prompt)
         try:
-            response = requests.post(
-                GROQ_URL,
-                headers={"Authorization": f"Bearer {self.groq_api_key}"},
-                json={
-                    "model": model,
-                    "messages": messages,
-                    "temperature": temperature,
-                },
-                timeout=GROQ_TIMEOUT_SECONDS,
-            )
+            response = self._post_groq({"model": model, "messages": messages, "temperature": temperature})
             response.raise_for_status()
             data = response.json()
             text = (data["choices"][0]["message"]["content"] or "").strip()
@@ -257,26 +248,35 @@ class AnswerGenerator:
         if tools:
             payload.update(tools=tools, tool_choice=tool_choice)
         try:
-            for attempt in (1, 2):
-                response = requests.post(
-                    GROQ_URL,
-                    headers={"Authorization": f"Bearer {self.groq_api_key}"},
-                    json=payload,
-                    timeout=GROQ_TIMEOUT_SECONDS,
-                )
-                wait = _retry_after_seconds(response)
-                if response.status_code == 429 and attempt == 1 and wait is not None and wait <= MAX_RETRY_WAIT_SECONDS:
-                    logger.info("Groq rate limit; retrying in %.1fs", wait)
-                    time.sleep(wait)
-                    continue
-                if response.status_code >= 400:
-                    logger.warning("Groq tool-calling turn rejected: %s %s", response.status_code, response.text[:300])
-                response.raise_for_status()
-                return response.json()["choices"][0]["message"]
+            response = self._post_groq(payload)
+            if response.status_code >= 400:
+                logger.warning("Groq tool-calling turn rejected: %s %s", response.status_code, response.text[:300])
+            response.raise_for_status()
+            return response.json()["choices"][0]["message"]
         except Exception as exc:
             logger.exception("Groq tool-calling turn failed")
             raise ToolCallingError(str(exc)) from exc
-        raise ToolCallingError("Groq rate limit persisted after retry")
+
+    def _post_groq(self, payload: dict):
+        """POST to Groq; on a rate-limit response asking for a short wait
+        (<= MAX_RETRY_WAIT_SECONDS), wait and retry once. Groq's per-minute
+        token limit resets within seconds, so this usually succeeds — and
+        avoids leaning on the fallback provider, whose quota may be spent."""
+        response = None
+        for attempt in (1, 2):
+            response = requests.post(
+                GROQ_URL,
+                headers={"Authorization": f"Bearer {self.groq_api_key}"},
+                json=payload,
+                timeout=GROQ_TIMEOUT_SECONDS,
+            )
+            wait = _retry_after_seconds(response)
+            if response.status_code == 429 and attempt == 1 and wait is not None and wait <= MAX_RETRY_WAIT_SECONDS:
+                logger.info("Groq rate limit; retrying in %.1fs", wait)
+                time.sleep(wait)
+                continue
+            break
+        return response
 
 
 class ToolCallingError(Exception):

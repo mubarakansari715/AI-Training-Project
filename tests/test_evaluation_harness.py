@@ -66,8 +66,8 @@ def test_evaluate_answers_uses_pipeline_ask_and_judge():
         asked.append((question, strict_mode, model_name, temperature))
         return AskResult(answer="GPO visited 166 libraries (p. 5).", sources=[_chunk(5)], search_query=question)
 
-    def complete(prompt, model_name, temperature):
-        judged.append((prompt, model_name, temperature))
+    def complete(prompt, temperature, model_name, groq_model_name):
+        judged.append((prompt, model_name or groq_model_name, temperature))
         return '{"verdict": "correct", "reason": "Matches."}'
 
     pipeline = SimpleNamespace(ask=ask, generator=SimpleNamespace(complete=complete))
@@ -85,6 +85,27 @@ def test_evaluate_answers_uses_pipeline_ask_and_judge():
     assert rows[0]["correct"] is True and rows[0]["citation_ok"] is True
     assert rows[1]["citation_ok"] is None  # no expected pages -> citation not scored
     assert summarize_answers(rows) == {"accuracy": 1.0, "citation_accuracy": 1.0}
+
+
+def test_failed_answer_is_retried_instead_of_graded(monkeypatch):
+    """A provider failure (e.g. a per-minute rate limit) isn't a wrong answer:
+    the question is asked again after a pause, and only then graded."""
+    from app.rag.generator import FALLBACK_MESSAGE
+
+    monkeypatch.setattr("evaluation.harness.time.sleep", lambda s: None)
+    answers = iter([FALLBACK_MESSAGE, "GPO visited 166 libraries (p. 5)."])
+
+    def ask(question, **kwargs):
+        return AskResult(answer=next(answers), sources=[_chunk(5)], search_query=question)
+
+    graded = []
+    pipeline = SimpleNamespace(ask=ask, generator=SimpleNamespace(
+        complete=lambda prompt, **kwargs: graded.append(prompt) or '{"verdict": "correct", "reason": "ok"}'))
+
+    rows = evaluate_answers(pipeline, [{"id": "q1", "question": "How many?", "reference_answer": "166.",
+                                        "expected_pages": [5]}], judge_model="j")
+
+    assert rows[0]["answer"] == "GPO visited 166 libraries (p. 5)." and len(graded) == 1
 
 
 def test_summarize_retrieval():
@@ -106,3 +127,36 @@ def test_gpo_questions_file_is_ground_truth_only():
     for q in data["questions"]:
         assert set(q) <= allowed, f"{q['id']} has non-ground-truth keys: {set(q) - allowed}"
     assert sum(q.get("sample", False) for q in data["questions"]) == 3
+
+
+def test_judge_retries_empty_replies(monkeypatch):
+    from evaluation.harness import grade_answer
+
+    monkeypatch.setattr("evaluation.harness.time.sleep", lambda s: None)
+    replies = ["", "not json", '{"verdict": "correct", "reason": "Matches."}']
+    gen = SimpleNamespace(complete=lambda prompt, temperature, model_name, groq_model_name: replies.pop(0))
+
+    assert grade_answer(gen, "q", "ref", "ans") == {"correct": True, "reason": "Matches."}
+    assert replies == []
+
+
+def test_judge_gives_up_after_repeated_empty_replies(monkeypatch):
+    from evaluation.harness import grade_answer
+
+    monkeypatch.setattr("evaluation.harness.time.sleep", lambda s: None)
+    gen = SimpleNamespace(complete=lambda prompt, temperature, model_name, groq_model_name: "")
+
+    verdict = grade_answer(gen, "q", "ref", "ans")
+    assert verdict["correct"] is False and verdict["reason"].startswith("Unparseable")
+
+
+def test_judge_model_is_routed_to_its_provider():
+    from evaluation.harness import grade_answer
+
+    calls = []
+    gen = SimpleNamespace(complete=lambda prompt, temperature, model_name, groq_model_name:
+                          calls.append((model_name, groq_model_name)) or '{"verdict": "correct", "reason": "ok"}')
+    grade_answer(gen, "q", "r", "a", "qwen/qwen3.8-27b")
+    grade_answer(gen, "q", "r", "a", "gemini-3.5-flash-lite")
+    assert calls == [(None, "qwen/qwen3.8-27b"), ("gemini-3.5-flash-lite", None)]
+

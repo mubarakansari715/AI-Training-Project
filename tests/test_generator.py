@@ -393,3 +393,15 @@ def test_chat_with_tools_raises_when_rate_limit_wait_is_too_long(monkeypatch):
     with pytest.raises(ToolCallingError):
         AnswerGenerator(api_key="", groq_api_key="k").chat_with_tools([{"role": "user", "content": "hi"}], [])
 
+
+
+def test_answer_generation_retries_short_groq_rate_limit_before_falling_back(monkeypatch):
+    replies = [_Resp(429, text="Rate limit reached. Please try again in 2.0s."),
+               _Resp(200, {"choices": [{"message": {"content": "Groq answer after retry."}}]})]
+    monkeypatch.setattr("app.rag.generator.requests.post", lambda url, **kw: replies.pop(0))
+    monkeypatch.setattr("app.rag.generator.time.sleep", lambda s: None)
+
+    answer = AnswerGenerator(api_key="", groq_api_key="k").generate("q?", [])
+
+    assert answer == "Groq answer after retry."
+

@@ -280,6 +280,8 @@ Opens at `http://localhost:8501`.
    retrieval debug view, or adjust the temperature.
 7. Open **Use case results** (top navigation) to see how each hands-on use
    case scores in its latest evaluation report, and to run the unit tests.
+   Each use case also shows its sample questions answered before and after
+   its improvement, side by side (saved by `python -m evaluation.compare`).
 
 ## How RAG Works
 

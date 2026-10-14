@@ -22,6 +22,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 # One entry per use case: its pass bar from the spec, how that bar is checked
 # ("bar": "section" or "fact", see _meets_pass_bar), its questions file, the
+# before-vs-after run of its sample questions (evaluation.compare), the
 # final report, and (optionally) the "before" report it improves on.
 USE_CASES = [
     {
@@ -30,6 +31,7 @@ USE_CASES = [
         "pass_bar": "The exact fact from the right paragraph, nothing invented.",
         "bar": "fact",
         "questions": "evaluation/questions/gpo.json",
+        "compare": "evaluation/reports/gpo_compare.json",
         "report": "evaluation/reports/gpo_final.json",
         "baseline": None,
     },
@@ -39,6 +41,7 @@ USE_CASES = [
         "pass_bar": "The right chapter and section is found, and no facts are mixed in from another region or chapter.",
         "bar": "section",
         "questions": "evaluation/questions/gep.json",
+        "compare": "evaluation/reports/gep_compare.json",
         "report": "evaluation/reports/gep_final.json",
         "baseline": "evaluation/reports/gep_baseline_standard.json",
     },
@@ -48,6 +51,7 @@ USE_CASES = [
         "pass_bar": "The right number is pulled from a chart or table, not just a general sentence nearby.",
         "bar": "fact",
         "questions": "evaluation/questions/imac.json",
+        "compare": "evaluation/reports/imac_compare.json",
         "report": "evaluation/reports/imac_final.json",
         "baseline": "evaluation/reports/imac_baseline.json",
     },
@@ -86,6 +90,70 @@ def _meets_pass_bar(bar: str, answer: dict, expected_pages: list[int], retrieved
         cited = cited_pages(answer["answer"])
         return bool(cited) and cited <= set(expected_pages)
     return bool(answer["correct"]) and retrieved_right_page
+
+
+# Badge colour per pipeline step kind (see evaluation.compare.describe_steps).
+_STEP_COLORS = {"Query": "violet", "Retrieve": "blue", "Post-process": "green", "Generate": "orange"}
+_PASSAGE_PREVIEW_CHARS = 700
+
+
+def _md(text: str) -> str:
+    """Model text as Markdown: a "$" would otherwise start a formula."""
+    return text.replace("$", "\\$")
+
+
+def _render_side(side: dict) -> None:
+    """One pipeline's answer to a sample question, as in a side-by-side demo."""
+    st.markdown(f"**{side['label']}**")
+    where = f"answer passage at rank {side['rank']}" if side["rank"] else "answer passage not retrieved"
+    if side["correct"]:
+        st.badge(f"PASS · {where}", icon=":material/check:", color="green")
+    else:
+        st.badge(f"FAIL · {where}", icon=":material/close:", color="red")
+    st.markdown(_md(side["answer"]))
+    st.caption(f"Judge: {side['judge_reason']}")
+    with st.expander("Pipeline: what happened, step by step"):
+        st.markdown("\n".join(
+            f"{i}. :{_STEP_COLORS.get(step['kind'], 'gray')}-badge[{step['kind']}] {_md(step['text'])}"
+            for i, step in enumerate(side["steps"], start=1)
+        ))
+        st.caption(f"Configuration: {side['config']} · answer model {side['model']}")
+    with st.expander(f"Passages handed to the model ({len(side['passages'])})"):
+        for passage in side["passages"]:
+            with st.container(border=True):
+                header = f"**[{passage['rank']}] p. {passage['page']}**"
+                if passage["section"]:
+                    header += f" · {passage['section']}"
+                if passage["expected"]:
+                    header += " :green-badge[from the answer's page]"
+                st.markdown(header)
+                text = passage["text"]
+                st.text(text if len(text) <= _PASSAGE_PREVIEW_CHARS else text[:_PASSAGE_PREVIEW_CHARS] + " …")
+
+
+def _render_comparison(use_case: dict) -> None:
+    """Before vs after on the task spec's sample questions (evaluation.compare)."""
+    st.markdown("#### Before vs after: sample questions")
+    comparison = _read(use_case["compare"])
+    if not comparison:
+        key = Path(use_case["compare"]).stem.removesuffix("_compare")
+        st.info(f"Not generated yet. Run `python -m evaluation.compare --use-case {key}`.",
+                icon=":material/pending:")
+        return
+    rows = comparison["rows"]
+    picked = st.segmented_control(
+        "Sample question", range(len(rows)), format_func=lambda i: f"Question {i + 1}",
+        default=0, key=f"compare_{use_case['compare']}",
+    )
+    row = rows[picked if picked is not None else 0]
+    with st.container(border=True):
+        st.markdown(f"**Question:** {_md(row['question'])}")
+        st.caption(f"Reference answer: {_md(row['reference_answer'])}")
+    before, after = st.columns(2, gap="large")
+    with before:
+        _render_side(row["before"])
+    with after:
+        _render_side(row["after"])
 
 
 def _results_table(questions: dict, report: dict, bar: str) -> pd.DataFrame:
@@ -161,6 +229,9 @@ def _render_use_case(use_case: dict) -> None:
     else:
         st.error("Not passed yet: at least one sample question misses the pass bar.", icon=":material/cancel:")
 
+    _render_comparison(use_case)
+
+    st.markdown("#### All questions")
     st.dataframe(
         table,
         hide_index=True,

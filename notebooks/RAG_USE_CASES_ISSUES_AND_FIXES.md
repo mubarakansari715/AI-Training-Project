@@ -99,16 +99,22 @@ in from another region or chapter.
   question, with the qualifiers on a figure.
 - **Result:** 93% correct (14/15), 100% right page cited.
 
-### Issue 4: the upside risk was left out (being verified)
-- **Problem:** the executive-summary risks answer listed every downside risk
+### Issue 4: the risks answer leaves out points (not fixed yet)
+- **Problem:** the executive-summary risks answer listed the downside risks
   but left out *"On the upside, broader investment in and adoption of AI
   could lift activity."*
 - **Why:** that sentence *was* in the context; the model read "risks" as
   only the bad things.
-- **Fix:** for questions about risks, the prompt now requires a separate
+- **Tried:** for questions about risks, the prompt now asks for a separate
   **"Upside risks:"** line whenever the context has one.
-- **Status:** waiting for a re-run (Groq's daily limit was used up), which
-  is expected to bring this to 15/15.
+- **Result:** that did not fix it. Asked again with the new prompt, the
+  answer still had no upside line, and this time it also left out the
+  severe scenario ("global growth could fall to just 1.3 percent in 2026").
+  Both points sit in the same retrieved passage. So the problem is the model
+  skipping parts of its context, which changes from run to run even at
+  temperature 0, not a missing instruction.
+- **Status:** the pass bar is still met (right section, nothing mixed in);
+  only the strict completeness check fails.
 
 ---
 

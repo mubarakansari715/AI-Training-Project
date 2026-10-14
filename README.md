@@ -277,6 +277,8 @@ Opens at `http://localhost:8501`.
 5. Pick a model from the dropdown next to the chat box.
 6. Open **⚙️ Advanced settings** to toggle strict document mode, the
    retrieval debug view, or adjust the temperature.
+7. Open **Use case results** (top navigation) to see how each hands-on use
+   case scores in its latest evaluation report, and to run the unit tests.
 
 ## How RAG Works
 

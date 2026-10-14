@@ -22,6 +22,7 @@ from app.config.settings import APP_ICON, APP_NAME
 from app.services.conversation_service import ConversationStore
 from app.services.rag_service import RAGPipeline
 from app.ui.chat import render_chat
+from app.ui.evaluation_page import render_evaluation_page
 from app.ui.sidebar import render_sidebar
 
 logging.basicConfig(level=logging.INFO)
@@ -82,13 +83,7 @@ def handle_document_management(pipeline: RAGPipeline, sidebar) -> None:
             st.error("Could not clear the document index. Please try again.")
 
 
-def main() -> None:
-    st.set_page_config(
-        page_title=APP_NAME,
-        page_icon=APP_ICON,
-        layout="wide",
-    )
-
+def chat_page() -> None:
     try:
         pipeline = get_pipeline()
     except Exception:
@@ -138,6 +133,23 @@ def main() -> None:
         temperature=sidebar.temperature,
         auto_mode=sidebar.auto_mode,
     )
+
+
+def main() -> None:
+    st.set_page_config(
+        page_title=APP_NAME,
+        page_icon=APP_ICON,
+        layout="wide",
+    )
+    page = st.navigation(
+        [
+            st.Page(chat_page, title="Chat", icon=":material/chat:", default=True),
+            st.Page(render_evaluation_page, title="Use case results", icon=":material/fact_check:",
+                    url_path="results"),
+        ],
+        position="top",
+    )
+    page.run()
 
 
 if __name__ == "__main__":

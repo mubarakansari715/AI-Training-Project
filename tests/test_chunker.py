@@ -103,3 +103,22 @@ def test_prefers_paragraph_boundary_over_mid_word_split():
 
 def test_empty_pages_list_returns_no_chunks():
     assert chunk_pages([], chunk_size=800, chunk_overlap=150) == []
+
+
+def test_section_label_is_prepended_to_every_chunk():
+    from app.rag.document_loader import DocumentPage
+
+    page = DocumentPage(text="Growth in SAR is expected to soften to 6.3 percent. " * 40, source="r.pdf", page=96,
+                        section="Ch. 2 Regional Outlooks › South Asia")
+    chunks = chunk_pages([page], chunk_size=300, chunk_overlap=50)
+
+    assert len(chunks) > 1
+    assert all(c.text.startswith("[Ch. 2 Regional Outlooks › South Asia]\n") for c in chunks)
+    assert all(c.section == "Ch. 2 Regional Outlooks › South Asia" for c in chunks)
+
+
+def test_pages_without_section_are_unchanged():
+    from app.rag.document_loader import DocumentPage
+
+    chunks = chunk_pages([DocumentPage(text="Plain memo text.", source="m.txt")])
+    assert chunks[0].text == "Plain memo text." and chunks[0].section is None

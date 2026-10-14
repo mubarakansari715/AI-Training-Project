@@ -27,6 +27,7 @@ class Chunk:
     source: str
     page: int | None
     chunk_id: str
+    section: str | None = None
 
 
 def chunk_pages(
@@ -37,7 +38,8 @@ def chunk_pages(
     """Split a list of DocumentPage into overlapping Chunks.
 
     Each page is split independently, so chunks never blend text from
-    different source pages together. `chunk_id` is deterministic: the
+    different source pages (or sections) together; pages with a detected
+    section get its label prepended to every chunk. `chunk_id` is deterministic: the
     same page text at the same position always produces the same ID,
     which later lets us skip re-indexing unchanged documents.
     """
@@ -51,12 +53,17 @@ def chunk_pages(
     for page in pages:
         pieces = splitter.split_text(page.text)
         for index, piece in enumerate(pieces):
+            # A section header on every chunk ("contextual chunk header") makes
+            # the embedding — and the LLM — aware of where the text sits, which
+            # keeps look-alike sections (e.g. two regions' outlooks) apart.
+            text = f"[{page.section}]\n{piece}" if page.section else piece
             chunks.append(
                 Chunk(
-                    text=piece,
+                    text=text,
                     source=page.source,
                     page=page.page,
-                    chunk_id=_make_chunk_id(page.source, page.page, index, piece),
+                    chunk_id=_make_chunk_id(page.source, page.page, index, text),
+                    section=page.section,
                 )
             )
 

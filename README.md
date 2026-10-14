@@ -48,6 +48,10 @@ up an earlier conversation later — even after restarting the app.
 - Robust text extraction with graceful handling of empty/corrupted files
 - Text cleaning (whitespace, broken line breaks, extraction artifacts)
 - Structure-aware chunking (paragraph/sentence-boundary-first splitting)
+- Section-aware long reports: chapters, sections and boxes are detected from
+  bookmarks and running headers, every chunk is labelled with its section, and
+  a question that names a section ("according to the executive summary…",
+  "South Asia") searches only there
 - Duplicate-upload protection (same document isn't re-indexed twice)
 
 **Retrieval & answers**
@@ -242,6 +246,7 @@ See [`.env.example`](.env.example) for the full file with defaults:
 | `SIMILARITY_THRESHOLD` | Minimum cosine similarity ([-1, 1]) for a chunk to count as relevant | `0.2` |
 | `RERANKER_MODEL` | Cross-encoder that reorders retrieved candidates (empty = off) | `cross-encoder/ms-marco-MiniLM-L-6-v2` |
 | `RERANK_CANDIDATES` | Candidates fetched for the reranker to choose `TOP_K` from | `20` |
+| `SECTION_AWARE` | Detect sections in structured PDFs; search only sections a question names | `true` |
 | `STRICT_DOCUMENT_MODE` | Refuse to answer beyond the documents | `false` |
 | `QUERY_REWRITING` | Rewrite questions with the LLM before searching (typos, follow-ups) | `true` |
 | `AGENT_MODE` | Auto mode: the LLM decides whether/how often to search (needs Groq) | `true` |

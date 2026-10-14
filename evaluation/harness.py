@@ -48,12 +48,14 @@ class EvalConfig:
     score_threshold: float = settings.similarity_threshold
     reranker_model: str = settings.reranker_model  # "" = no reranking
     rerank_candidates: int = settings.rerank_candidates
+    section_aware: bool = settings.section_aware
 
     @property
     def label(self) -> str:
         model = self.embedding_model.split("/")[-1]
         rerank = f"rerank {self.reranker_model.split('/')[-1]}@{self.rerank_candidates}" if self.reranker_model else "no rerank"
-        return f"{model} | {self.chunk_size}/{self.chunk_overlap} | k={self.top_k} | th={self.score_threshold} | {rerank}"
+        sections = "sections" if self.section_aware else "no sections"
+        return f"{model} | {self.chunk_size}/{self.chunk_overlap} | k={self.top_k} | th={self.score_threshold} | {rerank} | {sections}"
 
 
 @dataclass
@@ -96,6 +98,7 @@ def build_pipeline(document: str | Path, config: EvalConfig | None = None) -> tu
         score_threshold=config.score_threshold,
         reranker_model=config.reranker_model,
         rerank_candidates=config.rerank_candidates,
+        section_aware=config.section_aware,
     )
     num_chunks, errors = pipeline.index_files([_FileUpload(PROJECT_ROOT / document)])
     if errors or not num_chunks:

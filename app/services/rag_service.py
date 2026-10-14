@@ -77,9 +77,11 @@ class RAGPipeline:
         score_threshold: float | None = None,
         reranker_model: str | None = None,
         rerank_candidates: int | None = None,
+        section_aware: bool | None = None,
     ):
         self.chunk_size = chunk_size or settings.chunk_size
         self.chunk_overlap = settings.chunk_overlap if chunk_overlap is None else chunk_overlap
+        self.section_aware = settings.section_aware if section_aware is None else section_aware
         self.embedding_service = EmbeddingService(embedding_model, embedding_query_prefix)
         self.vector_store = VectorStore(
             persist_dir=persist_dir, collection_name=collection_name
@@ -88,7 +90,7 @@ class RAGPipeline:
         self.retriever = Retriever(
             self.vector_store, self.embedding_service, top_k=top_k, score_threshold=score_threshold,
             reranker=Reranker(reranker_model) if reranker_model else None,
-            rerank_candidates=rerank_candidates,
+            rerank_candidates=rerank_candidates, section_aware=self.section_aware,
         )
         self.generator = AnswerGenerator()
         self.indexed_documents: set[str] = set()
@@ -100,7 +102,7 @@ class RAGPipeline:
         Returns (num_chunks_added, errors) where `errors` maps
         filename to a friendly message for anything that failed.
         """
-        pages, errors = parse_uploaded_files(files)
+        pages, errors = parse_uploaded_files(files, detect_structure=self.section_aware)
         if not pages:
             return 0, errors
 

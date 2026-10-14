@@ -343,3 +343,32 @@ def test_not_found_answer_is_not_labelled_as_from_documents(pipeline, monkeypatc
     assert result.sources == []
     assert result.source is None
 
+
+def test_section_aware_toggle_disables_labels_and_filtering(monkeypatch):
+    """Fast check of the SECTION_AWARE switch (no real model or PDF needed)."""
+    from app.rag import document_loader
+    from app.rag.retriever import Retriever
+
+    monkeypatch.setattr(document_loader, "detect_sections", lambda texts, outline: dict.fromkeys(texts, "Executive Summary"))
+    data = _minimal_pdf("Global growth slows.")
+    assert document_loader.parse_document("r.pdf", data)[0].section == "Executive Summary"
+    assert document_loader.parse_document("r.pdf", data, detect_structure=False)[0].section is None
+
+    class Store:
+        def count(self):
+            return 1
+
+        def sections(self):
+            return ["Executive Summary"]
+
+    off = Retriever(Store(), None, section_aware=False)
+    on = Retriever(Store(), None, section_aware=True)
+    assert off._section_filter("According to the executive summary?") == ([], None)
+    assert on._section_filter("According to the executive summary?")[0] == [["Executive Summary"]]
+
+
+def _minimal_pdf(text: str) -> bytes:
+    from tests.test_document_loader import _make_minimal_pdf
+
+    return _make_minimal_pdf(text)
+

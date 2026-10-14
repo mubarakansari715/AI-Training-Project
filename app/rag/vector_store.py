@@ -73,6 +73,7 @@ class VectorStore:
                         "source": c.source,
                         # Chroma metadata can't store None, so use a sentinel.
                         "page": c.page if c.page is not None else -1,
+                        "section": c.section or "",
                     }
                     for c, _ in new_items
                 ],
@@ -83,8 +84,11 @@ class VectorStore:
 
         return len(new_items)
 
-    def search(self, query_embedding: list[float], top_k: int | None = None) -> list[dict]:
-        """Return the top_k most similar chunks to `query_embedding`."""
+    def search(
+        self, query_embedding: list[float], top_k: int | None = None, where: dict | None = None
+    ) -> list[dict]:
+        """Return the top_k most similar chunks to `query_embedding`,
+        optionally restricted by a ChromaDB metadata filter (`where`)."""
         top_k = top_k or settings.top_k
         if self._collection.count() == 0:
             return []
@@ -93,6 +97,7 @@ class VectorStore:
             results = self._collection.query(
                 query_embeddings=[query_embedding],
                 n_results=min(top_k, self._collection.count()),
+                where=where,
             )
         except Exception as exc:
             logger.exception("Failed to query ChromaDB")
@@ -108,6 +113,7 @@ class VectorStore:
                     "text": results["documents"][0][i],
                     "source": metadata.get("source"),
                     "page": None if page == -1 else page,
+                    "section": metadata.get("section") or None,
                     "distance": results["distances"][0][i],
                 }
             )
@@ -138,6 +144,30 @@ class VectorStore:
                 "text": text,
                 "source": meta.get("source"),
                 "page": None if meta.get("page") == -1 else meta.get("page"),
+                "section": meta.get("section") or None,
             }
             for chunk_id, text, meta in zip(stored["ids"], stored["documents"], stored["metadatas"])
         ]
+
+    def sections(self) -> list[str]:
+        """Distinct section labels in the index (empty for unstructured documents)."""
+        stored = self._collection.get(include=["metadatas"])
+        return sorted({meta.get("section") for meta in stored["metadatas"] if meta.get("section")})
+
+    def page_chunks(self, source: str, page: int) -> list[dict]:
+        """Every stored chunk of one page, in reading order (the chunk index
+        in the ID, see app.rag.chunker._make_chunk_id)."""
+        stored = self._collection.get(
+            where={"$and": [{"source": source}, {"page": page}]}, include=["documents", "metadatas"]
+        )
+        chunks = [
+            {"chunk_id": chunk_id, "text": text, "source": source, "page": page,
+             "section": meta.get("section") or None}
+            for chunk_id, text, meta in zip(stored["ids"], stored["documents"], stored["metadatas"])
+        ]
+        return sorted(chunks, key=lambda c: _chunk_index(c["chunk_id"]))
+
+
+def _chunk_index(chunk_id: str) -> int:
+    parts = chunk_id.split(":")
+    return int(parts[-2]) if len(parts) >= 4 and parts[-2].isdigit() else 0

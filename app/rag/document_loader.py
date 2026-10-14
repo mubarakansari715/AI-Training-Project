@@ -16,6 +16,8 @@ import docx
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
+from app.rag.structure import detect_sections, flatten_outline
+
 logger = logging.getLogger(__name__)
 
 # Media types are transcribed by app.rag.media_transcriber (imported
@@ -35,9 +37,12 @@ class DocumentPage:
     text: str
     source: str
     page: int | None = None
+    # Chapter/section path for structured documents, e.g.
+    # "Ch. 2 Regional Outlooks › South Asia" (see app.rag.structure).
+    section: str | None = None
 
 
-def parse_document(filename: str, data: bytes) -> list[DocumentPage]:
+def parse_document(filename: str, data: bytes, detect_structure: bool = True) -> list[DocumentPage]:
     """Parse raw file bytes into a list of DocumentPage.
 
     Each PDF page becomes its own DocumentPage so page numbers are
@@ -63,7 +68,7 @@ def parse_document(filename: str, data: bytes) -> list[DocumentPage]:
 
     try:
         if extension == "pdf":
-            return _parse_pdf(data, filename)
+            return _parse_pdf(data, filename, detect_structure)
         if extension == "docx":
             return _parse_docx(data, filename)
         if extension in MEDIA_EXTENSIONS:
@@ -80,7 +85,7 @@ def parse_document(filename: str, data: bytes) -> list[DocumentPage]:
         ) from exc
 
 
-def _parse_pdf(data: bytes, filename: str) -> list[DocumentPage]:
+def _parse_pdf(data: bytes, filename: str, detect_structure: bool = True) -> list[DocumentPage]:
     try:
         reader = PdfReader(io.BytesIO(data))
     except PdfReadError as exc:
@@ -88,12 +93,15 @@ def _parse_pdf(data: bytes, filename: str) -> list[DocumentPage]:
             f"Could not read '{filename}'. The PDF may be corrupted."
         ) from exc
 
-    pages: list[DocumentPage] = []
-    for index, page in enumerate(reader.pages, start=1):
-        text = (page.extract_text() or "").strip()
-        if text:
-            pages.append(DocumentPage(text=text, source=filename, page=index))
-    return pages
+    texts = {index: (page.extract_text() or "").strip() for index, page in enumerate(reader.pages, start=1)}
+    # Chapter/section per page, for structured reports (bookmarks, running
+    # headers); empty for documents without detectable structure.
+    sections = detect_sections(texts, flatten_outline(reader)) if detect_structure else {}
+    return [
+        DocumentPage(text=text, source=filename, page=index, section=sections.get(index))
+        for index, text in texts.items()
+        if text
+    ]
 
 
 def _parse_docx(data: bytes, filename: str) -> list[DocumentPage]:

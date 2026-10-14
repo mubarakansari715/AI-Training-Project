@@ -169,3 +169,83 @@ def test_cross_encoder_reranker_puts_the_answering_chunk_first():
     ranked = Reranker("cross-encoder/ms-marco-MiniLM-L-6-v2").rerank("How many publications were sold?", chunks, 2)
 
     assert ranked[0].chunk_id == "1"
+
+
+@pytest.fixture
+def sectioned_store(tmp_path):
+    """Three sections whose chunks are all equally similar to the query, plus front matter."""
+    store = VectorStore(persist_dir=str(tmp_path / "chroma"), collection_name="sectioned")
+    specs = [
+        ("toc", "Contents", 13), ("es", "Executive Summary", 19),
+        ("sa1", "Ch. 2 Regional Outlooks › South Asia", 96), ("sa2", "Ch. 2 Regional Outlooks › South Asia", 97),
+        ("sa3", "Ch. 2 Regional Outlooks › South Asia", 98),
+        ("ssa1", "Ch. 2 Regional Outlooks › Sub-Saharan Africa", 99),
+        ("ssa2", "Ch. 2 Regional Outlooks › Sub-Saharan Africa", 100),
+    ]
+    store.add_chunks(
+        [Chunk(text=f"text {cid}", source="r.pdf", page=page, chunk_id=cid, section=section) for cid, section, page in specs],
+        # The table of contents is the closest match, as titles match every topic.
+        [[1.0, 0.0, 0.0]] + [[0.95, 0.05, 0.0]] * 6,
+    )
+    return store
+
+
+def _retriever(store, question, top_k=4):
+    return Retriever(store, FakeEmbeddingService({question: [1.0, 0.0, 0.0]}), top_k=top_k, score_threshold=0.0)
+
+
+def test_question_naming_a_section_searches_only_that_section(sectioned_store):
+    q = "According to the executive summary, what are the risks?"
+    assert [r.chunk_id for r in _retriever(sectioned_store, q).retrieve(q)] == ["es"]
+
+
+def test_front_matter_is_excluded_when_no_section_is_named(sectioned_store):
+    q = "What is the growth outlook?"
+    ids = [r.chunk_id for r in _retriever(sectioned_store, q).retrieve(q)]
+    assert "toc" not in ids and ids
+
+
+def test_several_named_sections_each_get_a_share(sectioned_store):
+    q = "Compare South Asia and Sub-Saharan Africa."
+    results = _retriever(sectioned_store, q, top_k=4).retrieve(q)
+    sections = {r.section for r in results}
+    assert sections == {"Ch. 2 Regional Outlooks › South Asia", "Ch. 2 Regional Outlooks › Sub-Saharan Africa"}
+    # Two sections: each gets a full top_k (South Asia has 3 chunks, Africa 2).
+    assert len(results) == 5
+
+
+def test_retrieved_chunks_carry_their_section(sectioned_store):
+    q = "What does the report say about South Asia?"
+    assert all(r.section == "Ch. 2 Regional Outlooks › South Asia" for r in _retriever(sectioned_store, q).retrieve(q))
+
+
+def test_single_named_section_sends_whole_pages_of_its_best_hits(tmp_path):
+    """Small-to-big: a section's headline facts often sit on the same page as
+    the best hit but in a chunk that scored lower, so the whole page goes in."""
+    store = VectorStore(persist_dir=str(tmp_path / "chroma"), collection_name="pages")
+    sa = "Ch. 2 Regional Outlooks › South Asia"
+    specs = [  # (chunk_id, page, embedding): only the p. 96 middle chunk matches the query
+        ("r.pdf:96:0:a", 96, [0.0, 1.0, 0.0]), ("r.pdf:96:1:b", 96, [1.0, 0.0, 0.0]),
+        ("r.pdf:96:2:c", 96, [0.0, 1.0, 0.0]), ("r.pdf:97:0:d", 97, [0.0, 1.0, 0.0]),
+    ]
+    store.add_chunks(
+        [Chunk(text=f"text {cid}", source="r.pdf", page=page, chunk_id=cid, section=sa) for cid, page, _ in specs],
+        [emb for _, _, emb in specs],
+    )
+    q = "What is the growth outlook for South Asia?"
+    retriever = Retriever(store, FakeEmbeddingService({q: [1.0, 0.0, 0.0]}), top_k=1, score_threshold=0.5)
+
+    # The whole of p. 96 in reading order; p. 97 had no hit, so it stays out.
+    assert [r.chunk_id for r in retriever.retrieve(q)] == ["r.pdf:96:0:a", "r.pdf:96:1:b", "r.pdf:96:2:c"]
+
+
+def test_page_expansion_is_off_without_a_named_section(tmp_path):
+    store = VectorStore(persist_dir=str(tmp_path / "chroma"), collection_name="plain")
+    store.add_chunks(
+        [Chunk(text="a", source="r.pdf", page=1, chunk_id="r.pdf:1:0:a"),
+         Chunk(text="b", source="r.pdf", page=1, chunk_id="r.pdf:1:1:b")],
+        [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+    )
+    q = "question"
+    retriever = Retriever(store, FakeEmbeddingService({q: [1.0, 0.0, 0.0]}), top_k=1, score_threshold=0.5)
+    assert [r.chunk_id for r in retriever.retrieve(q)] == ["r.pdf:1:0:a"]

@@ -16,7 +16,7 @@ from app.rag.text_cleaner import clean_text
 logger = logging.getLogger(__name__)
 
 
-def parse_uploaded_files(files: Iterable) -> tuple[list[DocumentPage], dict[str, str]]:
+def parse_uploaded_files(files: Iterable, detect_structure: bool = True) -> tuple[list[DocumentPage], dict[str, str]]:
     """Parse and clean Streamlit-uploaded files.
 
     Returns (pages, errors) where `errors` maps filename to a
@@ -28,7 +28,7 @@ def parse_uploaded_files(files: Iterable) -> tuple[list[DocumentPage], dict[str,
 
     for file in files:
         try:
-            file_pages = parse_document(file.name, file.getvalue())
+            file_pages = parse_document(file.name, file.getvalue(), detect_structure)
         except DocumentParsingError as exc:
             logger.warning("Parsing failed for %s: %s", file.name, exc)
             errors[file.name] = str(exc)

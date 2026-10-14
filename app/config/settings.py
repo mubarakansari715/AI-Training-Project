@@ -100,6 +100,10 @@ class Settings:
     reranker_model: str = os.getenv("RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
     # How many embedding-search candidates the reranker chooses top_k from.
     rerank_candidates: int = _get_int("RERANK_CANDIDATES", 20)
+    # Detect chapters/sections in structured PDFs (bookmarks, running
+    # headers, boxes), label chunks with them, and let questions that name a
+    # section search only there — see app/rag/structure.py.
+    section_aware: bool = _get_bool("SECTION_AWARE", True)
     # False (default): answer from documents when they have the answer,
     # otherwise fall back to the model's general knowledge (source is
     # shown in the UI either way). True: only ever answer from documents,

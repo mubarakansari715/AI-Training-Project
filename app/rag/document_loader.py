@@ -42,7 +42,9 @@ class DocumentPage:
     section: str | None = None
 
 
-def parse_document(filename: str, data: bytes, detect_structure: bool = True) -> list[DocumentPage]:
+def parse_document(
+    filename: str, data: bytes, detect_structure: bool = True, read_visuals: bool = False
+) -> list[DocumentPage]:
     """Parse raw file bytes into a list of DocumentPage.
 
     Each PDF page becomes its own DocumentPage so page numbers are
@@ -50,6 +52,9 @@ def parse_document(filename: str, data: bytes, detect_structure: bool = True) ->
     single DocumentPage is returned with `page=None`. Video/audio files
     are transcribed into an info page plus [mm:ss]-timestamped transcript
     pages (see app.rag.media_transcriber).
+
+    `read_visuals` also reads a short PDF's charts, tables, call-outs and
+    footnotes (see app.rag.visual).
 
     Returns an empty list if the file is readable but contains no
     extractable text. Raises DocumentParsingError for empty files,
@@ -68,7 +73,7 @@ def parse_document(filename: str, data: bytes, detect_structure: bool = True) ->
 
     try:
         if extension == "pdf":
-            return _parse_pdf(data, filename, detect_structure)
+            return _parse_pdf(data, filename, detect_structure, read_visuals)
         if extension == "docx":
             return _parse_docx(data, filename)
         if extension in MEDIA_EXTENSIONS:
@@ -85,7 +90,9 @@ def parse_document(filename: str, data: bytes, detect_structure: bool = True) ->
         ) from exc
 
 
-def _parse_pdf(data: bytes, filename: str, detect_structure: bool = True) -> list[DocumentPage]:
+def _parse_pdf(
+    data: bytes, filename: str, detect_structure: bool = True, read_visuals: bool = False
+) -> list[DocumentPage]:
     try:
         reader = PdfReader(io.BytesIO(data))
     except PdfReadError as exc:
@@ -97,11 +104,16 @@ def _parse_pdf(data: bytes, filename: str, detect_structure: bool = True) -> lis
     # Chapter/section per page, for structured reports (bookmarks, running
     # headers); empty for documents without detectable structure.
     sections = detect_sections(texts, flatten_outline(reader)) if detect_structure else {}
+    visuals = []
+    if read_visuals:
+        from app.rag.visual import read_visuals as read_page_visuals
+
+        visuals = read_page_visuals(data, filename)
     return [
         DocumentPage(text=text, source=filename, page=index, section=sections.get(index))
         for index, text in texts.items()
         if text
-    ]
+    ] + visuals
 
 
 def _parse_docx(data: bytes, filename: str) -> list[DocumentPage]:

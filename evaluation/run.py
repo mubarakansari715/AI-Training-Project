@@ -44,6 +44,9 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--rerank-candidates", type=int, default=settings.rerank_candidates)
     parser.add_argument("--section-aware", action=argparse.BooleanOptionalAction, default=settings.section_aware,
                         help="Detect document sections and search named sections only (default: SECTION_AWARE)")
+    parser.add_argument("--read-visuals", action=argparse.BooleanOptionalAction,
+                        default=settings.visual_reading_max_pages > 0,
+                        help="Read charts/tables/call-outs from page images and attach footnotes (short PDFs)")
     parser.add_argument("--model", default=settings.groq_model,
                         help='Pinned answer model: a Groq model, "auto", or a gemini-* model (default: GROQ_MODEL)')
     parser.add_argument("--auto-mode", action=argparse.BooleanOptionalAction, default=False,
@@ -63,7 +66,7 @@ def main(argv: list[str] | None = None) -> None:
     reranker = "" if args.reranker.lower() in {"", "none", "off"} else args.reranker
     config = EvalConfig(args.chunk_size, args.chunk_overlap, args.embedding_model,
                         args.embedding_query_prefix, args.top_k, args.threshold,
-                        reranker, args.rerank_candidates, args.section_aware)
+                        reranker, args.rerank_candidates, args.section_aware, args.read_visuals)
 
     print(f"Indexing {document} with {config.label} ...")
     pipeline, num_chunks = build_pipeline(document, config)

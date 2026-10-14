@@ -52,10 +52,24 @@ class Settings:
     groq_fast_model: str = os.getenv("GROQ_FAST_MODEL", "openai/gpt-oss-20b")
     groq_strong_model: str = os.getenv("GROQ_STRONG_MODEL", "openai/gpt-oss-120b")
 
-    # OpenRouter — the previous primary provider, disabled for now (see
-    # app/rag/generator.py). Uncomment to bring its settings back.
-    # openrouter_api_key: str = os.getenv("OPENROUTER_API_KEY", "")
+    # OpenRouter — the previous primary answer provider, disabled for now
+    # (see app/rag/generator.py). Its key is used for reading page images
+    # (VISION_MODEL, app/rag/visual.py). Uncomment the model to bring it back.
+    openrouter_api_key: str = os.getenv("OPENROUTER_API_KEY", "")
     # openrouter_model: str = os.getenv("OPENROUTER_MODEL", "openrouter/auto")
+    # Vision model (on OpenRouter) that transcribes charts, tables and
+    # call-outs from rendered PDF pages; comma-separated models are tried in
+    # order. The defaults are free (rate-limited); paid ones such as
+    # google/gemini-3.8-flash need OpenRouter credits.
+    vision_model: str = os.getenv(
+        "VISION_MODEL",
+        "dots-studio/dots-3-note-preview:free,nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free,google/gemma-4-31b-it:free",
+    )
+    # Read page images (charts, tables, call-outs) and attach footnotes for
+    # PDFs up to this many pages — one vision call per page, cached in
+    # VISION_CACHE_DIR. 0 turns it off.
+    visual_reading_max_pages: int = _get_int("VISUAL_READING_MAX_PAGES", 30)
+    vision_cache_dir: str = os.getenv("VISION_CACHE_DIR", "data/vision_cache")
 
     # Fallback provider, used only when Groq is unconfigured or a call
     # fails.

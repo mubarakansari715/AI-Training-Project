@@ -14,6 +14,7 @@ __pycache__/
 data/uploads/*
 data/chroma/*
 data/conversations/*
+data/vision_cache/
 !data/uploads/.gitkeep
 !data/chroma/.gitkeep
 !data/conversations/.gitkeep

@@ -45,6 +45,10 @@ up an earlier conversation later — even after restarting the app.
   can ask what was said and when. On-screen visuals are not analysed.
 - Voice questions: tap 🎤 in the chat box to ask by speaking — the recording
   is transcribed locally and answered like a typed question
+- Charts, tables and footnotes in short visual PDFs (up to
+  `VISUAL_READING_MAX_PAGES` pages): a vision model transcribes each page's
+  charts, tables and call-outs (cached once read), and every footnote is
+  attached to the page that references it
 - Robust text extraction with graceful handling of empty/corrupted files
 - Text cleaning (whitespace, broken line breaks, extraction artifacts)
 - Structure-aware chunking (paragraph/sentence-boundary-first splitting)
@@ -234,6 +238,10 @@ See [`.env.example`](.env.example) for the full file with defaults:
 | `GEMINI_API_KEY` | Gemini API key (fallback provider) | _(none)_ |
 | `GEMINI_MODEL` | Gemini model name | `gemini-3.5-flash-lite` |
 | `GEMINI_TEMPERATURE` | Sampling temperature (0.0-2.0); lower = more literal/consistent | `0.2` |
+| `OPENROUTER_API_KEY` | OpenRouter key, used to read charts/tables from page images | _(none: text and footnotes only)_ |
+| `VISION_MODEL` | OpenRouter vision models (comma-separated, tried in order) | free models, see `.env.example` |
+| `VISUAL_READING_MAX_PAGES` | Read page images only for PDFs up to this many pages (`0` = off) | `30` |
+| `VISION_CACHE_DIR` | Where vision replies are cached | `data/vision_cache` |
 | `MODEL_DEVICE` | Device for local models: `cpu`, `cuda`, `mps` or `auto` (`mps` was 4-10× slower on Intel Macs) | `cpu` |
 | `EMBEDDING_MODEL` | sentence-transformers model name | `sentence-transformers/all-MiniLM-L6-v2` |
 | `EMBEDDING_QUERY_PREFIX` | Instruction prepended to queries (needed by some models, e.g. BGE) | _(empty)_ |

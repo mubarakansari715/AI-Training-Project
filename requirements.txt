@@ -28,6 +28,8 @@ chromadb>=0.5
 
 # --- Document parsing ---
 pypdf>=4.2
+# Page rendering and font flags for charts/tables/footnotes (app/rag/visual.py); no PyTorch
+pymupdf>=1.24
 python-docx>=1.1
 markdown>=3.6
 # Video/audio transcription (CTranslate2, no PyTorch; bundles FFmpeg via av)

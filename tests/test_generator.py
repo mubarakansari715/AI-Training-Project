@@ -405,3 +405,19 @@ def test_answer_generation_retries_short_groq_rate_limit_before_falling_back(mon
 
     assert answer == "Groq answer after retry."
 
+
+def test_no_fallback_keeps_calls_on_the_first_provider(monkeypatch):
+    monkeypatch.setattr(
+        "app.rag.generator.requests.post", MagicMock(side_effect=RuntimeError("rate limited"))
+    )
+
+    fake_client = MagicMock()
+    monkeypatch.setattr(
+        "app.rag.generator.genai.Client", lambda api_key: fake_client
+    )
+
+    generator = AnswerGenerator(api_key="fake-key", groq_api_key="fake-or-key", allow_fallback=False)
+    answer = generator.generate("A question?", [])
+
+    assert answer == FALLBACK_MESSAGE
+    fake_client.models.generate_content.assert_not_called()

@@ -103,6 +103,10 @@ def build_pipeline(document: str | Path, config: EvalConfig | None = None) -> tu
         section_aware=config.section_aware,
         read_visuals=config.read_visuals,
     )
+    # A rate-limited pinned model must not be quietly replaced by the other
+    # provider: its answers (and the judge's grades) would be labelled with
+    # the pinned model while coming from a different one.
+    pipeline.generator.allow_fallback = False
     num_chunks, errors = pipeline.index_files([_FileUpload(PROJECT_ROOT / document)])
     if errors or not num_chunks:
         raise ValueError(f"Could not index {document}: {errors or 'no text extracted'}")
@@ -128,9 +132,10 @@ def first_hit_rank(chunks: list[RetrievedChunk], expected_pages: list[int]) -> i
 
 _JUDGE_ATTEMPTS = 3
 _JUDGE_RETRY_SECONDS = 5.0
-# A failed answer (every provider errored, e.g. Groq's per-minute token
-# limit with the fallback's daily quota spent) is asked again after the
-# per-minute window resets, rather than graded as a wrong answer.
+# A failed answer (the pinned model errored, e.g. Groq's per-minute token
+# limit) is asked again after the per-minute window resets, rather than
+# graded as a wrong answer. If it still fails (e.g. the daily quota is
+# spent), the run stops instead of writing a report full of failures.
 _ANSWER_ATTEMPTS = 3
 _ANSWER_RETRY_SECONDS = 60.0
 
@@ -192,7 +197,7 @@ def parse_verdict(output: str) -> dict:
 class Throttle:
     """Spaces LLM calls out to stay under a provider's per-minute limit
     (Gemini's free tier allows 15/min; going over makes pinned calls
-    silently fall back to another provider)."""
+    fail, and the evaluation never falls back to another provider)."""
 
     def __init__(self, calls_per_minute: int | None):
         self.interval = 60.0 / calls_per_minute if calls_per_minute else 0.0
@@ -257,8 +262,11 @@ def evaluate_answers(
             throttle.wait(calls=3 if auto_mode else 2)  # agent turns / rewrite + answer
             result = pipeline.ask(q["question"], strict_mode=strict_mode, model_name=model_name, temperature=0.0,
                                   groq_model_name=groq_model_name, auto_mode=auto_mode)
-            if result.answer != FALLBACK_MESSAGE or attempt == _ANSWER_ATTEMPTS:
+            if result.answer != FALLBACK_MESSAGE:
                 break
+            if attempt == _ANSWER_ATTEMPTS:
+                raise RuntimeError(f"The answer model failed {_ANSWER_ATTEMPTS} times on {q['id']!r} "
+                                   "(rate limit or daily quota?); stopping instead of writing a partial report.")
             time.sleep(_ANSWER_RETRY_SECONDS)
         throttle.wait()
         grade = grade_answer(pipeline.generator, q["question"], q["reference_answer"], result.answer, judge_model)

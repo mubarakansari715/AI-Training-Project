@@ -56,7 +56,9 @@ class AnswerGenerator:
     any, falling back to the model's own general knowledge otherwise.
 
     Groq is the primary provider; Gemini is used only as a fallback
-    when Groq is unconfigured or its call fails.
+    when Groq is unconfigured or its call fails. `allow_fallback=False`
+    keeps every call on the first provider (the evaluation harness uses
+    it so a pinned model's score is never partly another model's).
     """
 
     def __init__(
@@ -66,6 +68,7 @@ class AnswerGenerator:
         temperature: float | None = None,
         groq_api_key: str | None = None,
         groq_model: str | None = None,
+        allow_fallback: bool = True,
     ):
         self.model_name = model_name or settings.gemini_model
         # `is None` (not truthiness) so an explicit empty string means
@@ -76,6 +79,7 @@ class AnswerGenerator:
 
         self.groq_api_key = settings.groq_api_key if groq_api_key is None else groq_api_key
         self.groq_model = groq_model or settings.groq_model
+        self.allow_fallback = allow_fallback
 
     def is_configured(self) -> bool:
         return self._client is not None or bool(self.groq_api_key)
@@ -107,7 +111,8 @@ class AnswerGenerator:
         explicitly (`model_name` set, `groq_model_name` not), in
         which case Gemini goes first. If the first provider isn't
         configured, or its call raises or returns an empty response,
-        the other is tried next (when configured). Only if neither
+        the other is tried next (when configured and `allow_fallback`
+        is on). Only if neither
         produces an answer is `FALLBACK_MESSAGE` returned.
 
         When `chunks` is non-empty the answer is grounded in that
@@ -162,6 +167,8 @@ class AnswerGenerator:
         # Groq stays primary.
         prefer_gemini = model_name is not None and groq_model_name is None
         providers = (try_gemini, try_groq) if prefer_gemini else (try_groq, try_gemini)
+        if not self.allow_fallback:
+            providers = providers[:1]
 
         for provider in providers:
             text = provider()

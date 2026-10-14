@@ -108,6 +108,21 @@ def test_failed_answer_is_retried_instead_of_graded(monkeypatch):
     assert rows[0]["answer"] == "GPO visited 166 libraries (p. 5)." and len(graded) == 1
 
 
+def test_run_stops_when_answer_keeps_failing(monkeypatch):
+    """A pinned model that never answers (e.g. its daily quota is spent)
+    stops the run, rather than filling the report with failures."""
+    from app.rag.generator import FALLBACK_MESSAGE
+
+    monkeypatch.setattr("evaluation.harness.time.sleep", lambda s: None)
+    pipeline = SimpleNamespace(
+        ask=lambda question, **kwargs: AskResult(answer=FALLBACK_MESSAGE, search_query=question),
+        generator=SimpleNamespace(complete=lambda prompt, **kwargs: '{"verdict": "correct", "reason": "ok"}'))
+
+    with pytest.raises(RuntimeError, match="'q1'"):
+        evaluate_answers(pipeline, [{"id": "q1", "question": "How many?", "reference_answer": "166."}],
+                         judge_model="j")
+
+
 def test_summarize_retrieval():
     rows = [{"hit": True, "rank": 1, "retrieved_pages": [1, 2]}, {"hit": True, "rank": 2, "retrieved_pages": [3]},
             {"hit": False, "rank": None, "retrieved_pages": []}]

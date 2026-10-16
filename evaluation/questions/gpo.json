@@ -1,6 +1,6 @@
 {
   "document": "notebooks/GPO-Anual-report.pdf",
-  "notes": "Ground truth only. 'reference_answer' is graded by an LLM judge (no keyword matching). 'expected_pages' lists every PDF page (1-based, as pypdf counts them) whose text states the fact, located by searching the PDF; it drives the retrieval hit@k/MRR and citation checks and is empty when the answer is not in the document. The first three are the sample questions from the task spec.",
+  "notes": "Ground truth only. 'reference_answer' is graded by an LLM judge (no keyword matching). 'expected_pages' lists every PDF page (1-based, as pypdf counts them) whose text states the fact, located by searching the PDF; it drives the retrieval hit@k/MRR and citation checks and is empty when the answer is not in the document. It holds only the three sample questions from the task spec.",
   "questions": [
     {
       "id": "sample-1",
@@ -36,100 +36,6 @@
         17
       ],
       "sample": true
-    },
-    {
-      "id": "copies-distributed",
-      "question": "How many copies and titles did GPO distribute to depository libraries in FY 2018?",
-      "reference_answer": "802,834 copies of 4,211 titles.",
-      "expected_pages": [
-        5,
-        15,
-        19
-      ]
-    },
-    {
-      "id": "passports",
-      "question": "How many passports did GPO produce in FY 2018?",
-      "reference_answer": "15,901,600 passports (the narrative sections round this to about 16 million).",
-      "expected_pages": [
-        6,
-        14,
-        15,
-        18
-      ]
-    },
-    {
-      "id": "fdlp-webinars",
-      "question": "How many FDLP Academy webinars were hosted in FY 2018, and how many participants did they serve?",
-      "reference_answer": "Over 85 FDLP Academy webinars, serving more than 10,000 participants.",
-      "expected_pages": [
-        5
-      ]
-    },
-    {
-      "id": "revenues",
-      "question": "What were GPO's total revenues in FY 2018?",
-      "reference_answer": "$874,466,000 (also stated as $874.5 million).",
-      "expected_pages": [
-        6,
-        14,
-        15,
-        25,
-        26,
-        43,
-        59
-      ]
-    },
-    {
-      "id": "staff",
-      "question": "How many staff did GPO have in FY 2018?",
-      "reference_answer": "1,737 staff.",
-      "expected_pages": [
-        14,
-        15
-      ]
-    },
-    {
-      "id": "libraries-nationwide",
-      "question": "How many depository libraries are there nationwide?",
-      "reference_answer": "1,133 depository libraries nationwide.",
-      "expected_pages": [
-        8,
-        15,
-        19,
-        39
-      ]
-    },
-    {
-      "id": "nara-renovation",
-      "question": "How much space did GPO renovate in Building A for NARA's Center for Legislative Archives?",
-      "reference_answer": "Over 24,000 square feet (another section says approximately 25,000 square feet).",
-      "expected_pages": [
-        5,
-        17
-      ]
-    },
-    {
-      "id": "preservation-stewards",
-      "question": "How many additional Preservation Steward agreements did GPO sign in FY 2018?",
-      "reference_answer": "20 additional Preservation Steward agreements.",
-      "expected_pages": [
-        5
-      ]
-    },
-    {
-      "id": "govinfo-beta",
-      "question": "When did the govinfo website move out of beta?",
-      "reference_answer": "December 2017.",
-      "expected_pages": [
-        22
-      ]
-    },
-    {
-      "id": "trap-not-in-report",
-      "question": "What was GPO's budget for fiscal year 2025?",
-      "reference_answer": "The report does not contain this information (it covers FY 2018); a correct answer says it cannot be found rather than giving a figure.",
-      "expected_pages": []
     }
   ]
 }

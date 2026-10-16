@@ -1,0 +1,638 @@
+{
+  "use_case": "gpo",
+  "document": "notebooks/GPO-Anual-report.pdf",
+  "answer_model": "openai/gpt-oss-20b",
+  "judge_model": "gemini-3.5-flash-lite",
+  "configs": {
+    "before": "all-MiniLM-L6-v2 | 800/150 | k=5 | th=0.2 | no rerank | no sections | no rewrite",
+    "after": "all-MiniLM-L6-v2 | 800/150 | k=5 | th=0.2 | rerank ms-marco-MiniLM-L-6-v2@20 margin 5 | sections | hybrid BM25 | visuals | decompose"
+  },
+  "rows": [
+    {
+      "id": "sample-1",
+      "question": "How many depository libraries did GPO staff visit in FY 2018?",
+      "group": "main",
+      "reference_answer": "GPO staff visited 166 depository libraries (in 25 states) in FY 2018.",
+      "expected_pages": [
+        5,
+        21
+      ],
+      "generated_at": "2026-10-15 13:29",
+      "before": {
+        "label": "Naive RAG",
+        "technique": "similarity search only",
+        "config": "all-MiniLM-L6-v2 | 800/150 | k=5 | th=0.2 | no rerank | no sections | no rewrite",
+        "model": "openai/gpt-oss-20b",
+        "answer": "GPO staff visited **166 depository libraries** in FY 2018 (GPO‑Annual‑report.pdf, page 5).",
+        "passed": true,
+        "correct": true,
+        "judge_reason": "The system answer accurately provides the correct number of depository libraries visited in FY 2018 as stated in the reference answer.",
+        "hit": true,
+        "rank": 1,
+        "citation_ok": true,
+        "faithfulness": 1.0,
+        "answer_relevance": 1.0,
+        "context_recall": 1.0,
+        "context_precision": 0.8,
+        "unsupported": [],
+        "relevance_reason": "The system answer directly and fully provides the exact number of depository libraries visited by GPO staff in FY 2018.",
+        "grounding_error": null,
+        "passages_count": 5,
+        "irrelevant_passages": 1,
+        "latency_s": 0.749,
+        "retrieval_latency_s": 0.015,
+        "prompt_tokens": 1558,
+        "completion_tokens": 186,
+        "cost_usd": 0.00017264999999999997,
+        "original_query": "How many depository libraries did GPO staff visit in FY 2018?",
+        "search_query": "How many depository libraries did GPO staff visit in FY 2018?",
+        "rewritten": false,
+        "sub_queries": [],
+        "queries_generated": 1,
+        "searches": 1,
+        "candidates": 5,
+        "kept": 5,
+        "reranked": false,
+        "rewrite_effect": null,
+        "rerank_effect": null,
+        "decompose_effect": null,
+        "keyword_effect": null,
+        "steps": [
+          {
+            "kind": "Retrieve",
+            "text": "Similarity search over 297 chunks: kept the top 5 above the similarity threshold"
+          },
+          {
+            "kind": "Generate",
+            "text": "Grounded prompt with 5 numbered passages: cite them, or say not found"
+          }
+        ],
+        "passages": [
+          {
+            "rank": 1,
+            "page": 21,
+            "section": null,
+            "text": "order to respond with improved outreach and services.\nGPO staff at all levels have participated in this initiative\nand are now implementing targeted follow-up projects\nto benefit the FDLP and its participants. In FY 2018,\nGPO staff visited 166 depository libraries in 25 states,\nbringing the 3-year total of visits to over 610.\nDuring the 1st Session of the 115th Congress,\noversight hearings on GPO conducted by the Committee\non House Administration included a focus on the\nstatutory provisions of Title 44 of the U.S. Code that\ngovern the FDLP. Then-Director Vance-Cooks testified\nthat these should be revised to allow GPO to administer\nthe FDLP and other public information programs of the\nSuperintendent of Documents effectively in the digital",
+            "expected": true
+          },
+          {
+            "rank": 2,
+            "page": 21,
+            "section": null,
+            "text": "Library Council Meeting and Federal Depository Library\nConference. This annual event, hosted by LSCM, was\nscheduled to be held in Arlington, Virginia, from\nOctober 22–24, 2018.\nA signal feature of former GPO Director Davita\nVance-Cooks’ administration was a program of visits\nby GPO LSCM staff and GPO senior management to\ndepository libraries nationwide. That work, begun in\nFY 2016, continued through FY 2018 and provided\nopportunities for consultation, training, and support.\nThe visits have been influential in strengthening the ties\nbetween GPO and its partner libraries and in helping\nGPO identify current trends and issues in libraries in\norder to respond with improved outreach and services.\nGPO staff at all levels have participated in this initiative",
+            "expected": true
+          },
+          {
+            "rank": 3,
+            "page": 5,
+            "section": null,
+            "text": "also a year of accomplishment for the Federal Depository\nLibrary Program (FDLP) and GPO’s Library Services and\nContent Management (LSCM). As part of a sustained effort\nto meet directly with GPO’s FDLP partners, in FY 2018\nGPO staff visited 166 depository libraries in 25 states. This\nbrought our 3-year total of such visits to over 610.\nWe also hosted a number of important engagement\nevents, including over 85 FDLP Academy webinars,\nwhich are designed to provide educational programs\nand training, enhance Federal Government information\nliteracy, and meet the needs of the wider FDLP\ncommunity. Those FDLP Academy programs served more\nthan 10,000 participants in FY 2018.\nGPO also successfully expanded its Preservation\nSteward program, which is designed to support continued",
+            "expected": true
+          },
+          {
+            "rank": 4,
+            "page": 5,
+            "section": null,
+            "text": "than 10,000 participants in FY 2018.\nGPO also successfully expanded its Preservation\nSteward program, which is designed to support continued\npublic access to key print documents by signing 20\nadditional Preservation Steward agreements with libraries\nacross the country. In addition, GPO distributed 802,834\ncopies of 4,211 titles to depository libraries nationwide in\nFY 2018, while also cataloging a total of 34,367 titles.\nGPO’s facilities personnel undertook a major\nrenovation project in FY 2018 on behalf of the National\nArchives and Records Administration (NARA) and\nCongress. This project called for the renovation and buildout of over 24,000 square feet of space in Building A to\naccommodate NARA’s Center for Legislative Archives. This\nexciting project followed GPO’s recent completion of a",
+            "expected": true
+          },
+          {
+            "rank": 5,
+            "page": 12,
+            "section": null,
+            "text": "was 6,450. At the end of FY 2018, we had 1,737\nemployees on board, representing a reduction of 4,713,\nor more than 73%, since 1980. Our workforce levels\nover the past three years remain the smallest of any\ntime in the past century.\nGPO Employment FY 1980–2018 (at September 30)\nFiscal Year Headcount\n1980 6,450\n1985 5,383\n1990 4,977\n1995 3,956\n2000 3,139\n2005 2,344\n2010 2,284\n2016 1,726\n2017 1,740\n2018 1,737\nHighlights of FY 2018 Congressional Work\nGPO worked with Congress to produce a number of\npublications in FY 2018, including the Congressional\nPictorial Directory for the 115th Congress , and the\nGPO’s Bookstore during the release of the Federal budget.",
+            "expected": false
+          }
+        ]
+      },
+      "after": {
+        "label": "Advanced RAG",
+        "technique": "query rewriting and decomposition, hybrid BM25 + vector search, reranking, context compression, section-aware search, charts and footnotes",
+        "config": "all-MiniLM-L6-v2 | 800/150 | k=5 | th=0.2 | rerank ms-marco-MiniLM-L-6-v2@20 margin 5 | sections | hybrid BM25 | visuals | decompose",
+        "model": "openai/gpt-oss-20b",
+        "answer": "GPO staff visited **166 depository libraries** in FY 2018 (GPO‑Annual‑report.pdf, page 5).",
+        "passed": true,
+        "correct": true,
+        "judge_reason": "The system answer accurately provides the correct number of depository libraries visited in FY 2018 as stated in the reference.",
+        "hit": true,
+        "rank": 1,
+        "citation_ok": true,
+        "faithfulness": 1.0,
+        "answer_relevance": 1.0,
+        "context_recall": 1.0,
+        "context_precision": 0.6,
+        "unsupported": [],
+        "relevance_reason": "The system answer directly and fully answers the question about the number of depository libraries visited.",
+        "grounding_error": null,
+        "passages_count": 5,
+        "irrelevant_passages": 2,
+        "latency_s": 1.555,
+        "retrieval_latency_s": 0.739,
+        "prompt_tokens": 1437,
+        "completion_tokens": 127,
+        "cost_usd": 0.000145875,
+        "original_query": "How many depository libraries did GPO staff visit in FY 2018?",
+        "search_query": "How many depository libraries did GPO staff visit in FY 2018?",
+        "rewritten": false,
+        "sub_queries": [],
+        "queries_generated": 1,
+        "searches": 1,
+        "candidates": 27,
+        "kept": 5,
+        "reranked": true,
+        "rewrite_effect": null,
+        "rerank_effect": {
+          "rank_without": 1,
+          "rank_with": 1,
+          "precision_without": 0.8,
+          "precision_with": 0.6
+        },
+        "decompose_effect": null,
+        "keyword_effect": {
+          "rank_without": 1,
+          "rank_with": 1,
+          "precision_without": 0.6,
+          "precision_with": 0.6
+        },
+        "steps": [
+          {
+            "kind": "Retrieve",
+            "text": "Keyword search (BM25) merged with similarity search: 7 candidate(s) found only by exact words"
+          },
+          {
+            "kind": "Retrieve",
+            "text": "Hybrid search over 297 chunks: 27 candidates above the similarity threshold (of 20 fetched per search)"
+          },
+          {
+            "kind": "Post-process",
+            "text": "Cross-encoder reranked the candidates and kept the top 5"
+          },
+          {
+            "kind": "Generate",
+            "text": "Grounded prompt with 5 numbered passages: cite them, or say not found"
+          }
+        ],
+        "passages": [
+          {
+            "rank": 1,
+            "page": 5,
+            "section": null,
+            "text": "also a year of accomplishment for the Federal Depository\nLibrary Program (FDLP) and GPO’s Library Services and\nContent Management (LSCM). As part of a sustained effort\nto meet directly with GPO’s FDLP partners, in FY 2018\nGPO staff visited 166 depository libraries in 25 states. This\nbrought our 3-year total of such visits to over 610.\nWe also hosted a number of important engagement\nevents, including over 85 FDLP Academy webinars,\nwhich are designed to provide educational programs\nand training, enhance Federal Government information\nliteracy, and meet the needs of the wider FDLP\ncommunity. Those FDLP Academy programs served more\nthan 10,000 participants in FY 2018.\nGPO also successfully expanded its Preservation\nSteward program, which is designed to support continued",
+            "expected": true
+          },
+          {
+            "rank": 2,
+            "page": 21,
+            "section": null,
+            "text": "order to respond with improved outreach and services.\nGPO staff at all levels have participated in this initiative\nand are now implementing targeted follow-up projects\nto benefit the FDLP and its participants. In FY 2018,\nGPO staff visited 166 depository libraries in 25 states,\nbringing the 3-year total of visits to over 610.\nDuring the 1st Session of the 115th Congress,\noversight hearings on GPO conducted by the Committee\non House Administration included a focus on the\nstatutory provisions of Title 44 of the U.S. Code that\ngovern the FDLP. Then-Director Vance-Cooks testified\nthat these should be revised to allow GPO to administer\nthe FDLP and other public information programs of the\nSuperintendent of Documents effectively in the digital",
+            "expected": true
+          },
+          {
+            "rank": 3,
+            "page": 5,
+            "section": null,
+            "text": "than 10,000 participants in FY 2018.\nGPO also successfully expanded its Preservation\nSteward program, which is designed to support continued\npublic access to key print documents by signing 20\nadditional Preservation Steward agreements with libraries\nacross the country. In addition, GPO distributed 802,834\ncopies of 4,211 titles to depository libraries nationwide in\nFY 2018, while also cataloging a total of 34,367 titles.\nGPO’s facilities personnel undertook a major\nrenovation project in FY 2018 on behalf of the National\nArchives and Records Administration (NARA) and\nCongress. This project called for the renovation and buildout of over 24,000 square feet of space in Building A to\naccommodate NARA’s Center for Legislative Archives. This\nexciting project followed GPO’s recent completion of a",
+            "expected": true
+          },
+          {
+            "rank": 4,
+            "page": 19,
+            "section": null,
+            "text": "GPO provides the libraries with information products in\ndigital and, in some cases tangible formats, and the\nlibraries in turn make them available to the public at\nno charge while providing additional assistance to\ndepository library users.\nThe FDLP today serves millions of Americans\nthrough a network of 1,133 public, academic, law, and\nother libraries located across the Nation, averaging\nnearly three per congressional district. In FY 2018, four\nlibraries joined the FDLP: The College of Staten Island\nLibrary in New York, the Miles City Public Library in\nMontana, the Pope County Library in Arkansas, and the\nLoudon County Public Library in Virginia.\nPrint and some microfiche products remain\nimportant depository library resources today, particularly",
+            "expected": false
+          },
+          {
+            "rank": 5,
+            "page": 19,
+            "section": null,
+            "text": "Publications (CGP) experienced nearly 29 million searches\nand has close to one million records for historic and\ncurrent titles, many housed in Federal depository libraries\nthroughout the country or available on agency and partner\nsites. GPO’s Library Services and Content Management\nstaff cataloged a total of 34,367 titles and checked in more\nthan 28,570 serial issues available through the CGP. Over\nMore than 400 registrants attended the 2018 Depository Library Council Virtual Meeting.",
+            "expected": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "sample-2",
+      "question": "What new digital system replaced FDsys, and when was it fully deployed?",
+      "group": "main",
+      "reference_answer": "govinfo replaced FDsys. Its full-scale deployment happened over FY 2018: it moved out of beta in December 2017, ran in parallel with FDsys through 2018, and FDsys was retired and completely replaced by govinfo in December 2018.",
+      "expected_pages": [
+        4,
+        8,
+        10,
+        22,
+        39
+      ],
+      "generated_at": "2026-10-15 13:31",
+      "before": {
+        "label": "Naive RAG",
+        "technique": "similarity search only",
+        "config": "all-MiniLM-L6-v2 | 800/150 | k=5 | th=0.2 | no rerank | no sections | no rewrite",
+        "model": "openai/gpt-oss-20b",
+        "answer": "The new digital system that replaced FDsys is **govinfo**. It was fully deployed when FDsys was retired in **December 2018** (GPO‑Annual‑report.pdf, page 10).",
+        "passed": true,
+        "correct": true,
+        "judge_reason": "The system correctly identified 'govinfo' as the replacement system and 'December 2018' as the date of full deployment.",
+        "hit": true,
+        "rank": 1,
+        "citation_ok": true,
+        "faithfulness": 1.0,
+        "answer_relevance": 1.0,
+        "context_recall": 0.8333333333333334,
+        "context_precision": 0.6,
+        "unsupported": [],
+        "relevance_reason": "The system answer directly and accurately answers both parts of the question using information from the text.",
+        "grounding_error": null,
+        "passages_count": 5,
+        "irrelevant_passages": 2,
+        "latency_s": 0.612,
+        "retrieval_latency_s": 0.014,
+        "prompt_tokens": 1383,
+        "completion_tokens": 197,
+        "cost_usd": 0.000162825,
+        "original_query": "What new digital system replaced FDsys, and when was it fully deployed?",
+        "search_query": "What new digital system replaced FDsys, and when was it fully deployed?",
+        "rewritten": false,
+        "sub_queries": [],
+        "queries_generated": 1,
+        "searches": 1,
+        "candidates": 5,
+        "kept": 5,
+        "reranked": false,
+        "rewrite_effect": null,
+        "rerank_effect": null,
+        "decompose_effect": null,
+        "keyword_effect": null,
+        "steps": [
+          {
+            "kind": "Retrieve",
+            "text": "Similarity search over 297 chunks: kept the top 5 above the similarity threshold"
+          },
+          {
+            "kind": "Generate",
+            "text": "Grounded prompt with 5 numbered passages: cite them, or say not found"
+          }
+        ],
+        "passages": [
+          {
+            "rank": 1,
+            "page": 10,
+            "section": null,
+            "text": "8\n2018 ANNUAL REPORT | U.S. GOVERNMENT PUBLISHING OFFICE\nwhich by the early 1980s had completely supplanted\nmachine-based hot metal typesetting. Following the\nenactment of the GPO Electronic Information Access\nEnhancement Act in 1993 (Public Law 103-40), the\ndatabases generated by our composition system were\nuploaded to the internet via GPO’s first website, GPO\nAccess, vastly expanding the agency’s information\ndissemination capabilities. In 2009, GPO replaced\nthe original GPO Access site with its Federal Digital\nSystem, or FDsys. FDsys is scheduled to be retired in\nDecember 2018 with a new site, govinfo, which offers\nsignificantly enhanced functionality, taking its place.\nWhile transforming to an increasingly digital\nfooting, we continue to provide an array of printing",
+            "expected": true
+          },
+          {
+            "rank": 2,
+            "page": 39,
+            "section": null,
+            "text": "operation enhancement, promotion of, and education about GPO’s Federal Digital System\n(FDsys) (www.fdsys.gov). This system will be replaced by govinfo (www.govinfo.gov), which\nis currently in beta mode but is scheduled to replace FDsys in December 2018. FDsys and\ngovinfo provide direct online access to Federal Government publications from all branches of\ngovernment. Other online services managed by this business unit include the Catalog of U.S.\nGovernment Publications (http://catalog.gpo.gov), the FDLP website (www.fdlp.gov), and Ben’s\nGuide to the U.S. Government (http://bensguide.gpo.gov).",
+            "expected": true
+          },
+          {
+            "rank": 3,
+            "page": 46,
+            "section": null,
+            "text": "Section I: Management Discussion and Analysis (Unaudited)\n\nU. S. Government Publishing Office | Financial Year In Review – FY 2018\n15\n\nFDsys Search and Retrieval Metrics\n\nGPO’s Federal Digital System (FDsys) provides free online access to official publications from\nall three branches of the Federal Government. FDsys provides advanced search capabilities and\nthe ability to refine and narrow users’ searches for quick access to the information they need.\nWith FDsys, users can download a single file or download content and metadata packaged\ntogether in a compressed file.",
+            "expected": false
+          },
+          {
+            "rank": 4,
+            "page": 8,
+            "section": null,
+            "text": "6\n2018 ANNUAL REPORT | U.S. GOVERNMENT PUBLISHING OFFICE\npublic access to Federal Government Information at\nno charge through govinfo (www.govinfo.gov), the\nsuccessor system to the Federal Digital System (FDsys),\nwhich was scheduled for retirement in December 2018.\nToday, govinfo makes more than 2.5 million Federal\ntitles available and, together with its predecessor site\nFDsys, averaged approximately 35 million retrievals per\nmonth in FY 2018. GPO also provides public access\nto Government information through partnerships with\n1,133 Federal, academic, public, law, and other libraries\nnationwide participating in the Federal Depository\nLibrary Program (FDLP).\nIn addition to a newly redesigned website, gpo.\ngov, we communicate with the public routinely via",
+            "expected": true
+          },
+          {
+            "rank": 5,
+            "page": 46,
+            "section": null,
+            "text": "90.0%\n91.0%\n92.0%\n93.0%\n94.0%\n95.0%\n96.0%\n97.0%\n98.0%\n99.0%\n100.0%\n2014 2015 2016 2017 2018\nOn-Time Delivery and Quality Acceptance of Procured\nPrinting\nDelivery rate\nQuality acceptance rate On-time goal Quality goal\n-\n100\n200\n300\n400\n500\n600\n700\n800\n2014 2015 2016 2017 2018\nFDsys Searches\n(000's)\nFDsys Searches",
+            "expected": false
+          }
+        ]
+      },
+      "after": {
+        "label": "Advanced RAG",
+        "technique": "query rewriting and decomposition, hybrid BM25 + vector search, reranking, context compression, section-aware search, charts and footnotes",
+        "config": "all-MiniLM-L6-v2 | 800/150 | k=5 | th=0.2 | rerank ms-marco-MiniLM-L-6-v2@20 margin 5 | sections | hybrid BM25 | visuals | decompose",
+        "model": "openai/gpt-oss-20b",
+        "answer": "The new digital system that replaced FDsys is **govinfo**. It was fully deployed and became the sole public‑access platform in **December 2018** (after having moved out of beta in December 2017) (GPO‑Annual‑report.pdf, page 22).",
+        "passed": true,
+        "correct": true,
+        "judge_reason": "The system answer accurately identifies govinfo as the replacement system and correctly states that it was fully deployed in December 2018, matching the key facts in the reference answer.",
+        "hit": true,
+        "rank": 1,
+        "citation_ok": true,
+        "faithfulness": 1.0,
+        "answer_relevance": 1.0,
+        "context_recall": 1.0,
+        "context_precision": 1.0,
+        "unsupported": [],
+        "relevance_reason": "The system answer directly and fully answers both parts of the question using accurate details from the passages.",
+        "grounding_error": null,
+        "passages_count": 5,
+        "irrelevant_passages": 0,
+        "latency_s": 4.076,
+        "retrieval_latency_s": 1.917,
+        "prompt_tokens": 1890,
+        "completion_tokens": 652,
+        "cost_usd": 0.00033735000000000004,
+        "original_query": "What new digital system replaced FDsys, and when was it fully deployed?",
+        "search_query": "What new digital system replaced FDsys, and when was it fully deployed?",
+        "rewritten": false,
+        "sub_queries": [
+          "What new digital system replaced FDsys?",
+          "When was the new digital system that replaced FDsys fully deployed?"
+        ],
+        "queries_generated": 2,
+        "searches": 2,
+        "candidates": 55,
+        "kept": 10,
+        "reranked": true,
+        "rewrite_effect": null,
+        "rerank_effect": {
+          "rank_without": 1,
+          "rank_with": 1,
+          "precision_without": 0.6,
+          "precision_with": 1.0
+        },
+        "decompose_effect": {
+          "rank_without": 1,
+          "rank_with": 1,
+          "precision_without": 1.0,
+          "precision_with": 1.0
+        },
+        "keyword_effect": {
+          "rank_without": 1,
+          "rank_with": 1,
+          "precision_without": 1.0,
+          "precision_with": 1.0
+        },
+        "steps": [
+          {
+            "kind": "Query",
+            "text": "LLM split the question into 2 sub-questions, each searched on its own: \"What new digital system replaced FDsys?\"; \"When was the new digital system that replaced FDsys fully deployed?\""
+          },
+          {
+            "kind": "Retrieve",
+            "text": "Keyword search (BM25) merged with similarity search: 15 candidate(s) found only by exact words"
+          },
+          {
+            "kind": "Retrieve",
+            "text": "2 hybrid searches over 297 chunks: 55 candidates above the similarity threshold (of 20 fetched per search)"
+          },
+          {
+            "kind": "Post-process",
+            "text": "Cross-encoder reranked the candidates and kept the top 10"
+          },
+          {
+            "kind": "Generate",
+            "text": "Grounded prompt with 5 numbered passages: cite them, or say not found"
+          }
+        ],
+        "passages": [
+          {
+            "rank": 1,
+            "page": 39,
+            "section": "Programs and Operations Overview",
+            "text": "[Programs and Operations Overview]\noperation enhancement, promotion of, and education about GPO’s Federal Digital System\n(FDsys) (www.fdsys.gov). This system will be replaced by govinfo (www.govinfo.gov), which\nis currently in beta mode but is scheduled to replace FDsys in December 2018. FDsys and\ngovinfo provide direct online access to Federal Government publications from all branches of\ngovernment. Other online services managed by this business unit include the Catalog of U.S.\nGovernment Publications (http://catalog.gpo.gov), the FDLP website (www.fdlp.gov), and Ben’s\nGuide to the U.S. Government (http://bensguide.gpo.gov).",
+            "expected": true
+          },
+          {
+            "rank": 2,
+            "page": 10,
+            "section": null,
+            "text": "8\n2018 ANNUAL REPORT | U.S. GOVERNMENT PUBLISHING OFFICE\nwhich by the early 1980s had completely supplanted\nmachine-based hot metal typesetting. Following the\nenactment of the GPO Electronic Information Access\nEnhancement Act in 1993 (Public Law 103-40), the\ndatabases generated by our composition system were\nuploaded to the internet via GPO’s first website, GPO\nAccess, vastly expanding the agency’s information\ndissemination capabilities. In 2009, GPO replaced\nthe original GPO Access site with its Federal Digital\nSystem, or FDsys. FDsys is scheduled to be retired in\nDecember 2018 with a new site, govinfo, which offers\nsignificantly enhanced functionality, taking its place.\nWhile transforming to an increasingly digital\nfooting, we continue to provide an array of printing",
+            "expected": true
+          },
+          {
+            "rank": 3,
+            "page": 8,
+            "section": null,
+            "text": "6\n2018 ANNUAL REPORT | U.S. GOVERNMENT PUBLISHING OFFICE\npublic access to Federal Government Information at\nno charge through govinfo (www.govinfo.gov), the\nsuccessor system to the Federal Digital System (FDsys),\nwhich was scheduled for retirement in December 2018.\nToday, govinfo makes more than 2.5 million Federal\ntitles available and, together with its predecessor site\nFDsys, averaged approximately 35 million retrievals per\nmonth in FY 2018. GPO also provides public access\nto Government information through partnerships with\n1,133 Federal, academic, public, law, and other libraries\nnationwide participating in the Federal Depository\nLibrary Program (FDLP).\nIn addition to a newly redesigned website, gpo.\ngov, we communicate with the public routinely via",
+            "expected": true
+          },
+          {
+            "rank": 4,
+            "page": 22,
+            "section": null,
+            "text": "20\n2018 ANNUAL REPORT | U.S. GOVERNMENT PUBLISHING OFFICE\ngovinfo Under the provisions of Public Law 10340, GPO has been providing online public access to\ncongressional and Federal agency publications since\n1994, beginning with a site known as GPO Access.\nFifteen years later, GPO Access was retired and a\nsignificantly re-engineered system debuted as GPO’s\nFederal Digital System or FDsys. In early 2016, GPO\nunveiled the next generation of our public access system\nwith the introduction of govinfo. Rolled out initially\nin beta, govinfo improved upon FDsys by providing a\nmodern website that is aligned with the needs of today’s\nGovernment information users for quick and effective\nonline access across a variety of platforms.\nFollowing a period of iterative development and",
+            "expected": true
+          },
+          {
+            "rank": 5,
+            "page": 22,
+            "section": null,
+            "text": "Government information users for quick and effective\nonline access across a variety of platforms.\nFollowing a period of iterative development and\ntesting, the govinfo website was moved out of beta in\nDecember 2017. Throughout 2018, the FDsys and govinfo\nwebsites ran in parallel while GPO worked with key\nstakeholders to ensure a smooth transition to govinfo.\nThe FDsys was scheduled to be completely retired and\nreplaced by govinfo in December 2018. The govinfo\nwebsite features a mobile-friendly design, current and\nhistorical content collections from all three branches,\nenhanced search and intuitive browse, linked related\ndocuments, curated feature articles, quick and easy\nsocial sharing, developer tools such as XML bulk data\nand a public API, expanded help information, support",
+            "expected": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "sample-3",
+      "question": "How much did GPO procure in printing and information products in FY 2018 on behalf of federal agencies?",
+      "group": "main",
+      "reference_answer": "About $375.7 million (the report also says 'more than $375 million') of printing and other information products, across more than 84,000 orders.",
+      "expected_pages": [
+        5,
+        14,
+        15,
+        17
+      ],
+      "generated_at": "2026-10-15 13:33",
+      "before": {
+        "label": "Naive RAG",
+        "technique": "similarity search only",
+        "config": "all-MiniLM-L6-v2 | 800/150 | k=5 | th=0.2 | no rerank | no sections | no rewrite",
+        "model": "openai/gpt-oss-20b",
+        "answer": "GPO’s procurement of printing and information products for federal agencies in FY 2018 was valued at approximately **$375.7 million** (representing 84,111 orders) (GPO‑Annual‑report.pdf, page 17).",
+        "passed": true,
+        "correct": true,
+        "judge_reason": "The system answer accurately provides the key figure of approximately $375.7 million and includes supporting details that align with the reference answer.",
+        "hit": true,
+        "rank": 1,
+        "citation_ok": true,
+        "faithfulness": 1.0,
+        "answer_relevance": 1.0,
+        "context_recall": 1.0,
+        "context_precision": 0.8,
+        "unsupported": [],
+        "relevance_reason": "The system answer directly and accurately states the amount GPO procured in printing and information products in FY 2018 based on the provided text.",
+        "grounding_error": null,
+        "passages_count": 5,
+        "irrelevant_passages": 1,
+        "latency_s": 1.181,
+        "retrieval_latency_s": 0.021,
+        "prompt_tokens": 1357,
+        "completion_tokens": 282,
+        "cost_usd": 0.000186375,
+        "original_query": "How much did GPO procure in printing and information products in FY 2018 on behalf of federal agencies?",
+        "search_query": "How much did GPO procure in printing and information products in FY 2018 on behalf of federal agencies?",
+        "rewritten": false,
+        "sub_queries": [],
+        "queries_generated": 1,
+        "searches": 1,
+        "candidates": 5,
+        "kept": 5,
+        "reranked": false,
+        "rewrite_effect": null,
+        "rerank_effect": null,
+        "decompose_effect": null,
+        "keyword_effect": null,
+        "steps": [
+          {
+            "kind": "Retrieve",
+            "text": "Similarity search over 297 chunks: kept the top 5 above the similarity threshold"
+          },
+          {
+            "kind": "Generate",
+            "text": "Grounded prompt with 5 numbered passages: cite them, or say not found"
+          }
+        ],
+        "passages": [
+          {
+            "rank": 1,
+            "page": 14,
+            "section": null,
+            "text": "2018 ANNUAL REPORT | U.S. GOVERNMENT PUBLISHING OFFICE\nGPO By the Numbers FY 2018\n12 2018 ANNUAL REPORT | U.S. GOVERNMENT PUBLISHING OFFICE\nGPO staff 1,737\nFY 2018 revenues $874,466,000\nFY 2018 appropriations $117,068,000\nCongressional Record pages produced 47,623,312\nFederal Register pages produced 95,955,976\nRevenues from procured printing $375.7 million\nJobs procured nationwide 84,111\nContractors on GPO’s master contractor list Over 10,000\nRegional procurement offices nationwide 13\nPassports produced 15,901,600\nSecure credentials produced 5,014,573",
+            "expected": true
+          },
+          {
+            "rank": 2,
+            "page": 17,
+            "section": null,
+            "text": "of producing it. In 2013, the Government Accountability\nOffice conducted a study at the request of the Joint\nCommittee on Printing that identified approximately 80\nFederal printing plants still in operation governmentwide (http://www.gao.gov/assets/660/655936.\npdf). GPO has long taken the position that significant\nadditional savings for taxpayers will occur if the work\nthese plants are producing is transferred to GPO for\nproduction through our partnership with the private\nsector printing and information product industry. In\naddition, the work produced through this partnership\nA presentation during GPO’s Open House showcasing services for Federal agencies.",
+            "expected": true
+          },
+          {
+            "rank": 3,
+            "page": 17,
+            "section": null,
+            "text": "GPO offices around the country. In FY 2018, this\nwork was valued at approximately $375.7 million and\nrepresented 84,111 orders. More than 10,000 individual\nfirms are registered to do business with GPO, the vast\nmajority of whom are small businesses averaging 20\nemployees per firm. Contracts are awarded on a purely\ncompetitive basis; there are no set-asides or preferences\nin contracting other than what is specified in law and\nregulation, including a requirement for Buy American.\nThis partnership provides significant economic\nopportunity for the private sector. We have long\nadvocated that where Federal agency printing is\nrequired, this partnership is the most cost-effective way\nof producing it. In 2013, the Government Accountability\nOffice conducted a study at the request of the Joint",
+            "expected": true
+          },
+          {
+            "rank": 4,
+            "page": 5,
+            "section": null,
+            "text": "Government-printing dollar while also providing small\nbusinesses with the opportunity to compete fairly and\nfully for Government business.\nAnother encouraging development in FY 2018\nwas the continued growth of our Agency Distribution\nServices (ADS) program. Through ADS, GPO provides\nour Federal agency partners with a broadening array",
+            "expected": true
+          },
+          {
+            "rank": 5,
+            "page": 6,
+            "section": null,
+            "text": "GPO—through the end of FY 2018—produced more\nthan 21 million secure credential cards for our Federal\npartners across 11 different product lines.\nFrom a financial standpoint, FY 2018 was another\nsuccessful year for GPO’s operations. Revenue\ntotaled $874.5 million and resulted in a net income\nof $20.4 million, excluding income that is set aside\nto make critically important investments in passportrelated capital assets and funds resulting from a\ndownward adjustment to GPO’s long-term workers’\ncompensation liability under the Federal Employees\nCompensation Act (FECA).\n4 2018 ANNUAL REPORT | U.S. GOVERNMENT PUBLISHING OFFICE\nGPO employees producing Trusted Traveler Program cards for the Department of Homeland Security.\nFor the 22nd year in a row, GPO received an",
+            "expected": false
+          }
+        ]
+      },
+      "after": {
+        "label": "Advanced RAG",
+        "technique": "query rewriting and decomposition, hybrid BM25 + vector search, reranking, context compression, section-aware search, charts and footnotes",
+        "config": "all-MiniLM-L6-v2 | 800/150 | k=5 | th=0.2 | rerank ms-marco-MiniLM-L-6-v2@20 margin 5 | sections | hybrid BM25 | visuals | decompose",
+        "model": "openai/gpt-oss-20b",
+        "answer": "GPO procured about $375.7 million worth of printing and other information products for federal agencies in FY 2018 (GPO‑Annual‑report.pdf, page 5; page 14).",
+        "passed": true,
+        "correct": true,
+        "judge_reason": "The system answer accurately provides the correct monetary amount and context from the reference answer.",
+        "hit": true,
+        "rank": 1,
+        "citation_ok": true,
+        "faithfulness": 1.0,
+        "answer_relevance": 1.0,
+        "context_recall": 1.0,
+        "context_precision": 0.8,
+        "unsupported": [],
+        "relevance_reason": "The system answer directly and accurately states the amount GPO procured in printing and information products for federal agencies in FY 2018 based on the text.",
+        "grounding_error": null,
+        "passages_count": 5,
+        "irrelevant_passages": 1,
+        "latency_s": 2.247,
+        "retrieval_latency_s": 0.895,
+        "prompt_tokens": 1697,
+        "completion_tokens": 326,
+        "cost_usd": 0.000225075,
+        "original_query": "How much did GPO procure in printing and information products in FY 2018 on behalf of federal agencies?",
+        "search_query": "How much did GPO procure in printing and information products in FY 2018 on behalf of federal agencies?",
+        "rewritten": false,
+        "sub_queries": [],
+        "queries_generated": 1,
+        "searches": 1,
+        "candidates": 34,
+        "kept": 5,
+        "reranked": true,
+        "rewrite_effect": null,
+        "rerank_effect": {
+          "rank_without": 1,
+          "rank_with": 1,
+          "precision_without": 0.8,
+          "precision_with": 0.8
+        },
+        "decompose_effect": null,
+        "keyword_effect": {
+          "rank_without": 1,
+          "rank_with": 1,
+          "precision_without": 0.6,
+          "precision_with": 0.8
+        },
+        "steps": [
+          {
+            "kind": "Retrieve",
+            "text": "Keyword search (BM25) merged with similarity search: 14 candidate(s) found only by exact words"
+          },
+          {
+            "kind": "Retrieve",
+            "text": "Hybrid search over 297 chunks: 34 candidates above the similarity threshold (of 20 fetched per search)"
+          },
+          {
+            "kind": "Post-process",
+            "text": "Cross-encoder reranked the candidates and kept the top 5"
+          },
+          {
+            "kind": "Generate",
+            "text": "Grounded prompt with 5 numbered passages: cite them, or say not found"
+          }
+        ],
+        "passages": [
+          {
+            "rank": 1,
+            "page": 5,
+            "section": null,
+            "text": "accommodate NARA’s Center for Legislative Archives. This\nexciting project followed GPO’s recent completion of a\n17,000-square-foot renovation to provide office space for\nNARA’s Office of the Federal Register (OFR).\nOn behalf of our Federal agency partners, GPO\nprocured more than $375 million worth of printing\nand other information products in FY 2018. That work\nconsisted of more than 84,000 specific orders that\nwere fulfilled by thousands of private-sector vendors\nlocated across the country. By procuring this work\non a competitive basis, GPO helps ensure that the\nAmerican people get the greatest possible value for their\nGovernment-printing dollar while also providing small\nbusinesses with the opportunity to compete fairly and\nfully for Government business.",
+            "expected": true
+          },
+          {
+            "rank": 2,
+            "page": 17,
+            "section": null,
+            "text": "and the Library of Congress’ National Library Service for\nthe Blind and Physically Handicapped (NLS) to determine\nif space within GPO’s main facilities can be renovated\nto provide high-quality DC office space for the NLS. At\nthe end of FY 2018, a study was underway to assess the\nfeasibility of such a collaboration.\nPartnership with Industry Other than\ncongressional and inherently governmental work such\nas the Federal Register, the Budget, and security and\nintelligent documents, GPO produces virtually all other\nFederal agency information products via contracts with\nthe private sector printing and information product\nindustry issued by our central office and regional\nGPO offices around the country. In FY 2018, this\nwork was valued at approximately $375.7 million and",
+            "expected": true
+          },
+          {
+            "rank": 3,
+            "page": 14,
+            "section": null,
+            "text": "2018 ANNUAL REPORT | U.S. GOVERNMENT PUBLISHING OFFICE\nGPO By the Numbers FY 2018\n12 2018 ANNUAL REPORT | U.S. GOVERNMENT PUBLISHING OFFICE\nGPO staff 1,737\nFY 2018 revenues $874,466,000\nFY 2018 appropriations $117,068,000\nCongressional Record pages produced 47,623,312\nFederal Register pages produced 95,955,976\nRevenues from procured printing $375.7 million\nJobs procured nationwide 84,111\nContractors on GPO’s master contractor list Over 10,000\nRegional procurement offices nationwide 13\nPassports produced 15,901,600\nSecure credentials produced 5,014,573",
+            "expected": true
+          },
+          {
+            "rank": 4,
+            "page": 23,
+            "section": null,
+            "text": "program are website hosting, consulting services,\nfulfillment and distribution, address validation services,\ncall center operations, and printing optimization, just\nto name a few. These services are all designed to help\nFederal agencies achieve savings in the distribution of\ntheir information products.\nThe ADS program experienced significant growth in\nFY 2018, with revenues climbing to nearly $13 million,\nup from $9.2 million in FY 2017. Similarly, the total\ncopies of agency materials distributed through the ADS\nprogram increased to 69.2 million in FY 2018—an 11\nmillion increase over the 58 million copies distributed\nin FY 2017. In total, GPO professionals at the Laurel\nand Pueblo facilities processed over 1.6 million orders\nin FY 2018.\nGPO and Social Media We use Facebook, Twitter,",
+            "expected": false
+          },
+          {
+            "rank": 5,
+            "page": 15,
+            "section": null,
+            "text": "Posts on Instagram 1,699\nFollowers on LinkedIn 3,498\n13U.S. GOVERNMENT PUBLISHING OFFICE | 2018 ANNUAL REPORT\nGPO staff 1,737\nFY 2018 revenues $874,466,000\nFY 2018 appropriations $117,068,000\nCongressional Record pages produced 47,623,312\nFederal Register pages produced 95,955,976\nRevenues from procured printing $375.7 million\nJobs procured nationwide 84,111\nContractors on GPO’s master contractor list Over 10,000\nRegional procurement offices nationwide 13\nPassports produced 15,901,600\nSecure credentials produced 5,014,573",
+            "expected": true
+          }
+        ]
+      }
+    }
+  ]
+}

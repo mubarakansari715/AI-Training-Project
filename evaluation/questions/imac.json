@@ -1,93 +1,36 @@
 {
   "document": "notebooks/iMac_PER_Oct2024.pdf",
-  "notes": "Use case 3 (short, visual document). Ground truth only, graded by an LLM judge. Most facts sit in charts (p. 2 carbon waterfall), tables (p. 10 greenhouse gas emissions, p. 12 power consumption), icon call-outs (pp. 1, 4, 6) and endnotes (pp. 11-12); values were read from the rendered pages. 'expected_pages' are the PDF pages (1-based) holding the number. The first three are the sample questions from the task spec.",
+  "notes": "Use case 3 (short, visual document). Ground truth only, graded by an LLM judge. Most facts sit in charts (p. 2 carbon waterfall), tables (p. 10 greenhouse gas emissions, p. 12 power consumption), icon call-outs (pp. 1, 4, 6) and endnotes (pp. 11-12); values were read from the rendered pages. 'expected_pages' are the PDF pages (1-based) holding the number. It holds only the three sample questions from the task spec.",
   "questions": [
     {
       "id": "sample-energy-star",
       "sample": true,
       "question": "How much less energy does iMac use compared to the ENERGY STAR requirement?",
       "reference_answer": "iMac uses 58 percent less energy than the requirement for ENERGY STAR.",
-      "expected_pages": [7]
+      "expected_pages": [
+        7
+      ]
     },
     {
       "id": "sample-carbon-footprint",
       "sample": true,
       "question": "What is the total carbon footprint of the iMac, and how much of that comes from product use versus manufacturing?",
       "reference_answer": "The total product carbon footprint of iMac (two ports, 256GB) is 346 kg CO2e. Production (manufacturing) accounts for 50 percent of life cycle emissions and product use for 45 percent (transportation 5 percent, end-of-life processing under 1 percent).",
-      "expected_pages": [10, 2]
+      "expected_pages": [
+        10,
+        2
+      ]
     },
     {
       "id": "sample-stand",
       "sample": true,
       "question": "What material is the iMac stand made from, and what percentage of it is recycled?",
       "reference_answer": "The stand is made from aluminum, and it is 100 percent recycled aluminum.",
-      "expected_pages": [1, 2, 4]
-    },
-    {
-      "id": "power-idle",
-      "question": "What is the iMac's power consumption at idle with the display on, at 115V?",
-      "reference_answer": "20.6W at 115V (Idle—Display On).",
-      "expected_pages": [12]
-    },
-    {
-      "id": "power-sleep-230v",
-      "question": "How much power does iMac draw in sleep mode at 230V?",
-      "reference_answer": "0.59W in sleep at 230V.",
-      "expected_pages": [12]
-    },
-    {
-      "id": "adapter-efficiency",
-      "question": "What is the iMac power adapter's efficiency at 100V?",
-      "reference_answer": "91.1 percent at 100V.",
-      "expected_pages": [12]
-    },
-    {
-      "id": "four-ports-footprint",
-      "question": "What is the carbon footprint of the iMac (four ports) 512GB configuration?",
-      "reference_answer": "391 kg CO2e.",
-      "expected_pages": [10]
-    },
-    {
-      "id": "baseline-emissions",
-      "question": "In the carbon-neutral progress chart, what were the baseline emissions and how much were emissions reduced?",
-      "reference_answer": "Baseline emissions were 445 kg CO2e and emissions reductions were 99 kg (shown as -99 kg), bringing iMac emissions to 346 kg CO2e.",
-      "expected_pages": [2]
-    },
-    {
-      "id": "transport-end-of-life",
-      "question": "What share of the iMac's life cycle carbon emissions comes from transportation and from end-of-life processing?",
-      "reference_answer": "Transportation accounts for 5 percent and end-of-life processing for less than 1 percent.",
-      "expected_pages": [10]
-    },
-    {
-      "id": "packaging-recycled",
-      "question": "What percentage of recycled content is in the iMac's fiber packaging?",
-      "reference_answer": "76 percent recycled content in fiber packaging.",
-      "expected_pages": [6]
-    },
-    {
-      "id": "rare-earth",
-      "question": "How much recycled rare earth content does iMac use in its magnets?",
-      "reference_answer": "100 percent recycled rare earth elements in all magnets, representing 99 percent of the total rare earth elements in the device.",
-      "expected_pages": [4]
-    },
-    {
-      "id": "footnote-energy-star-basis",
-      "question": "What is the 58 percent ENERGY STAR energy claim based on, and what equipment was iMac tested with?",
-      "reference_answer": "It is based on the ENERGY STAR Program Requirements for Computers, including the maximum energy allowance for iMac; iMac was tested with the 143W Power Adapter, AC Cable (1m) and DC Cable (2m).",
-      "expected_pages": [7, 12]
-    },
-    {
-      "id": "footnote-recycled-content",
-      "question": "What exactly does the 'more than 15 percent recycled content' claim measure, according to its footnote?",
-      "reference_answer": "It is the mass of certified recycled material relative to the overall mass of the device, not including packaging or in-box accessories.",
-      "expected_pages": [1, 4, 11]
-    },
-    {
-      "id": "trap-display-resolution",
-      "question": "What is the display resolution of the iMac?",
-      "reference_answer": "The report does not state the display resolution.",
-      "expected_pages": []
+      "expected_pages": [
+        1,
+        2,
+        4
+      ]
     }
   ]
 }

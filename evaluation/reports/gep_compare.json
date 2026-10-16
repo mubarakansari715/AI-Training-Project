@@ -1,0 +1,625 @@
+{
+  "use_case": "gep",
+  "document": "notebooks/GEP-Jun-2026.pdf",
+  "answer_model": "openai/gpt-oss-20b",
+  "judge_model": "gemini-3.5-flash-lite",
+  "configs": {
+    "before": "all-MiniLM-L6-v2 | 800/150 | k=5 | th=0.2 | no rerank | no sections | no rewrite",
+    "after": "all-MiniLM-L6-v2 | 800/150 | k=5 | th=0.2 | rerank ms-marco-MiniLM-L-6-v2@20 margin 5 | sections | hybrid BM25 | visuals | decompose"
+  },
+  "rows": [
+    {
+      "id": "sample-south-asia",
+      "question": "What is the growth outlook for South Asia in this report?",
+      "group": "main",
+      "reference_answer": "Growth in South Asia is expected to soften to 6.3 percent in 2026, mainly because of the conflict in the Middle East (higher energy prices, reduced oil and gas supplies, disruptions to remittances and tourism); the forecast was marginally upgraded since January on stronger domestic demand and exports. Growth is set to pick up to an average of about 7 percent a year in 2027-28. India is projected to grow 6.6 percent in fiscal year 2026/27. (Figures must come from South Asia, not another region.)",
+      "expected_pages": [
+        96,
+        97,
+        98
+      ],
+      "generated_at": "2026-10-15 13:38",
+      "before": {
+        "label": "Naive RAG",
+        "technique": "similarity search only",
+        "config": "all-MiniLM-L6-v2 | 800/150 | k=5 | th=0.2 | no rerank | no sections | no rewrite",
+        "model": "openai/gpt-oss-20b",
+        "answer": "**South Asia growth outlook (real GDP, market prices)**  \n\n| Year | Forecast (percent) | Notes |\n|------|--------------------|-------|\n| 2023 | 6.6 % | Annual estimate |\n| 2024 | 6.8 % | Annual estimate |\n| 2025 e | 7.0 % | Annual estimate |\n| 2026 f | 6.3 % | Forecast; downgraded by 1 pp since January due to weaker consumption, exports and higher import costs (GEP‑Jun‑2026.pdf, page 189; page 96) |\n| 2027 f | 6.9 % | Forecast; expected to rebound as external demand recovers (GEP‑Jun‑2026.pdf, page 96) |\n| 2028 f | 5.5 % | Forecast (Table 2.9, GEP‑Jun‑2026.pdf, page 98) |\n\n**Key points from the report**\n\n* The overall South Asia region is projected to grow at **6.3 % in 2026** and **6.9 % in 2027** (GEP‑Jun‑2026.pdf, page 189).  \n* Excluding India, the region’s growth is expected to rise to **4 % in 2026** from **3.9 % in 2025** (GEP‑Jun‑2026.pdf, page 96).  \n* The 2026 forecast was cut by **1 percentage point** since the January 2026 projections because of a weaker expansion of consumption and exports and a rise in import costs (GEP‑Jun‑2026.pdf, page 96).  \n* A recovery in external demand is expected to support growth in **2027–28** (GEP‑Jun‑2026.pdf, page 96).  \n\nThese figures summarize the growth outlook for South Asia as presented in the report.",
+        "passed": true,
+        "correct": true,
+        "judge_reason": "The system answer accurately provides the growth outlook for South Asia with appropriate figures and details matching the reference answer.",
+        "hit": true,
+        "rank": 1,
+        "citation_ok": true,
+        "faithfulness": 0.9230769230769231,
+        "answer_relevance": 1.0,
+        "context_recall": 1.0,
+        "context_precision": 0.6,
+        "unsupported": [
+          "2028f growth is 5.5% (value 5.5% not found in text for South Asia 2028f)"
+        ],
+        "relevance_reason": "The system answer directly and comprehensively addresses the growth outlook for South Asia using figures and details from the text.",
+        "grounding_error": null,
+        "passages_count": 5,
+        "irrelevant_passages": 2,
+        "latency_s": 1.706,
+        "retrieval_latency_s": 0.016,
+        "prompt_tokens": 2456,
+        "completion_tokens": 815,
+        "cost_usd": 0.0004287,
+        "original_query": "What is the growth outlook for South Asia in this report?",
+        "search_query": "What is the growth outlook for South Asia in this report?",
+        "rewritten": false,
+        "sub_queries": [],
+        "queries_generated": 1,
+        "searches": 1,
+        "candidates": 5,
+        "kept": 5,
+        "reranked": false,
+        "rewrite_effect": null,
+        "rerank_effect": null,
+        "decompose_effect": null,
+        "keyword_effect": null,
+        "steps": [
+          {
+            "kind": "Retrieve",
+            "text": "Similarity search over 1195 chunks: kept the top 5 above the similarity threshold"
+          },
+          {
+            "kind": "Generate",
+            "text": "Grounded prompt with 5 numbered passages: cite them, or say not found"
+          }
+        ],
+        "passages": [
+          {
+            "rank": 1,
+            "page": 98,
+            "section": null,
+            "text": "C H A PT ER 2 G L O B AL EC ON O M I C PR O SPEC T S | J U N E 2 0 2 6 76\nTABLE 2.10 South Asia economy forecasts\n(Real GDP growth at market prices in percent, unless indicated otherwise)\nPercentage-point differences\nfrom January 2026 projections\n2023 2024 2025e 2026f 2027f 2026f 2027f\nCalendar-year basis\nMaldives 4.9 3.5 5.7 0.7 7.2 -3.2 3.2\nSri Lanka -2.0 5.0 5.0 3.6 3.8 0.1 0.7\nFiscal-year basis 1 2023/24 2024/25 2025/26e 2026/27f 2027/28f 2026/27f 2027/28f\nIndia 7.2 7.1 7.7 6.6 7.2 0.1 0.6\n2022/23 2023/24 2024/25 2025/26e 2026/27f 2025/26e 2026/27f\nBangladesh 5.8 4.2 3.5 3.8 4.6 -0.8 -1.5\nBhutan 4.9 6.1 8.1 7.1 6.4 -0.2 0.3\nNepal 2.0 3.7 4.6 2.3 4.2 0.2 -0.5\n2028f",
+            "expected": true
+          },
+          {
+            "rank": 2,
+            "page": 189,
+            "section": null,
+            "text": "Annual estimates and forecasts 1\n(Percent change)\nQuarterly estimates 2\n(Percent change, year-on-year)\n2023 2024 2025e 2026f 2027f 24Q4 25Q1 25Q2 25Q3 25Q4 26Q1e\nSouth Asia 6.6 6.8 7.0 6.3 6.9 6.9 6.7 6.3 7.8 7.4 ..\nBangladesh 3 5.8 4.2 3.5 3.8 4.6 3.5 4.5 2.1 5.0 3.0 ..\nBhutan 3 4.9 6.1 8.1 7.1 6.4 9.1 7.8 9.2 6.5 8.8 ..\nIndia 3 7.2 7.1 7.7 6.6 7.2 7.4 7.0 6.8 8.3 8.0 7.8\nMaldives 4.9 3.5 5.7 0.7 7.2 2.2 3.4 7.5 7.4 7.3 ..\nNepal 2 3 2.0 3.7 4.6 2.3 4.2 3.8 4.2 4.7 3.2 4.1 ..\nSri Lanka -2.0 5.0 5.0 3.6 3.8 5.5 4.7 5.0 5.3 4.8 ..\nSub-Saharan Africa 3.0 3.8 4.1 4.0 4.4 3.3 3.5 3.3 .. .. ..\nAngola 1.3 4.4 3.1 2.4 2.7 3.3 4.3 1.5 1.7 5.1 5.3\nBenin 6.4 7.5 8.1 7.0 7.2 9.2 7.4 7.7 8.8 8.2 ..\nBotswana 3.2 -2.8 -0.7 2.7 3.2 -1.9 -0.3 -5.2 8.2 -5.4 ..",
+            "expected": false
+          },
+          {
+            "rank": 3,
+            "page": 83,
+            "section": null,
+            "text": "C H A PT ER 2 G L O B AL EC ON O M I C PR O SPEC T S | J U N E 2 0 2 6 61\nTABLE 2.2 East Asia and Pacific economy forecasts 1\n(Real GDP growth at market prices in percent, unless indicated otherwise)\nPercentage-point differences\nfrom January 2026\nprojections\n2023 2024 2025e 2026f 2027f 2026f 2027f\nCambodia 5.0 6.0 5.3 3.9 4.9 -0.4 -0.2\nChina 5.4 5.0 5.0 4.2 4.3 -0.2 0.1\nFiji 9.4 3.5 3.2 2.7 3.2 -0.3 0.1\nIndonesia 5.0 5.0 5.1 5.0 5.2 0.0 0.0\nKiribati 3.3 4.6 4.3 3.1 2.4 -0.1 -0.1\nLao PDR 3.7 4.1 4.8 3.8 3.7 -0.2 -0.2\nMalaysia 3.5 5.1 5.2 4.4 4.4 0.3 0.4\nMarshall Islands 2 -4.0 3.0 2.5 2.0 2.4 -2.1 0.0\nMicronesia, Fed. Sts. 2 1.1 2.3 1.1 0.8 1.3 -0.7 0.5\nMongolia 7.2 5.1 6.9 5.0 5.5 -0.6 0.0\nMyanmar 2 3 1.0 -1.0 -2.0 2.0 .. -1.0 ..\nNauru 2 0.6 1.6 2.1 1.9 1.9 0.0 0.0",
+            "expected": false
+          },
+          {
+            "rank": 4,
+            "page": 96,
+            "section": null,
+            "text": "implementation of free trade agreements will likely\nmitigate the impact of weaker external demand\ndue to the conflict, particularly on merchandise\nexports. Growth is then anticipated to rebound\nover the next two fiscal years, driven by firming\ndomestic demand and a pickup in export growth.\nExcluding India, growth in the region is forecast\nto increase to 4 percent in 2026 from 3.9 percent\nin 2025, reflecting some acceleration of growth in\nBangladesh, driven by a gradual recovery in\ninvestment (World Bank 2026o). However, the\ngrowth projection has been downgraded by 1\npercentage point since January, partly because of\nthe weaker expansion of consumption and exports,\nas well as a rise in import costs. A recovery in\nexternal demand is expected to support growth in\n2027–28.",
+            "expected": true
+          },
+          {
+            "rank": 5,
+            "page": 98,
+            "section": null,
+            "text": "4.0\n3.9\n2028/29f\n7.0\n2027/28f\n5.5\n6.8\n4.6\nSource : World Bank.\nNote : e = estimate; f = forecast. World Bank forecasts are frequently updated based on new information and changing global circumstances. Consequently, projections presented here may\ndiffer from those in other World Bank documents, even if basic assessments of countries’ prospects do not significantly differ at any given moment in time.\n1. Fiscal year runs from April 1 to March 31 in India; from July 1 to June 30 in Bangladesh and Bhutan; and from July 16 to July 15 in Nepal.\nTABLE 2.9 South Asia forecast summary\n(Real GDP growth at market prices in percent, unless indicated otherwise)\nPercentage-point\ndifferences from January\n2026 projections\n2023 2024 2025e 2026f 2027f 2028f 2026f 2027f",
+            "expected": true
+          }
+        ]
+      },
+      "after": {
+        "label": "Advanced RAG",
+        "technique": "query rewriting and decomposition, hybrid BM25 + vector search, reranking, context compression, section-aware search, charts and footnotes",
+        "config": "all-MiniLM-L6-v2 | 800/150 | k=5 | th=0.2 | rerank ms-marco-MiniLM-L-6-v2@20 margin 5 | sections | hybrid BM25 | visuals | decompose",
+        "model": "openai/gpt-oss-20b",
+        "answer": "The report projects that South Asia’s overall growth will **soften to about 6.3 % in 2026** (down from the 2025 estimate of 6.5 %) mainly because of higher energy prices, reduced oil and gas supplies, and disruptions to remittances and tourism caused by the Middle‑East conflict.  The outlook is then expected to **pick up to an average of roughly 7 % per year in 2027‑28** as conflict‑related disruptions ease, domestic demand strengthens, and export performance improves (GEP‑Jun‑2026.pdf, page 96).",
+        "passed": true,
+        "correct": true,
+        "judge_reason": "The system answer accurately captures the key growth projections for South Asia, matching the figures and main reasons provided in the reference answer.",
+        "hit": true,
+        "rank": 1,
+        "citation_ok": true,
+        "faithfulness": 1.0,
+        "answer_relevance": 1.0,
+        "context_recall": 1.0,
+        "context_precision": 1.0,
+        "unsupported": [],
+        "relevance_reason": "The system answer directly and accurately addresses the growth outlook for South Asia using specific figures and details from the text.",
+        "grounding_error": null,
+        "passages_count": 2,
+        "irrelevant_passages": 0,
+        "latency_s": 2.373,
+        "retrieval_latency_s": 1.159,
+        "prompt_tokens": 2688,
+        "completion_tokens": 334,
+        "cost_usd": 0.0003018,
+        "original_query": "What is the growth outlook for South Asia in this report?",
+        "search_query": "What is the growth outlook for South Asia in this report?",
+        "rewritten": false,
+        "sub_queries": [],
+        "queries_generated": 1,
+        "searches": 1,
+        "candidates": 19,
+        "kept": 5,
+        "reranked": true,
+        "rewrite_effect": null,
+        "rerank_effect": {
+          "rank_without": 1,
+          "rank_with": 1,
+          "precision_without": 1.0,
+          "precision_with": 1.0
+        },
+        "decompose_effect": null,
+        "keyword_effect": {
+          "rank_without": 1,
+          "rank_with": 1,
+          "precision_without": 1.0,
+          "precision_with": 1.0
+        },
+        "steps": [
+          {
+            "kind": "Retrieve",
+            "text": "Searched only the section(s) the question names: Ch. 2 Regional Outlooks › South Asia"
+          },
+          {
+            "kind": "Retrieve",
+            "text": "Keyword search (BM25) merged with similarity search: 0 candidate(s) found only by exact words"
+          },
+          {
+            "kind": "Retrieve",
+            "text": "Hybrid search over 1195 chunks: 19 candidates above the similarity threshold (of 20 fetched per search)"
+          },
+          {
+            "kind": "Post-process",
+            "text": "Cross-encoder reranked the candidates and kept the top 5"
+          },
+          {
+            "kind": "Post-process",
+            "text": "Swapped the best hits for their whole pages (up to 2)"
+          },
+          {
+            "kind": "Generate",
+            "text": "Grounded prompt with 2 numbered passages: cite them, or say not found"
+          }
+        ],
+        "passages": [
+          {
+            "rank": 1,
+            "page": 96,
+            "section": "Ch. 2 Regional Outlooks › South Asia",
+            "text": "[Ch. 2 Regional Outlooks › South Asia]\nC H A PT ER 2 G L O B AL EC ON O M I C PR O SPEC T S | J U N E 2 0 2 6 74\nSouth Asia\nRecent developments\nThe disruptions to commodity markets and\ninternational trade resulting from the conflict in\nthe Middle East have led to shortages of energy\nand agricultural products and put upward pressure\non energy and food prices in SAR. Inflation has\nstill generally remained within or below central\nbanks’ target ranges. In Bangladesh, however,\ninflation has stayed elevated, alongside tight\nmonetary policy. In addition, monetary policy in\nSri Lanka was tightened at the end of May to tame\ninflationary pressures.\nAlthough financial conditions in the region eased\nsomewhat following the de-escalation in\nhostilities, they remain tighter than before the\nconflict in several countries, with some currencies\nunder pressure. Receipts of remittances have\ndeclined in many countries, particularly from\nGCC countries, and disruptions to tourism have\nalso worsened fiscal and external imbalances,\nincluding in Maldives.\nDespite heightened uncertainty related to the\nconflict, economic activity in India remained\nrobust early this year, supported by resilient\ndomestic demand. Private consumption,\nparticularly in rural areas, has been strong, with\nurban demand recovering. Collections of taxes\nfrom domestic sales have also increased steadily.\nTo mitigate the price pressures arising from higher\nenergy costs, as well as shortages of agricultural\nproducts, especially fertilizers, several measures\nhave been implemented in India, including a\nreduction in fuel taxes.\nIn Bangladesh and Nepal, domestic political\nuncertainties have waned, but private activity has\nbeen constrained by increased input costs and\nweaker investor sentiment. In these economies, the\nfinancial sector remains fragile, with subdued\ncredit growth and deteriorating asset quality. In\ncontrast, activity has recovered in Sri Lanka after\nthe disruptions caused in late 2025 by Cyclone\nDitwah, alongside a rise in private sector credit.\nCredit growth has also increased modestly in\nBhutan, with enhanced regulatory frameworks and\nmeasures to support financial stability.\nOutlook\nGrowth in SAR is expected to soften to 6.3\npercent in 2026, mainly reflecting the adverse\nimpact of the conflict in the Middle East,\nincluding higher energy prices, reduced supplies of\noil and natural gas, and disruptions to remittances\nand tourism (table 2.9). Nevertheless, the growth\nforecast has been marginally upgraded since\nJanuary, primarily because of more robust\ndomestic demand and stronger export growth in\nseveral economies than previously expected.\nImproved access to major trading partners, as well\nas lower U.S. tariffs, is anticipated to contribute to\nthe stronger export performance (World Bank\n2026m). With conflict-related disruptions\nassumed to wane by the end of the year, growth in\nSAR is set to pick up to an average rate of 7\npercent per year in 2027–28.\nGrowth in India is projected to moderate to 6.6\npercent in fiscal year 2026/27 (April 2026 to\nMarch 2027), reflecting a slowdown in private\ndemand growth owing to higher energy prices and\nother input costs, though a reduction in Goods\nand Services Tax rates should somewhat support\nconsumer demand (table 2.10; World Bank\n2026n). Reduced U.S. tariffs and the expected\nimplementation of free trade agreements will likely\nmitigate the impact of weaker external demand\ndue to the conflict, particularly on merchandise\nexports. Growth is then anticipated to rebound\nover the next two fiscal years, driven by firming\ndomestic demand and a pickup in export growth.\nExcluding India, growth in the region is forecast\nto increase to 4 percent in 2026 from 3.9 percent\nin 2025, reflecting some acceleration of growth in\nBangladesh, driven by a gradual recovery in\ninvestment (World Bank 2026o). However, the\ngrowth projection has been downgraded by 1\npercentage point since January, partly because of\nthe weaker expansion of consumption and exports,\nas well as a rise in import costs. A recovery in\nexternal demand is expected to support growth in\n2027–28.\nIn SAR, excluding Bangladesh and India, the\nprojected softening of growth in 2026 partly\nreflects heightened uncertainty and higher input\ncosts, which will weigh on investment, including",
+            "expected": true
+          },
+          {
+            "rank": 2,
+            "page": 97,
+            "section": "Ch. 2 Regional Outlooks › South Asia",
+            "text": "[Ch. 2 Regional Outlooks › South Asia]\nC H A PT ER 2 G L O B AL EC ON O M I C PR O SPEC T S | J U N E 2 0 2 6 75\nin Nepal and Sri Lanka. Disruptions to tourism\nand higher energy prices are expected to\ncontribute to a slowdown in Bhutan and\nMaldives. Over 2027–28, a rebound in growth is\nanticipated, supported by a return of tourist flows,\nincreased remittances, and expansion of\nhydropower activity, including the construction of\nplants and electricity exports in Bhutan and Nepal\n(World Bank 2026p).\nFiscal balances in the region are set to deteriorate\nin 2026 (figure 2.7.A). In several economies,\nincluding Bangladesh, Bhutan, India, and\nMaldives, fiscal deficits are anticipated to rise,\npartly owing to increases in subsidies intended to\ncounteract the surges in energy prices. Weaker\nrevenues stemming from tax cuts and subdued\ntourism activity are also projected to erode fiscal\nbalances, including in Bhutan and Maldives\n(World Bank 2026q). In India, reduced revenues\ndue to tax reforms are forecast to be partly offset\nby slower capital expenditure growth and\nreductions in non-essential current spending.\nRevenue collection will likely remain strong in Sri\nLanka, maintaining a primary surplus (World\nBank 2026r).\nExternal balances are also forecast to weaken in the\nregion this year due to the impact of the conflict,\nincluding higher costs of energy imports, as well as\ndeclines in tourism revenues and remittances\n(figure 2.7.B). Over 2027–28, current account\nbalances are projected to improve, on aggregate,\nsupported by higher exports, reflecting a rebound\nin external demand. However, in Bhutan and\nNepal, the worsening of current account balances\nwill partly reflect increased imports for the\nconstruction of hydropower projects. Over the\nforecast horizon, trade agreements and structural\nreforms undertaken to improve the business\nenvironment are set to support foreign direct\ninvestment inflows in India. In contrast, despite\nthe reform implementation, a tight business\nenvironment is expected to weigh on foreign\ninvestment inflows in Nepal.\nInflation in the region is projected to rise in 2026,\ndriven mainly by increases in energy and transport\ncosts, though monetary policies are set to remain\nstable (figure 2.7.C). Over 2027–28, inflation is\nexpected to soften in most countries, leading to\nmonetary policy easing, which should boost\ndemand.\nWith continuing per capita income growth,\npoverty in the region is anticipated to decline\nfurther (figure 2.7.D). However, the pace of\ndecline will be slower than expected in January,\nmainly reflecting the adverse effects of higher\nenergy and food prices on household welfare,\nagricultural income, and food security, as well as\nreduced remittances. In addition, job creation will\nremain subdued in the region, partly on account\nof regulatory and structural barriers, widespread\ninformality, and skill mismatches.\nFIGURE 2.7 SAR: Outlook\nGrowth in SAR is projected to slow in 2026, accompanied by a\ndeterioration in fiscal and external balances. The expected decline in fiscal\nbalances is partly due to measures intended to mitigate the adverse\nimpact of the conflict in the Middle East, including increases in subsidies.\nCurrent account balances are also set to deteriorate, mainly reflecting\nhigher import costs and declines in tourism revenues and remittances.\nInflation is forecast to increase in 2026, before softening over 2027–28. The\npace of poverty reduction will be slower than was expected in January,\nowing to the impact of the conflict.\nSource : World Bank.\nNote : e = estimate; f = forecast. SAR = South Asia. Forecasts for 2027–28 are shown as averages\nover the two years.\nA.B. Aggregates are calculated as weighted averages, using nominal GDP in U.S. dollars as weights.\nC. Aggregates are calculated as weighted geometric averages, using nominal GDP in U.S. dollars as\nweights.\nD. Poverty is defined using the lower-middle-income poverty threshold of 4.20 international dollars per\nday at 2021 purchasing power parity. Sample includes four countries (Bangladesh, Bhutan, Nepal,\nand Sri Lanka). Diamonds for January 2026 refer to rates computed with data in the January 2026\nedition of the Global Economic Prospects report.\nB. Current account balances A. Primary fiscal balances\nD. Poverty C. Headline inflation\n-2\n-1\n0\n1\n2\n3\n2025e 2026f 2027–\n28f\n2025e 2026f 2027–\n28f\nSAR SAR excluding India\nSAR excluding India\nand Bangladesh\nPercent of GDP\n0\n2\n4\n6\n8\n2025e 2026f 2027–\n28f\n2025e 2026f 2027–\n28f\nSAR SAR excluding India\nSAR excluding India\nand Bangladesh\nPercent\n17\n18\n19\n20\n21\n2025e 2026f 2027f 2028f\nJanuary 2026\nPercent of population\n-4\n-2\n0\n2\n4\n2025e 2026f 2027–\n28f\n2025e 2026f 2027–\n28f\nSAR SAR excluding India\nSAR excluding India\nand Bangladesh\nPercent of GDP",
+            "expected": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "sample-ch3-debt",
+      "question": "What does Chapter 3 say about sovereign debt in developing economies?",
+      "group": "main",
+      "reference_answer": "Chapter 3 says rising government debt is a key challenge for EMDEs: it raises interest rates, debt-service costs and the likelihood of debt distress. EMDE government debt rose from under 40 percent of GDP in 2010 to over 70 percent. Higher debt is associated with higher dollar-denominated sovereign spreads and domestic-currency yields, non-linearly (bigger increases at higher debt levels); the rise since 2010 is associated with roughly 110 and 30 basis points higher spreads and yields. Effects are larger for countries with a history of default, low credit ratings, frontier status, short-term debt reliance or weak governance. It recommends strengthening fiscal positions (revenue mobilization, more efficient spending, better debt management, domestic debt markets, debt-for-development swaps). Any of these key points counts; it must not mix in other chapters' findings.",
+      "expected_pages": [
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142
+      ],
+      "generated_at": "2026-10-15 13:40",
+      "before": {
+        "label": "Naive RAG",
+        "technique": "similarity search only",
+        "config": "all-MiniLM-L6-v2 | 800/150 | k=5 | th=0.2 | no rerank | no sections | no rewrite",
+        "model": "openai/gpt-oss-20b",
+        "answer": "Chapter 3 describes sovereign debt in developing economies as a source of significant fiscal risk and a driver of higher borrowing costs. It notes that many frontier and emerging‑market states rely heavily on short‑term debt and suffer from weak governance, which makes debt management difficult (GEP‑Jun‑2026.pdf, page 109). The chapter stresses that hidden or off‑balance‑sheet liabilities are common in EMDEs; when these “hidden debt” revelations occur, markets tend to reprice sovereign risk, leading to higher spreads and borrowing costs (GEP‑Jun‑2026.pdf, page 116). Box 3.1 shows that such debt‑stock revisions are generally followed by increases in sovereign spreads, reinforcing the view that rising debt is associated with rising market interest rates (GEP‑Jun‑2026.pdf, page 114). The discussion also highlights a non‑linear relationship between debt levels and interest rates: as debt rises, concerns about servicing costs and default risk grow, pushing rates higher (GEP‑Jun‑2026.pdf, page 114). To mitigate these risks, the chapter recommends strengthening fiscal positions through stronger domestic revenue mobilization, more efficient public spending, improved debt management, support for domestic debt market development, and, where appropriate, debt‑for‑development swaps (GEP‑Jun‑2026.pdf, page 109).",
+        "passed": true,
+        "correct": true,
+        "judge_reason": "The system answer accurately captures the main points from the reference answer regarding sovereign debt in developing economies, including fiscal risks, borrowing costs, non-linear relationships, and policy recommendations.",
+        "hit": true,
+        "rank": 1,
+        "citation_ok": true,
+        "faithfulness": 1.0,
+        "answer_relevance": 1.0,
+        "context_recall": 0.6363636363636364,
+        "context_precision": 1.0,
+        "unsupported": [],
+        "relevance_reason": "The system answer directly and comprehensively details Chapter 3's findings on sovereign debt in developing economies using information entirely from the provided passages.",
+        "grounding_error": null,
+        "passages_count": 5,
+        "irrelevant_passages": 0,
+        "latency_s": 1.867,
+        "retrieval_latency_s": 0.013,
+        "prompt_tokens": 1527,
+        "completion_tokens": 1199,
+        "cost_usd": 0.00047422499999999994,
+        "original_query": "What does Chapter 3 say about sovereign debt in developing economies?",
+        "search_query": "What does Chapter 3 say about sovereign debt in developing economies?",
+        "rewritten": false,
+        "sub_queries": [],
+        "queries_generated": 1,
+        "searches": 1,
+        "candidates": 5,
+        "kept": 5,
+        "reranked": false,
+        "rewrite_effect": null,
+        "rerank_effect": null,
+        "decompose_effect": null,
+        "keyword_effect": null,
+        "steps": [
+          {
+            "kind": "Retrieve",
+            "text": "Similarity search over 1195 chunks: kept the top 5 above the similarity threshold"
+          },
+          {
+            "kind": "Generate",
+            "text": "Grounded prompt with 5 numbered passages: cite them, or say not found"
+          }
+        ],
+        "passages": [
+          {
+            "rank": 1,
+            "page": 109,
+            "section": null,
+            "text": "frontier market status, heavy reliance on short-term debt, and weak governance. These findings underscore the\nimportance of strengthening fiscal positions. This can be achieved through stronger domestic revenue\nmobilization, more efficient public spending, improved debt management, support for domestic debt market\ndevelopment, and, where appropriate, debt-for-development swaps. By helping contain borrowing costs and\npreserve fiscal space, these measures can also support the infrastructure, services, and private investment needed\nfor long-term growth and job creation.\nIntroduction\nThe rise in sovereign debt burdens ranks among\nthe most pressing issues faced by governments\naround the world, especially in emerging market\nand developing economies (EMDEs). Aggregate",
+            "expected": true
+          },
+          {
+            "rank": 2,
+            "page": 116,
+            "section": null,
+            "text": "episodes and addresses the following questions:\n• What is the relationship between hidden debt\nrevelations and sovereign borrowing costs?\n• How can policy makers improve debt transparency\nand minimize debt costs?\nHidden debt revelations: Selected country\nepisodes\nPublic debt transparency plays a critical role in ensuring\neffective risk assessment to support sustainable\nborrowing and lending practices. By the same token,\ndeficiencies in debt transparency frameworks—\nparticularly in emerging market and developing\neconomies (EMDEs)—can allow unreported obliga-\ntions to accumulate, in some cases culminating in\nrevelations of hidden debt that trigger a repricing of\nsovereign debt by financial markets. Debt stock\nrevisions—measured as the difference between the most",
+            "expected": true
+          },
+          {
+            "rank": 3,
+            "page": 116,
+            "section": null,
+            "text": "controlling for observable determinants of interest rates\nthat are plausibly correlated with debt levels, such as\ngrowth prospects, inflation dynamics, fiscal balances,\nand global financial conditions. An alternative\nidentification strategy, which this box uses, exploits\nhistorical episodes in which previously hidden or offbalance-sheet liabilities were suddenly revealed. Because\nthese disclosure events represent largely unanticipated\ndebt, they allow for a more direct assessment of how\nmarkets reprice sovereign risk in response to unexpected\nincreases in public indebtedness. a\nAgainst this backdrop, this box explores seven country\nepisodes and addresses the following questions:\n• What is the relationship between hidden debt\nrevelations and sovereign borrowing costs?",
+            "expected": true
+          },
+          {
+            "rank": 4,
+            "page": 141,
+            "section": null,
+            "text": "Sovereign debt. International Monetary Fund,\n2018.\nKennedy, M. and A. Palerm. “Emerging Market\nBond Spreads: the Role of Global and Domestic\nFactors from 2002 to 2011.” Journal of Interna-\ntional Money and Finance , 43: (2014), pp. 70–87.\nKose, M. A., S. Kurlat, F. Ohnsorge, and N.\nSugawara. 2022. A Cross-Country Database of\nFiscal Space. Journal of International Money and\nFinance , 128, p.102682.\nKose, M. A., P. Nagle, F. Ohnsorge, and N.\nSugawara. 2021. Global Waves of Debt: Causes and\nConsequences . Washington, DC: World Bank.\nLaubach, T. 2009. “New Evidence on the Interest\nRate Effects of Budget Deficits and Debt.” Journal\nof the European Economic Association 7 (4):\n858–85.\nManger, M. S., D. Mihalyi, U. Panizza, N. Rescia,\nC. Trebesch, and K. L. Wong. 2025. Africa’s",
+            "expected": true
+          },
+          {
+            "rank": 5,
+            "page": 114,
+            "section": null,
+            "text": "C H A PT ER 3 G L O B AL EC ON O M I C PR O SPEC T S | J U N E 2 0 2 6 92\nestimated debt was revised upward as a result of\nmore careful auditing or the discovery of previous-\nly hidden liabilities. As described in box 3.1, such\nrevelations have generally been followed by\nincreases in sovereign spreads, reinforcing the view\nthat rising debt tends to be associated with rising\nmarket interest rates.\nNon-linear relationship between debt and\ninterest rates\nInterest rates partly reflect the perceived likelihood\nof default, compensating an investor for the\nperceived risk of loss. When public debt is low,\nfinancial markets are more likely to view debt\nservice as manageable and risks of default as low\nthan when debt is high: as debt rises, concerns\nabout servicing costs and the government’s",
+            "expected": true
+          }
+        ]
+      },
+      "after": {
+        "label": "Advanced RAG",
+        "technique": "query rewriting and decomposition, hybrid BM25 + vector search, reranking, context compression, section-aware search, charts and footnotes",
+        "config": "all-MiniLM-L6-v2 | 800/150 | k=5 | th=0.2 | rerank ms-marco-MiniLM-L-6-v2@20 margin 5 | sections | hybrid BM25 | visuals | decompose",
+        "model": "openai/gpt-oss-20b",
+        "answer": "Chapter 3 focuses on how the rapid rise in sovereign debt is affecting emerging‑market and developing‑economy (EMDE) governments.  It notes that aggregate government debt in EMDEs has climbed from below 40 % of GDP in 2010 to over 70 % today, driven by domestic policy measures and large external shocks (GEP‑Jun‑2026.pdf, page 109).  The chapter explains that higher debt levels raise the cost of servicing debt—from about 6 % of government revenues in 2010 to an estimated 11 % in 2025—creating a cycle of higher borrowing costs, reduced fiscal space, and potential debt distress (GEP‑Jun‑2026.pdf, page 109).\n\nKey findings include:\n\n* **Positive, non‑linear link between debt and borrowing costs** – sovereign spreads and domestic‑currency bond yields rise more sharply when debt‑to‑GDP ratios are already high.  For example, at a debt level of 45 % of GDP a 1‑point increase raises sovereign spreads by ~8 bp, whereas at 80 % of GDP the same increase raises spreads by ~26 bp (GEP‑Jun‑2026.pdf, page 111).  \n* **Higher debt amplifies the impact of global interest‑rate hikes** – rising debt in advanced economies pushes up yields there, which in turn exerts upward pressure on EMDE interest rates (GEP‑Jun‑2026.pdf, page 109).  \n* **Vulnerabilities matter** – countries with a history of default, low credit ratings, frontier‑market status, heavy reliance on short‑term debt, and weak governance experience larger interest‑rate increases for the same debt growth (GEP‑Jun‑2026.pdf, page 109).  \n* **Fiscal challenges** – increased debt‑service payments divert resources from investment, infrastructure, health, education, and social safety nets, potentially limiting productivity growth and job creation (GEP‑Jun‑2026.pdf, page 109).  \n* **Policy implications** – strengthening fiscal positions through better revenue mobilization, efficient spending, improved debt management, and support for domestic debt markets can help contain borrowing costs and preserve fiscal space (GEP‑Jun‑2026.pdf, page 109).  \n\nOverall, Chapter 3 portrays sovereign debt in developing economies as a growing constraint that raises borrowing costs, especially when debt is already high, and underscores the need for prudent fiscal management to avoid a debt‑distress spiral.",
+        "passed": true,
+        "correct": true,
+        "judge_reason": "The system answer accurately captures all the key points from the reference answer regarding sovereign debt in developing economies, including debt growth statistics, non-linear impacts on borrowing costs, country vulnerabilities, and policy recommendations.",
+        "hit": true,
+        "rank": 1,
+        "citation_ok": true,
+        "faithfulness": 1.0,
+        "answer_relevance": 1.0,
+        "context_recall": 1.0,
+        "context_precision": 1.0,
+        "unsupported": [],
+        "relevance_reason": "The system answer comprehensively and accurately addresses the question using the provided document passages.",
+        "grounding_error": null,
+        "passages_count": 4,
+        "irrelevant_passages": 0,
+        "latency_s": 2.668,
+        "retrieval_latency_s": 1.423,
+        "prompt_tokens": 2988,
+        "completion_tokens": 638,
+        "cost_usd": 0.0004155,
+        "original_query": "What does Chapter 3 say about sovereign debt in developing economies?",
+        "search_query": "What does Chapter 3 say about sovereign debt in developing economies?",
+        "rewritten": false,
+        "sub_queries": [],
+        "queries_generated": 1,
+        "searches": 1,
+        "candidates": 37,
+        "kept": 5,
+        "reranked": true,
+        "rewrite_effect": null,
+        "rerank_effect": {
+          "rank_without": 1,
+          "rank_with": 1,
+          "precision_without": 1.0,
+          "precision_with": 1.0
+        },
+        "decompose_effect": null,
+        "keyword_effect": {
+          "rank_without": 1,
+          "rank_with": 1,
+          "precision_without": 1.0,
+          "precision_with": 1.0
+        },
+        "steps": [
+          {
+            "kind": "Retrieve",
+            "text": "Searched only the section(s) the question names: Ch. 3 A Rising Challenge: Sovereign Debt Levels and Interest Rates in EMDEs / Ch. 3 A Rising Challenge: Sovereign Debt Levels and Interest Rates in EMDEs › Box 3.1 The costs of hidden debt"
+          },
+          {
+            "kind": "Retrieve",
+            "text": "Keyword search (BM25) merged with similarity search: 17 candidate(s) found only by exact words"
+          },
+          {
+            "kind": "Retrieve",
+            "text": "Hybrid search over 1195 chunks: 37 candidates above the similarity threshold (of 20 fetched per search)"
+          },
+          {
+            "kind": "Post-process",
+            "text": "Cross-encoder reranked the candidates and kept the top 5"
+          },
+          {
+            "kind": "Post-process",
+            "text": "Swapped the best hits for their whole pages (up to 2)"
+          },
+          {
+            "kind": "Generate",
+            "text": "Grounded prompt with 4 numbered passages: cite them, or say not found"
+          }
+        ],
+        "passages": [
+          {
+            "rank": 1,
+            "page": 109,
+            "section": "Ch. 3 A Rising Challenge: Sovereign Debt Levels and Interest Rates in EMDEs",
+            "text": "[Ch. 3 A Rising Challenge: Sovereign Debt Levels and Interest Rates in EMDEs]\nC H A PT ER 3 G L O B AL EC ON O M I C PR O SPEC T S | J U N E 2 0 2 6 87\nRising government debt poses a key challenge for emerging market and developing economies (EMDEs), as it\nleads to higher interest rates, higher debt-service payments, and a greater likelihood of debt distress. This chapter\nexplores the impact of government debt on interest rates. It finds that debt levels are positively associated with\ndollar-denominated sovereign bond spreads and domestic-currency government bond yields. The estimated\nrelationship with debt is non-linear: the increases in spreads or yields associated with increases in debt-to-GDP\nratios are greater the higher the debt-to-GDP ratio. The rise in EMDE debt-to-GDP ratios since 2010 is\nassociated with increases in sovereign spreads and domestic-currency yields of about 110 and 30 basis points,\nrespectively. Rising debt in advanced economies, by pushing up yields in those economies, has added further to\nthe upward pressure on EMDE interest rates. With EMDE government debt at historically high levels,\nadditional borrowing may lead to progressively larger jumps in interest rates. The chapter also finds that rising\ndebt has led to even larger increases in interest rates in countries with a history of default, low credit ratings,\nfrontier market status, heavy reliance on short-term debt, and weak governance. These findings underscore the\nimportance of strengthening fiscal positions. This can be achieved through stronger domestic revenue\nmobilization, more efficient public spending, improved debt management, support for domestic debt market\ndevelopment, and, where appropriate, debt-for-development swaps. By helping contain borrowing costs and\npreserve fiscal space, these measures can also support the infrastructure, services, and private investment needed\nfor long-term growth and job creation.\nIntroduction\nThe rise in sovereign debt burdens ranks among\nthe most pressing issues faced by governments\naround the world, especially in emerging market\nand developing economies (EMDEs). Aggregate\ngovernment debt in EMDEs has increased from\nless than 40 percent of GDP in 2010 to over 70\npercent, driven by both domestic policy measures\nand large external shocks (figure 3.1.A). Largely as\na result, the cost of servicing government debt has\nrisen, from 6 percent of government revenues in\n2010 to an estimated 11 percent in 2025 (figure\n3.1.B).\nMounting debt-service payments pose four critical\nchallenges for many EMDEs. First, they may lead\nto a diversion of government resources from other\npriority uses such as investment in infrastructure,\nhealth and education, and support for social safety\nnets. This diversion can also weigh on the public\ninvestment, services, and reforms needed to raise\nproductivity and support job creation. Second,\nhigh debt-service obligations may need to be\nfinanced by additional borrowing, causing debt to\nrise still higher. Third, rising sovereign debt costs\nincrease the economy-wide cost of capital, limiting\ninvestment and private-sector growth. And fourth,\nthis vicious cycle of rising debt and debt-service\ncosts ultimately could trigger debt distress, default,\nand severe economic disruption.\nSeveral developments since the advent of the\nCOVID-19 pandemic have deepened the fiscal\nchallenges facing EMDEs. Following the sharp\nrunup in government debt during the previous\ndecade, large pandemic-triggered fiscal deficits\ncontributed to further increases in debt (Kose et\nal. 2021; World Bank 2022). Moreover, after a\nprolonged period of low borrowing costs, global\ninterest rates rose sharply as central banks around\nthe world attempted to suppress increased rates of\ninflation. And not only was there an associated rise\nin government borrowing costs, but GDP growth\nin EMDEs became more subdued than before the\npandemic, slowing revenue growth and constrain-\ning these countries’ debt-service capacity.\nMore recently, the conflict in the Middle East has\ndisrupted energy markets, contributing to higher\nenergy costs, renewed inflationary pressures, and\nslower economic growth. These developments\nmay require governments to provide additional\nsupport to households, particularly vulnerable\npopulations disproportionately affected by rising\nfood and energy prices. In some countries, policy\nmakers may also face pressure to expand targeted\nsocial assistance or protect essential public services\nto mitigate the broader economic and social\nconsequences of the conflict. Meanwhile, the\nNote : The chapter was prepared by Carlos Arteta, Steven Kamin,\nand Franz Ulrich Ruch, with contributions from Reina Eskimez and\nJiwon Lee.",
+            "expected": true
+          },
+          {
+            "rank": 2,
+            "page": 111,
+            "section": "Ch. 3 A Rising Challenge: Sovereign Debt Levels and Interest Rates in EMDEs",
+            "text": "[Ch. 3 A Rising Challenge: Sovereign Debt Levels and Interest Rates in EMDEs]\nC H A PT ER 3 G L O B AL EC ON O M I C PR O SPEC T S | J U N E 2 0 2 6 89\nWhile it is broadly understood that higher debt\nlevels will raise interest rates, teasing out the exact\nrelationship between them is far from straightfor-\nward. To begin with, interest rates in EMDEs are\naffected by a multiplicity of different macroeco-\nnomic factors, including inflation, monetary\npolicy, economic growth, and global interest rates.\nAs a result, average EMDE interest rates remained\nroughly range-bound for many years as declines in\ninflation, subdued U.S. interest rates (until 2021),\nand an increased tolerance for risk among global\ninvestors offset the boost to interest rates resulting\nfrom the persistent rise in debt levels.\nBut even abstracting from movements over time,\nthe relationship between debt and interest rates is\nlikely to be complex. First, governments with a\ngreater reputation for good economic manage-\nment and fiscal performance may be viewed as\nmore creditworthy by investors; accordingly, such\ngovernments will be allowed both higher debt\nlevels and lower interest rates. Second, investors\nmight be unconcerned with increases in a\ncountry’s debt as long as that debt stays within a\nrelatively low range, and they may only start\ndemanding higher rates when debt moves into a\nhigher, more critical range.\nTherefore, to estimate the effects of government\ndebt accumulation on interest rates in EMDEs,\nthe empirical analysis in this chapter controls for a\nwide range of variables, including measures of\nglobal financial conditions, domestic macroeco-\nnomic developments, and fiscal creditworthiness.\nIn so doing, it builds on a large literature on the\ndeterminants of EMDE interest rates, updating\nearlier results with data from the pandemic years,\nimproving on previous modeling, and considering\nthe key policy implications of the new empirical\nfindings. Both sovereign spreads over U.S.\nTreasury yields and yields on domestic-currency\ndebt are examined. The questions considered\ninclude whether the relationship between\ngovernment debt and interest rates in EMDEs is\nnon-linear, whether and how increases in the\ngovernment debt of advanced economies spill over\nto increases in interest rates in EMDEs, and how\nthe domestic vulnerabilities of EMDEs, as well as\nglobal financial conditions, affect the relationship\nbetween EMDE debt and interest rates.\nThis chapter makes several contributions to the\nunderstanding of these critical issues. First, it\nupdates and extends evidence on how higher\ngovernment debt affects EMDE sovereign\nfinancing costs in both foreign-currency and\ndomestic-currency bond markets. Second, it\ndocuments robust non-linearities in the debt–\ninterest rate relationship using complementary\nmethodologies. Third, it highlights the role of\nvulnerabilities in shaping the relationship between\ndebt and borrowing costs. Fourth, the chapter\nquantifies how advanced economy government\ndebt—through advanced economy bond yields—\naffects EMDE interest rates. Finally, to test the\nrobustness of the findings, it incorporates forecastbased specifications to address endogeneity\nconcerns.\nMain findings. The chapter presents the follow-\ning main findings:\nFirst, the study confirms statistically and economi-\ncally significant positive relationships in EMDEs\nbetween gross government debt-to-GDP ratios\nand both sovereign spreads and domestic-currency\nbond yields. Sovereign spreads appear considerably\nmore sensitive to debt levels than domestic yields,\nperhaps reflecting a greater susceptibility of\ndomestic yields to financial repression, monetiza-\ntion, or home bias in some EMDEs.\nSecond, the relationship between government debt\nand sovereign spreads is non-linear: the higher the\ninitial debt level, the larger the effect of additional\nborrowing. For example, when debt is about 45\npercent of GDP, a 1 percentage point increase in\nthe debt-to-GDP ratio is associated with an 8 basis\npoint rise in sovereign spreads; when debt is about\n80 percent of GDP, the same increase adds about\n26 basis points. Thus, reducing debt by 1\npercentage point of GDP could lower annual\ninterest costs by roughly 0.1-0.3 percent of GDP,\ndepending on the starting debt level. Conversely, a\n1 percentage point increase in the debt-to-GDP\nratio raises yields on domestic-currency bonds by\nabout 2 basis points when debt is about 45 percent\nof GDP, and by about 8 basis points when debt is\nabout 80 percent. This implies that a 1 percentage\npoint reduction in debt could generate annual\ninterest savings of about 0.1 percent of GDP, with",
+            "expected": true
+          },
+          {
+            "rank": 3,
+            "page": 112,
+            "section": "Ch. 3 A Rising Challenge: Sovereign Debt Levels and Interest Rates in EMDEs",
+            "text": "[Ch. 3 A Rising Challenge: Sovereign Debt Levels and Interest Rates in EMDEs]\nexpansion of domestic debt markets, it remains\nsizable at more than 40 percent of the total (figure\n3.2.A). Therefore, the sovereign spreads examined\nin this chapter remain highly relevant to EMDE\nfinances. The share of concessional debt has also\ndeclined, indicating that more public debt is being\nissued at the market-determined interest rates\nexamined in this chapter.\nWith the exception of several surges, such as the\none around the 2020 pandemic-related turmoil in\nfinancial markets, average EMDE sovereign\nspreads were broadly stable, at 300-400 basis\npoints, over 2010–25 (figure 3.2.B). The effect on\nthese spreads of rising public debt levels, especially\nfor economies with better credit ratings, was\noffset, up to about 2021, by consistently low",
+            "expected": true
+          },
+          {
+            "rank": 4,
+            "page": 114,
+            "section": "Ch. 3 A Rising Challenge: Sovereign Debt Levels and Interest Rates in EMDEs",
+            "text": "[Ch. 3 A Rising Challenge: Sovereign Debt Levels and Interest Rates in EMDEs]\ndebt on interest rates is to look at cases where\nFIGURE 3.3 Relationship between EMDE government\ndebt and interest rates\nInterest rates and government debt exhibit a positive association,\nespecially at higher levels of debt. The relationship between sovereign\nspreads and debt is non-linear, with the marginal impact of additional debt\nrising at higher debt levels, likely reflecting progressively greater concern\namong investors about repayment as debt rises.\nSources : Haver Analytics; J.P.Morgan, World Bank.\nNote : EMDEs = emerging market and developing economies.\nA.B. Based on binscatter plots with 50 bins.\nC. Based on regressions in table 3.1 columns (1) and (3). Whiskers reflect 90 percent confidence",
+            "expected": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "sample-exec-risks",
+      "question": "According to the executive summary, what are the main risks to the global outlook?",
+      "group": "main",
+      "reference_answer": "The executive summary says risks are skewed to the downside: a renewed escalation of hostilities or prolonged disruptions to commodity flows could raise commodity prices, intensify inflation and food insecurity, trigger financial stress and lower growth; if energy supply disruptions are more severe and come with substantial financial stress, global growth could fall to just 1.3 percent in 2026; persistent trade policy uncertainty, geopolitical strains and weather-related shocks are also material risks. On the upside, broader AI investment and adoption could lift activity.",
+      "expected_pages": [
+        19
+      ],
+      "generated_at": "2026-10-15 13:42",
+      "before": {
+        "label": "Naive RAG",
+        "technique": "similarity search only",
+        "config": "all-MiniLM-L6-v2 | 800/150 | k=5 | th=0.2 | no rerank | no sections | no rewrite",
+        "model": "openai/gpt-oss-20b",
+        "answer": "According to the executive summary, the main risks to the global outlook are:\n\n* **Prolonged or escalating geopolitical stress** – especially the conflict in the Middle East, which has already closed critical shipping routes and damaged essential energy‑production infrastructure.  \n* **Disruptions to global commodity flows** – if the conflict or its aftermath worsens, supply chains for energy and other commodities could be more severely or more protractedly disrupted than the baseline assumes.  \n* **Higher energy prices** – a prolonged closure of the Strait of Hormuz or further degradation of Middle‑East energy production could push prices well above baseline projections.  \n* **Tighter financial conditions** – a sharp tightening of monetary conditions could undercut global demand.  \n* **Overall downside tilt** – the risks are described as “firmly tilted to the downside,” meaning that weaker growth outcomes are more likely than upside surprises.  \n\nThese points are drawn from the executive summary’s “Global outlook and risks” section (GEP‑Jun‑2026.pdf, page 52) and the detailed “Energy stress scenario” discussion (GEP‑Jun‑2026.pdf, page 54).",
+        "passed": false,
+        "correct": true,
+        "judge_reason": "The system answer successfully captures the main downside risks to the global outlook outlined in the executive summary, matching the core points of the reference answer.",
+        "hit": false,
+        "rank": null,
+        "citation_ok": false,
+        "faithfulness": 1.0,
+        "answer_relevance": 1.0,
+        "context_recall": 0.8333333333333334,
+        "context_precision": 0.0,
+        "unsupported": [],
+        "relevance_reason": "The system answer directly and comprehensively details the main risks to the global outlook based on the provided text.",
+        "grounding_error": null,
+        "passages_count": 5,
+        "irrelevant_passages": 5,
+        "latency_s": 1.419,
+        "retrieval_latency_s": 0.014,
+        "prompt_tokens": 1340,
+        "completion_tokens": 583,
+        "cost_usd": 0.00027539999999999997,
+        "original_query": "According to the executive summary, what are the main risks to the global outlook?",
+        "search_query": "According to the executive summary, what are the main risks to the global outlook?",
+        "rewritten": false,
+        "sub_queries": [],
+        "queries_generated": 1,
+        "searches": 1,
+        "candidates": 5,
+        "kept": 5,
+        "reranked": false,
+        "rewrite_effect": null,
+        "rerank_effect": null,
+        "decompose_effect": null,
+        "keyword_effect": null,
+        "steps": [
+          {
+            "kind": "Retrieve",
+            "text": "Similarity search over 1195 chunks: kept the top 5 above the similarity threshold"
+          },
+          {
+            "kind": "Generate",
+            "text": "Grounded prompt with 5 numbered passages: cite them, or say not found"
+          }
+        ],
+        "passages": [
+          {
+            "rank": 1,
+            "page": 9,
+            "section": null,
+            "text": "Risks to the outlook ............................................................................................. 30\nPolicy challenges ......................................................................................................... 34\nKey global challenges ............................................................................................ 34\nEMDE monetary and financial policy challenges .................................................. 36\nEMDE fiscal policy challenges ............................................................................. 36\nEMDE structural policy challenges ...................................................................... 38",
+            "expected": false
+          },
+          {
+            "rank": 2,
+            "page": 12,
+            "section": null,
+            "text": "1.8 Outlook for emerging market and developing economies.......................... 29\n1.9 Per capita income growth ......................................................................... 30\n1.10 Risks to the outlook .................................................................................. 32\n1.11 Global policy challenges ............................................................................ 35\n1.12 EMDE monetary and fiscal policy challenges ............................................ 37\n1.13 EMDE structural policy challenges ........................................................... 39\n2.1 Recent developments and outlook ............................................................ 51",
+            "expected": false
+          },
+          {
+            "rank": 3,
+            "page": 52,
+            "section": null,
+            "text": "the conﬂict or its aftermath evolves such that\ndisruptions to global commodity ﬂows are more\nsevere or protracted than envisaged in the baseline.\n7'_his could reﬂect increasing conﬂict-related\ndamage to essential energy production infrastruc-\nture, or prolonged impediments to shipping from\nthe Middle East. 7'_hese or other triggers could also\ngive rise to a sharp tightening of ﬁnancial condi-\ntions, which would undercut global demand.\nRisks to the outlook\nDownside risks\nProlonged or escalating geopolitical stress\nThe conflict in the Middle East has led to closures\nof crucial shipping routes and extensive economic\ndisruptions, including attacks on critical infra-\nstructure in the region (figure 1.10.B). Adverse\nglobal consequences are mounting amid sharply",
+            "expected": false
+          },
+          {
+            "rank": 4,
+            "page": 52,
+            "section": null,
+            "text": "excluding China.\nA. Level of per capita GDP as a share\nof advanced economies\nB. Number of people experiencing\nsevere food insecurity\nGlobal outlook and risks\nGlobal growth is expected to decelerate this year\nto 2.5 percent as conﬂict-related energy supply\ndisruptions, higher energy prices, and tighter\nmonetary conditions weigh on growth in ad-\nvanced economies and EMDEs. In addition,\neconomies directly aﬀected by the conﬂict are\nseeing signiﬁcant and broad disruptions to energy\nproduction. Despite the already downbeat out-\nlook, risks are tilted ﬁrmly to the downside (ﬁgure\n1.10.A). Weaker growth outcomes could result if\nthe conﬂict or its aftermath evolves such that\ndisruptions to global commodity ﬂows are more\nsevere or protracted than envisaged in the baseline.",
+            "expected": false
+          },
+          {
+            "rank": 5,
+            "page": 54,
+            "section": null,
+            "text": "decelerates notably this year. The crystallization of\ndownside risks could result in a markedly steeper\ndecline in global growth. The most prominent\ndownside risks are quantified in two graduated\nscenarios using a global macroeconomic model.3\nEnergy stress scenario\nIf the Strait of Hormuz is effectively closed to\nshipping for longer than assumed in the baseline,\nor if energy production capacity in the Middle\nEast is further degraded, energy prices may far\nexceed the baseline projections. In this scenario of\nfurther energy stress, the Strait does not meaning-\nFIGURE 1.10 Risks to the outlook\nRisks are tilted firmly to the downside, largely because of the possibility of\nthe prolongation or escalation of the conflict in the Middle East, which has",
+            "expected": false
+          }
+        ]
+      },
+      "after": {
+        "label": "Advanced RAG",
+        "technique": "query rewriting and decomposition, hybrid BM25 + vector search, reranking, context compression, section-aware search, charts and footnotes",
+        "config": "all-MiniLM-L6-v2 | 800/150 | k=5 | th=0.2 | rerank ms-marco-MiniLM-L-6-v2@20 margin 5 | sections | hybrid BM25 | visuals | decompose",
+        "model": "openai/gpt-oss-20b",
+        "answer": "The executive summary identifies several downside risks that could weigh on the global outlook:\n\n* A renewed escalation of hostilities or more prolonged disruptions to commodity flows, which could push commodity prices higher, intensify inflationary pressures and food insecurity, trigger financial stress, and lower growth.  \n* Energy‑supply disruptions that are more severe than assumed and accompanied by substantial financial stress, potentially driving global growth down to about 1.3 percent in 2026.  \n* Persistent trade‑policy uncertainty, geopolitical strains, and weather‑related shocks, all of which pose material risks.  \n\nThese risks are described as skewed to the downside (GEP‑Jun‑2026.pdf, page 19).",
+        "passed": true,
+        "correct": true,
+        "judge_reason": "The system answer accurately captures the main downside risks to the global outlook mentioned in the executive summary, matching the reference answer's key points.",
+        "hit": true,
+        "rank": 1,
+        "citation_ok": true,
+        "faithfulness": 1.0,
+        "answer_relevance": 1.0,
+        "context_recall": 1.0,
+        "context_precision": 1.0,
+        "unsupported": [],
+        "relevance_reason": "The system answer directly and comprehensively addresses the question about the main risks to the global outlook using information from the executive summary.",
+        "grounding_error": null,
+        "passages_count": 1,
+        "irrelevant_passages": 0,
+        "latency_s": 1.235,
+        "retrieval_latency_s": 0.314,
+        "prompt_tokens": 1449,
+        "completion_tokens": 366,
+        "cost_usd": 0.00021847499999999998,
+        "original_query": "According to the executive summary, what are the main risks to the global outlook?",
+        "search_query": "According to the executive summary, what are the main risks to the global outlook?",
+        "rewritten": false,
+        "sub_queries": [],
+        "queries_generated": 1,
+        "searches": 1,
+        "candidates": 13,
+        "kept": 5,
+        "reranked": true,
+        "rewrite_effect": null,
+        "rerank_effect": {
+          "rank_without": 1,
+          "rank_with": 1,
+          "precision_without": 0.3333333333333333,
+          "precision_with": 1.0
+        },
+        "decompose_effect": null,
+        "keyword_effect": {
+          "rank_without": 1,
+          "rank_with": 1,
+          "precision_without": 1.0,
+          "precision_with": 1.0
+        },
+        "steps": [
+          {
+            "kind": "Retrieve",
+            "text": "Searched only the section(s) the question names: Executive Summary"
+          },
+          {
+            "kind": "Retrieve",
+            "text": "Keyword search (BM25) merged with similarity search: 0 candidate(s) found only by exact words"
+          },
+          {
+            "kind": "Retrieve",
+            "text": "Hybrid search over 1195 chunks: 13 candidates above the similarity threshold (of 20 fetched per search)"
+          },
+          {
+            "kind": "Post-process",
+            "text": "Cross-encoder reranked the candidates and kept the top 5"
+          },
+          {
+            "kind": "Post-process",
+            "text": "Swapped the best hits for their whole pages (up to 2)"
+          },
+          {
+            "kind": "Generate",
+            "text": "Grounded prompt with 1 numbered passages: cite them, or say not found"
+          }
+        ],
+        "passages": [
+          {
+            "rank": 1,
+            "page": 19,
+            "section": "Executive Summary",
+            "text": "[Executive Summary]\nxvii\nExecutive Summary\n7T_he global economy is facing another major\nshock. 7T_he conﬂict in the Middle East has\ntriggered sharp increases in energy prices,\nrenewed inﬂationary pressures, and fueled\nexpectations of tighter monetary policy. Global\ngrowth is projected to slow to 2.5 percent in\n2026, from 2.9 percent in 2025—the lowest rate\nsince the COVID-19 pandemic—amid weaker\nprospects for economies dependent on energy\nimports and those directly aﬀected by hostilities.\nActivity is expected to ﬁrm in 2027–28 as energy\nsupplies recover, monetary easing resumes, and\ntrade strengthens.\nGrowth in emerging market and developing\neconomies (EMDEs) is expected to slow to 3.6\npercent this year. For all EMDE regions, growth\nthis year is forecast to be weaker than in 2025.\nPer capita income growth in EMDEs is projected\nto slow in 2026 to its weakest pace since the\npandemic. 7T_he level of per capita income across\nEMDEs excluding China and India, relative to\nadvanced economies, is not expected to return to\nthe pre-pandemic level until after 2028, implying\nnearly a decade of lost income convergence.\nRisks to the outlook remain skewed to the\ndownside. A renewed escalation of hostilities or\nmore prolonged disruptions to commodity ﬂows\ncould further raise commodity prices, intensify\ninﬂationary pressures and food insecurity, trigger\nﬁnancial stress, and lower growth. If energy\nsupply disruptions prove more severe than\nassumed and are accompanied by substantial\nﬁnancial stress, global growth could fall to just\n1.3 percent in 2026. Persistent trade policy\nuncertainty, geopolitical strains, and weatherrelated shocks also pose material risks. On the\nupside, broader investment in and adoption of\nartiﬁcial intelligence (AI) could lift activity.\nPolicy action is critical to address ongoing\nchallenges. Enhanced global cooperation is\nneeded to safeguard energy and food security,\nbolster the trading system, and advance the\nenergy transition. Domestically, policy makers\nwill need to balance controlling inﬂation with\nsupporting activity, strengthen ﬁscal sustainabil-\nity, and maintain ﬁnancial stability. Slower\ngrowth prospects translate into reduced invest-\nment, constrained hiring, and tighter ﬁscal space,\ncompounding the challenge of creating jobs in\nEMDEs with growing workforces in an era of\npotentially transformative change linked to AI.\nMeeting this challenge will require a concerted\nagenda centered on the conditions for job\ncreation: investing in physical, human, and digital\ncapital; fostering a business-friendly environment;\nand mobilizing private investment.\nIn addition to the global and regional outlooks,\nthis edition of Global Economic Prospects features\ntwo analytical chapters. One chapter examines\nthe impact of government debt on interest rates.\nAnother chapter considers the challenges of ﬁscal\npolicy in commodity-exporting EMDEs.\nA Rising Challenge: Sovereign Debt Levels and\nInterest Rates in EMDEs. Rising government\ndebt poses a key challenge for EMDEs, as it leads\nto higher interest rates, higher debt-service\npayments, and a greater likelihood of debt\ndistress. Debt levels are positively associated with\ndollar-denominated sovereign bond spreads and\ndomestic-currency government bond yields. 7T_he\nrelationship with rising debt is non-linear: the\nincreases in spreads or yields associated with\nincreases in debt-to-GDP ratios are greater the\nhigher the debt-to-GDP ratio.\n7T_he increase in EMDE debt-to-GDP ratios since\n2010 is associated with increases in sovereign\nspreads and domestic-currency yields of about\n110 and 30 basis points, respectively. Rising debt\nin advanced economies, by pushing up yields in\nthose economies, has added further to the\nincrease in EMDE interest rates. With EMDE\ngovernment debt at historically high levels,\nadditional borrowing may lead to progressively\nlarger increases in interest rates. Rising debt has\nled to even larger increases in interest rates in\ncountries with a history of default, low credit\nratings, frontier market status, heavy reliance on\nshort-term debt, and weak governance.",
+            "expected": true
+          }
+        ]
+      }
+    }
+  ]
+}

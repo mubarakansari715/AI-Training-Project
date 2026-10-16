@@ -7,7 +7,7 @@ without touching code. See `.env.example` for the full list.
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -40,6 +40,26 @@ def _get_float(name: str, default: float | None) -> float | None:
     if value and value.strip().lower() == "off":
         return None
     return float(value) if value else default
+
+
+# Paid-tier list prices in USD per 1M tokens (input, output), to estimate what
+# a run would cost; the app itself runs on free tiers. Checked 2026-10-15 on
+# console.groq.com/docs/models and ai.google.dev/gemini-api/docs/pricing.
+_DEFAULT_MODEL_PRICES = {
+    "openai/gpt-oss-120b": (0.15, 0.60),
+    "openai/gpt-oss-20b": (0.075, 0.30),
+    "gemini-3.5-flash-lite": (0.30, 2.50),
+}
+
+
+def _get_prices(name: str, default: dict[str, tuple[float, float]]) -> dict[str, tuple[float, float]]:
+    """`default`, updated from "model=input/output,model=input/output" (USD per 1M tokens)."""
+    prices = dict(default)
+    for entry in filter(None, (part.strip() for part in os.getenv(name, "").split(","))):
+        model, _, price = entry.rpartition("=")
+        input_price, _, output_price = price.partition("/")
+        prices[model.strip()] = (float(input_price), float(output_price))
+    return prices
 
 
 @dataclass(frozen=True)
@@ -174,6 +194,9 @@ class Settings:
     # like ChatGPT/Claude — see app/rag/agent.py. Needs Groq (tool calling).
     agent_mode: bool = _get_bool("AGENT_MODE", True)
     agent_max_searches: int = _get_int("AGENT_MAX_SEARCHES", 3)
+    # USD per 1M (input, output) tokens per model, for cost estimates in the
+    # evaluation; add or override with MODEL_PRICES (see _get_prices).
+    model_prices: dict = field(default_factory=lambda: _get_prices("MODEL_PRICES", _DEFAULT_MODEL_PRICES))
 
 
 settings = Settings()

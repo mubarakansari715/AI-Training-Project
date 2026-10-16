@@ -1,0 +1,245 @@
+{
+  "document": "notebooks/GEP-Jun-2026.pdf",
+  "notes": "Use case 2 (long, structured report). Ground truth only, graded by an LLM judge. 'expected_pages' are the PDF pages (1-based) of the SECTION that should answer the question (the pass bar is the right chapter/section/region, not just any page sharing words): section ranges were found from the report's own headings ('<Region> Recent developments', 'BOX n.n', running chapter headers) because several PDF bookmarks point to the wrong page (e.g. 'South Asia' -> p. 95, which is the MNA forecast table). The full hand-checked set for evaluation (the guide asks for 10-14 per document); the first three are the task spec samples, which are also the only questions in gep.json, the set the Use case results page offers.",
+  "questions": [
+    {
+      "id": "sample-south-asia",
+      "sample": true,
+      "question": "What is the growth outlook for South Asia in this report?",
+      "reference_answer": "Growth in South Asia is expected to soften to 6.3 percent in 2026, mainly because of the conflict in the Middle East (higher energy prices, reduced oil and gas supplies, disruptions to remittances and tourism); the forecast was marginally upgraded since January on stronger domestic demand and exports. Growth is set to pick up to an average of about 7 percent a year in 2027-28. India is projected to grow 6.6 percent in fiscal year 2026/27. (Figures must come from South Asia, not another region.)",
+      "expected_pages": [
+        96,
+        97,
+        98
+      ]
+    },
+    {
+      "id": "sample-ch3-debt",
+      "sample": true,
+      "question": "What does Chapter 3 say about sovereign debt in developing economies?",
+      "reference_answer": "Chapter 3 says rising government debt is a key challenge for EMDEs: it raises interest rates, debt-service costs and the likelihood of debt distress. EMDE government debt rose from under 40 percent of GDP in 2010 to over 70 percent. Higher debt is associated with higher dollar-denominated sovereign spreads and domestic-currency yields, non-linearly (bigger increases at higher debt levels); the rise since 2010 is associated with roughly 110 and 30 basis points higher spreads and yields. Effects are larger for countries with a history of default, low credit ratings, frontier status, short-term debt reliance or weak governance. It recommends strengthening fiscal positions (revenue mobilization, more efficient spending, better debt management, domestic debt markets, debt-for-development swaps). Any of these key points counts; it must not mix in other chapters' findings.",
+      "expected_pages": [
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142
+      ]
+    },
+    {
+      "id": "sample-exec-risks",
+      "sample": true,
+      "question": "According to the executive summary, what are the main risks to the global outlook?",
+      "reference_answer": "The executive summary says risks are skewed to the downside: a renewed escalation of hostilities or prolonged disruptions to commodity flows could raise commodity prices, intensify inflation and food insecurity, trigger financial stress and lower growth; if energy supply disruptions are more severe and come with substantial financial stress, global growth could fall to just 1.3 percent in 2026; persistent trade policy uncertainty, geopolitical strains and weather-related shocks are also material risks. On the upside, broader AI investment and adoption could lift activity.",
+      "expected_pages": [
+        19
+      ]
+    },
+    {
+      "id": "eap-growth",
+      "question": "What is the growth forecast for East Asia and Pacific in 2026?",
+      "reference_answer": "Growth in East Asia and Pacific is projected to moderate to 4.2 percent in 2026 from 5 percent in 2025, edging up to 4.3 percent in 2027-28.",
+      "expected_pages": [
+        81,
+        82,
+        83
+      ]
+    },
+    {
+      "id": "ssa-growth",
+      "question": "What is the growth forecast for Sub-Saharan Africa in 2026?",
+      "reference_answer": "Growth in Sub-Saharan Africa is forecast to edge down to 4 percent in 2026 (revised down 0.3 percentage point since January) and recover to 4.4 percent on average in 2027-28.",
+      "expected_pages": [
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105
+      ]
+    },
+    {
+      "id": "lac-growth",
+      "question": "What is the growth forecast for Latin America and the Caribbean in 2026?",
+      "reference_answer": "Growth in Latin America and the Caribbean is projected to slow to 2.2 percent in 2026, strengthening gradually to an average of 2.5 percent over 2027-28.",
+      "expected_pages": [
+        88,
+        89,
+        90,
+        91
+      ]
+    },
+    {
+      "id": "eca-growth",
+      "question": "What is the growth forecast for Europe and Central Asia in 2026?",
+      "reference_answer": "Growth in Europe and Central Asia is projected to decelerate to 2.1 percent in 2026 (weakening in about 70 percent of economies), picking up to 2.4 percent by 2027-28.",
+      "expected_pages": [
+        84,
+        85,
+        86,
+        87
+      ]
+    },
+    {
+      "id": "mna-growth",
+      "question": "What is the growth forecast for the Middle East, North Africa, Afghanistan, and Pakistan region in 2026?",
+      "reference_answer": "Excluding the Islamic Republic of Iran, growth in the region (MNA) is expected to weaken to 1.6 percent in 2026 from 4 percent in 2025, a 2.7-percentage-point downgrade from the January projection.",
+      "expected_pages": [
+        92,
+        93,
+        94,
+        95
+      ]
+    },
+    {
+      "id": "sar-vs-ssa",
+      "question": "Compare the 2026 growth forecasts for South Asia and Sub-Saharan Africa.",
+      "reference_answer": "South Asia: 6.3 percent in 2026. Sub-Saharan Africa: 4 percent in 2026. South Asia is forecast to grow faster. Both figures must be attributed to the right region.",
+      "expected_pages": [
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105
+      ]
+    },
+    {
+      "id": "global-growth",
+      "question": "What is the global growth forecast for 2026?",
+      "reference_answer": "Global growth is projected to slow to 2.5 percent in 2026 from 2.9 percent in 2025, the lowest rate since the COVID-19 pandemic.",
+      "expected_pages": [
+        19,
+        25,
+        27,
+        200
+      ]
+    },
+    {
+      "id": "box-1-1-ai",
+      "question": "What does Box 1.1 say about how AI could affect global growth?",
+      "reference_answer": "Box 1.1 says AI is likely to boost growth in the near term mainly through higher investment, especially in advanced economies, and over the medium term mainly through faster productivity growth; estimates of its productivity impact vary widely. Under optimistic assumptions, growth in the 2030s could exceed the 2000s average, making it the strongest decade since the 1970s; under less optimistic assumptions the gains would be much smaller.",
+      "expected_pages": [
+        30,
+        31,
+        32,
+        33,
+        34,
+        35
+      ]
+    },
+    {
+      "id": "box-2-1-lics",
+      "question": "What growth does the report expect for low-income countries in 2026?",
+      "reference_answer": "Growth in low-income countries is expected to reach 5.4 percent in 2026, 0.3 percentage point lower than previous forecasts, edging up to an average of 5.5 percent a year in 2027-28.",
+      "expected_pages": [
+        76,
+        77,
+        78,
+        79,
+        80
+      ]
+    },
+    {
+      "id": "box-3-1-hidden-debt",
+      "question": "What does the report find about the costs of hidden debt?",
+      "reference_answer": "Box 3.1 finds that revelations of hidden government debt are associated with large and significant increases in sovereign spreads (higher borrowing costs), and that these episodes underscore the need to close gaps in EMDE debt transparency.",
+      "expected_pages": [
+        116,
+        117,
+        118,
+        119
+      ]
+    },
+    {
+      "id": "ch4-commodity",
+      "question": "According to Chapter 4, how do commodity price increases affect revenues and spending in commodity-exporting economies?",
+      "reference_answer": "A 1 percent increase in commodity prices raises both revenues and primary spending in commodity exporters by about 0.4 percent after five years, so revenue windfalls are gradually spent rather than saved.",
+      "expected_pages": [
+        143,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183
+      ]
+    },
+    {
+      "id": "trap-japan-unemployment",
+      "question": "What was Japan's unemployment rate in 2025 according to the report?",
+      "reference_answer": "The report does not contain this information; a correct answer says it cannot be found rather than giving a figure.",
+      "expected_pages": []
+    }
+  ]
+}

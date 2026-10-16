@@ -70,7 +70,7 @@ def test_evaluate_answers_uses_pipeline_ask_and_judge():
         judged.append((prompt, model_name or groq_model_name, temperature))
         return '{"verdict": "correct", "reason": "Matches."}'
 
-    pipeline = SimpleNamespace(ask=ask, generator=SimpleNamespace(complete=complete))
+    pipeline = SimpleNamespace(ask=ask, generator=SimpleNamespace(usage=[], complete=complete))
     questions = [
         {"id": "q1", "question": "How many libraries?", "reference_answer": "166.", "expected_pages": [5, 21]},
         {"id": "trap", "question": "FY 2025 budget?", "reference_answer": "Not in the document.", "expected_pages": []},
@@ -84,7 +84,8 @@ def test_evaluate_answers_uses_pipeline_ask_and_judge():
     assert judged[0][1:] == ("judge-y", 0.0)
     assert rows[0]["correct"] is True and rows[0]["citation_ok"] is True
     assert rows[1]["citation_ok"] is None  # no expected pages -> citation not scored
-    assert summarize_answers(rows) == {"accuracy": 1.0, "citation_accuracy": 1.0}
+    assert summarize_answers(rows) == {"accuracy": 1.0, "citation_accuracy": 1.0, "avg_tokens": 0,
+                                       "total_cost_usd": None, "avg_cost_usd": None}  # the fake makes no LLM calls
 
 
 def test_failed_answer_is_retried_instead_of_graded(monkeypatch):
@@ -99,7 +100,7 @@ def test_failed_answer_is_retried_instead_of_graded(monkeypatch):
         return AskResult(answer=next(answers), sources=[_chunk(5)], search_query=question)
 
     graded = []
-    pipeline = SimpleNamespace(ask=ask, generator=SimpleNamespace(
+    pipeline = SimpleNamespace(ask=ask, generator=SimpleNamespace(usage=[],
         complete=lambda prompt, **kwargs: graded.append(prompt) or '{"verdict": "correct", "reason": "ok"}'))
 
     rows = evaluate_answers(pipeline, [{"id": "q1", "question": "How many?", "reference_answer": "166.",
@@ -116,7 +117,7 @@ def test_run_stops_when_answer_keeps_failing(monkeypatch):
     monkeypatch.setattr("evaluation.harness.time.sleep", lambda s: None)
     pipeline = SimpleNamespace(
         ask=lambda question, **kwargs: AskResult(answer=FALLBACK_MESSAGE, search_query=question),
-        generator=SimpleNamespace(complete=lambda prompt, **kwargs: '{"verdict": "correct", "reason": "ok"}'))
+        generator=SimpleNamespace(usage=[], complete=lambda prompt, **kwargs: '{"verdict": "correct", "reason": "ok"}'))
 
     with pytest.raises(RuntimeError, match="'q1'"):
         evaluate_answers(pipeline, [{"id": "q1", "question": "How many?", "reference_answer": "166."}],

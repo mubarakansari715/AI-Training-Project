@@ -32,6 +32,7 @@ from app.rag.citations import cited_pages
 from app.rag.generator import FALLBACK_MESSAGE, AnswerGenerator
 from app.rag.retriever import RetrievedChunk
 from app.services.rag_service import RAGPipeline
+from evaluation.metrics import estimate_cost
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -42,22 +43,47 @@ class EvalConfig:
 
     chunk_size: int = settings.chunk_size
     chunk_overlap: int = settings.chunk_overlap
+    chunk_strategy: str = settings.chunk_strategy
+    chunk_unit: str = settings.chunk_unit
     embedding_model: str = settings.embedding_model
     embedding_query_prefix: str = settings.embedding_query_prefix
     top_k: int = settings.top_k
     score_threshold: float = settings.similarity_threshold
     reranker_model: str = settings.reranker_model  # "" = no reranking
     rerank_candidates: int = settings.rerank_candidates
+    rerank_min_score: float | None = settings.rerank_min_score  # None = no relevance cutoff
+    rerank_margin: float | None = settings.rerank_relative_margin  # None = no relative cutoff
     section_aware: bool = settings.section_aware
+    structure_source: str = settings.structure_source
+    layout_tables: str = settings.layout_tables
+    query_routing: str = settings.query_routing
+    hybrid_search: bool = settings.hybrid_search
     read_visuals: bool = settings.visual_reading_max_pages > 0
+    rewrite_queries: bool = settings.query_rewriting
+    decompose_queries: bool = settings.query_decomposition
 
     @property
     def label(self) -> str:
         model = self.embedding_model.split("/")[-1]
         rerank = f"rerank {self.reranker_model.split('/')[-1]}@{self.rerank_candidates}" if self.reranker_model else "no rerank"
+        if self.reranker_model and self.rerank_min_score is not None:
+            rerank += f" cutoff {self.rerank_min_score:g}"
+        if self.reranker_model and self.rerank_margin is not None:
+            rerank += f" margin {self.rerank_margin:g}"
         sections = "sections" if self.section_aware else "no sections"
+        if self.section_aware and self.structure_source != "auto":
+            sections += f" ({self.structure_source})"
+        if self.section_aware and self.query_routing == "llm":
+            sections += " llm-routed"
+        hybrid = " | hybrid BM25" if self.hybrid_search else ""
         visuals = " | visuals" if self.read_visuals else ""
-        return f"{model} | {self.chunk_size}/{self.chunk_overlap} | k={self.top_k} | th={self.score_threshold} | {rerank} | {sections}{visuals}"
+        visuals += " | layout tables" if self.layout_tables == "on" else ""
+        rewrite = "" if self.rewrite_queries else " | no rewrite"
+        rewrite += " | decompose" if self.decompose_queries else ""
+        chunking = (f"{self.chunk_size}/{self.chunk_overlap}" + (" tokens" if self.chunk_unit == "tokens" else "")
+                    + (" sentences" if self.chunk_strategy == "sentence" else ""))
+        return (f"{model} | {chunking} | k={self.top_k} | th={self.score_threshold} | "
+                f"{rerank} | {sections}{hybrid}{visuals}{rewrite}")
 
 
 @dataclass
@@ -94,6 +120,11 @@ def build_pipeline(document: str | Path, config: EvalConfig | None = None) -> tu
         collection_name="eval",
         chunk_size=config.chunk_size,
         chunk_overlap=config.chunk_overlap,
+        chunk_strategy=config.chunk_strategy,
+        chunk_unit=config.chunk_unit,
+        structure_source=config.structure_source,
+        layout_tables=config.layout_tables,
+        query_routing=config.query_routing,
         embedding_model=config.embedding_model,
         embedding_query_prefix=config.embedding_query_prefix,
         top_k=config.top_k,
@@ -102,11 +133,16 @@ def build_pipeline(document: str | Path, config: EvalConfig | None = None) -> tu
         rerank_candidates=config.rerank_candidates,
         section_aware=config.section_aware,
         read_visuals=config.read_visuals,
+        hybrid_search=config.hybrid_search,
     )
     # A rate-limited pinned model must not be quietly replaced by the other
     # provider: its answers (and the judge's grades) would be labelled with
     # the pinned model while coming from a different one.
     pipeline.generator.allow_fallback = False
+    pipeline.rewrite_queries = config.rewrite_queries
+    pipeline.decompose_queries = config.decompose_queries
+    pipeline.retriever.rerank_min_score = config.rerank_min_score
+    pipeline.retriever.rerank_margin = config.rerank_margin
     num_chunks, errors = pipeline.index_files([_FileUpload(PROJECT_ROOT / document)])
     if errors or not num_chunks:
         raise ValueError(f"Could not index {document}: {errors or 'no text extracted'}")
@@ -125,7 +161,7 @@ def set_retrieval(pipeline: RAGPipeline, top_k: int, score_threshold: float) -> 
 def first_hit_rank(chunks: list[RetrievedChunk], expected_pages: list[int]) -> int | None:
     """1-based rank of the first chunk from an expected page, else None."""
     for rank, chunk in enumerate(chunks, start=1):
-        if chunk.page in expected_pages:
+        if chunk.covers(expected_pages):
             return rank
     return None
 
@@ -258,8 +294,9 @@ def evaluate_answers(
     judge_model = judge_model or settings.gemini_model
     rows = []
     for q in questions:
+        usage_start = len(pipeline.generator.usage)
         for attempt in range(1, _ANSWER_ATTEMPTS + 1):
-            throttle.wait(calls=3 if auto_mode else 2)  # agent turns / rewrite + answer
+            throttle.wait(calls=3)  # agent turns / rewrite + decompose + answer
             result = pipeline.ask(q["question"], strict_mode=strict_mode, model_name=model_name, temperature=0.0,
                                   groq_model_name=groq_model_name, auto_mode=auto_mode)
             if result.answer != FALLBACK_MESSAGE:
@@ -268,6 +305,7 @@ def evaluate_answers(
                 raise RuntimeError(f"The answer model failed {_ANSWER_ATTEMPTS} times on {q['id']!r} "
                                    "(rate limit or daily quota?); stopping instead of writing a partial report.")
             time.sleep(_ANSWER_RETRY_SECONDS)
+        usage = pipeline.generator.usage[usage_start:]  # answering only, before the judge's call
         throttle.wait()
         grade = grade_answer(pipeline.generator, q["question"], q["reference_answer"], result.answer, judge_model)
         expected = set(q.get("expected_pages") or [])
@@ -282,6 +320,9 @@ def evaluate_answers(
             "correct": grade["correct"],
             "judge_reason": grade["reason"],
             "citation_ok": bool(cited_pages(result.answer) & expected) if expected else None,
+            "prompt_tokens": sum(u["prompt_tokens"] for u in usage),
+            "completion_tokens": sum(u["completion_tokens"] for u in usage),
+            "cost_usd": estimate_cost(usage),
         })
     return rows
 
@@ -289,9 +330,15 @@ def evaluate_answers(
 def summarize_answers(rows: list[dict]) -> dict:
     n = len(rows) or 1
     cited = [r["citation_ok"] for r in rows if r["citation_ok"] is not None]
+    # Older reports have no token or cost fields; a cost is only totalled when every question has one.
+    costs = [r.get("cost_usd") for r in rows]
+    priced = bool(rows) and all(c is not None for c in costs)
     return {
         "accuracy": round(sum(r["correct"] for r in rows) / n, 3),
         "citation_accuracy": round(sum(cited) / len(cited), 3) if cited else None,
+        "avg_tokens": round(sum(r.get("prompt_tokens", 0) + r.get("completion_tokens", 0) for r in rows) / n),
+        "total_cost_usd": round(sum(costs), 6) if priced else None,
+        "avg_cost_usd": round(sum(costs) / n, 6) if priced else None,
     }
 
 

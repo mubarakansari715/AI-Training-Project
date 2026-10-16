@@ -421,3 +421,30 @@ def test_no_fallback_keeps_calls_on_the_first_provider(monkeypatch):
 
     assert answer == FALLBACK_MESSAGE
     fake_client.models.generate_content.assert_not_called()
+
+
+def test_groq_token_usage_is_recorded(monkeypatch):
+    response = MagicMock()
+    response.status_code = 200
+    response.raise_for_status.return_value = None
+    response.json.return_value = {"choices": [{"message": {"content": "ok"}}],
+                                  "usage": {"prompt_tokens": 1200, "completion_tokens": 80, "total_tokens": 1280}}
+    monkeypatch.setattr("app.rag.generator.requests.post", lambda *a, **k: response)
+
+    generator = AnswerGenerator(groq_api_key="fake-or-key", api_key="")
+    generator.generate("A question?", [], groq_model_name="openai/gpt-oss-120b")
+
+    assert generator.usage == [{"provider": "groq", "model": "openai/gpt-oss-120b",
+                                "prompt_tokens": 1200, "completion_tokens": 80}]
+
+
+def test_gemini_token_usage_is_recorded(monkeypatch):
+    fake_client = MagicMock()
+    fake_client.models.generate_content.return_value = MagicMock(
+        text="ok", usage_metadata=MagicMock(prompt_token_count=900, candidates_token_count=40))
+    monkeypatch.setattr("app.rag.generator.genai.Client", lambda api_key: fake_client)
+
+    generator = AnswerGenerator(api_key="fake-key", groq_api_key="")
+    generator.generate("A question?", [], model_name="gemini-x")
+
+    assert generator.usage == [{"provider": "gemini", "model": "gemini-x", "prompt_tokens": 900, "completion_tokens": 40}]

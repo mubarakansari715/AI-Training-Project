@@ -1,0 +1,178 @@
+{
+  "document": "notebooks/GPO-Anual-report.pdf",
+  "config": {
+    "chunk_size": 300,
+    "chunk_overlap": 50,
+    "chunk_strategy": "recursive",
+    "chunk_unit": "chars",
+    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "embedding_query_prefix": "",
+    "top_k": 5,
+    "score_threshold": 0.2,
+    "reranker_model": "",
+    "rerank_candidates": 20,
+    "rerank_min_score": null,
+    "rerank_margin": 5.0,
+    "section_aware": false,
+    "structure_source": "auto",
+    "hybrid_search": false,
+    "read_visuals": false,
+    "rewrite_queries": true,
+    "decompose_queries": true
+  },
+  "answer_model": "auto",
+  "retrieval": {
+    "summary": {
+      "hit_rate": 1.0,
+      "mrr": 0.875,
+      "avg_chunks": 5.0
+    },
+    "rows": [
+      {
+        "id": "sample-1",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          21,
+          21,
+          21,
+          5,
+          5
+        ]
+      },
+      {
+        "id": "sample-2",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          10,
+          22,
+          39,
+          46,
+          8
+        ]
+      },
+      {
+        "id": "sample-3",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          17,
+          15,
+          14,
+          17,
+          6
+        ]
+      },
+      {
+        "id": "copies-distributed",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          5,
+          19,
+          21,
+          19,
+          23
+        ]
+      },
+      {
+        "id": "passports",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          18,
+          12,
+          6,
+          6,
+          17
+        ]
+      },
+      {
+        "id": "fdlp-webinars",
+        "hit": true,
+        "rank": 2,
+        "retrieved_pages": [
+          20,
+          5,
+          20,
+          19,
+          4
+        ]
+      },
+      {
+        "id": "revenues",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          25,
+          26,
+          6,
+          14,
+          15
+        ]
+      },
+      {
+        "id": "staff",
+        "hit": true,
+        "rank": 2,
+        "retrieved_pages": [
+          12,
+          14,
+          17,
+          15,
+          6
+        ]
+      },
+      {
+        "id": "libraries-nationwide",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          19,
+          5,
+          19,
+          21,
+          19
+        ]
+      },
+      {
+        "id": "nara-renovation",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          5,
+          5,
+          17,
+          17,
+          17
+        ]
+      },
+      {
+        "id": "preservation-stewards",
+        "hit": true,
+        "rank": 2,
+        "retrieved_pages": [
+          20,
+          5,
+          6,
+          73,
+          14
+        ]
+      },
+      {
+        "id": "govinfo-beta",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          22,
+          22,
+          22,
+          39,
+          4
+        ]
+      }
+    ]
+  },
+  "answers": null
+}

@@ -80,6 +80,10 @@ class AnswerGenerator:
         self.groq_api_key = settings.groq_api_key if groq_api_key is None else groq_api_key
         self.groq_model = groq_model or settings.groq_model
         self.allow_fallback = allow_fallback
+        # Token counts of every successful call, as the provider reported
+        # them ({"provider", "model", "prompt_tokens", "completion_tokens"});
+        # read by the before/after comparison to report token usage.
+        self.usage: list[dict] = []
 
     def is_configured(self) -> bool:
         return self._client is not None or bool(self.groq_api_key)
@@ -194,6 +198,9 @@ class AnswerGenerator:
             text = (response.text or "").strip()
             if not text:
                 logger.warning("Gemini returned an empty response")
+            meta = getattr(response, "usage_metadata", None)
+            if meta is not None:
+                self._record_usage("gemini", model, meta.prompt_token_count, meta.candidates_token_count)
             return text
         except Exception:
             logger.exception("Gemini generation failed")
@@ -215,10 +222,17 @@ class AnswerGenerator:
             text = (data["choices"][0]["message"]["content"] or "").strip()
             if not text:
                 logger.warning("Groq returned an empty response")
+            usage = data.get("usage") or {}
+            if usage:
+                self._record_usage("groq", model, usage.get("prompt_tokens"), usage.get("completion_tokens"))
             return text
         except Exception:
             logger.exception("Groq generation failed")
             return ""
+
+    def _record_usage(self, provider: str, model: str, prompt_tokens, completion_tokens) -> None:
+        self.usage.append({"provider": provider, "model": model,
+                           "prompt_tokens": int(prompt_tokens or 0), "completion_tokens": int(completion_tokens or 0)})
 
     def _concrete_groq_model(self, model_name: str | None) -> str:
         """The model to send to Groq. "auto" should already have been

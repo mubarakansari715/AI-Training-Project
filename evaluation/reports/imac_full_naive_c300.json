@@ -1,0 +1,190 @@
+{
+  "document": "notebooks/iMac_PER_Oct2024.pdf",
+  "config": {
+    "chunk_size": 300,
+    "chunk_overlap": 50,
+    "chunk_strategy": "recursive",
+    "chunk_unit": "chars",
+    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "embedding_query_prefix": "",
+    "top_k": 5,
+    "score_threshold": 0.2,
+    "reranker_model": "",
+    "rerank_candidates": 20,
+    "rerank_min_score": null,
+    "rerank_margin": 5.0,
+    "section_aware": false,
+    "structure_source": "auto",
+    "hybrid_search": false,
+    "read_visuals": false,
+    "rewrite_queries": true,
+    "decompose_queries": true
+  },
+  "answer_model": "auto",
+  "retrieval": {
+    "summary": {
+      "hit_rate": 1.0,
+      "mrr": 0.91,
+      "avg_chunks": 5.0
+    },
+    "rows": [
+      {
+        "id": "sample-energy-star",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          7,
+          7,
+          12,
+          7,
+          12
+        ]
+      },
+      {
+        "id": "sample-carbon-footprint",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          10,
+          1,
+          2,
+          10,
+          10
+        ]
+      },
+      {
+        "id": "sample-stand",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          4,
+          1,
+          11,
+          8,
+          6
+        ]
+      },
+      {
+        "id": "power-idle",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          12,
+          7,
+          7,
+          12,
+          12
+        ]
+      },
+      {
+        "id": "power-sleep-230v",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          12,
+          7,
+          12,
+          7,
+          12
+        ]
+      },
+      {
+        "id": "adapter-efficiency",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          12,
+          12,
+          7,
+          12,
+          11
+        ]
+      },
+      {
+        "id": "four-ports-footprint",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          10,
+          11,
+          2,
+          10,
+          1
+        ]
+      },
+      {
+        "id": "baseline-emissions",
+        "hit": true,
+        "rank": 2,
+        "retrieved_pages": [
+          10,
+          2,
+          11,
+          9,
+          9
+        ]
+      },
+      {
+        "id": "transport-end-of-life",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          10,
+          2,
+          11,
+          10,
+          2
+        ]
+      },
+      {
+        "id": "packaging-recycled",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          6,
+          6,
+          6,
+          11,
+          4
+        ]
+      },
+      {
+        "id": "rare-earth",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          4,
+          4,
+          4,
+          11,
+          1
+        ]
+      },
+      {
+        "id": "footnote-energy-star-basis",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          7,
+          7,
+          12,
+          7,
+          11
+        ]
+      },
+      {
+        "id": "footnote-recycled-content",
+        "hit": true,
+        "rank": 3,
+        "retrieved_pages": [
+          2,
+          9,
+          11,
+          3,
+          6
+        ]
+      }
+    ]
+  },
+  "answers": null
+}

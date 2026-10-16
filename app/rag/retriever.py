@@ -109,6 +109,10 @@ class Retriever:
         # can't place; its picks are cached per question.
         self.router = router
         self._routes: dict[str, list[str]] = {}
+        # What the last retrieve() did (searches run, candidates the threshold
+        # let through, chunks kept after reranking, footnotes attached), for
+        # the before/after comparison; reset on every call.
+        self.last_stats: dict = {}
 
     def retrieve(self, question: str) -> list[RetrievedChunk]:
         """Return relevant chunks for `question`, most similar first.
@@ -118,6 +122,7 @@ class Retriever:
         With a reranker, `rerank_candidates` chunks are fetched, filtered
         by the threshold, and reranked down to top_k.
         """
+        self._reset_stats()
         if not question or not question.strip():
             return []
 
@@ -146,6 +151,7 @@ class Retriever:
             results = self._search(question, query_embedding, top_k, None, summary)
         elif len(named) == 1:
             results = self._expand_to_pages(results)
+            self.last_stats["whole_pages"] = True
         return self._attach_footnotes(results)
 
     def retrieve_many(self, queries: list[str]) -> list[RetrievedChunk]:
@@ -155,6 +161,7 @@ class Retriever:
         queries = [q for q in queries if q and q.strip()]
         if len(queries) <= 1:
             return self.retrieve(queries[0] if queries else "")
+        self._reset_stats()
         # Same split as searching several named sections (see `retrieve`).
         share = self.top_k if len(queries) <= 2 else max(2, -(-2 * self.top_k // len(queries)))
         results, seen = [], set()
@@ -170,6 +177,10 @@ class Retriever:
     def named_sections(self, question: str) -> list[list[str]]:
         """The document sections `question` names (empty when not section-aware)."""
         return self._section_filter(question)[0]
+
+    def _reset_stats(self) -> None:
+        self.last_stats = {"searches": 0, "candidates": 0, "keyword_only": 0, "kept": 0, "compressed": 0,
+                           "footnotes": 0, "whole_pages": False, "passages": 0}
 
     def _attach_footnotes(self, results: list[RetrievedChunk]) -> list[RetrievedChunk]:
         """Append the footnote passages that retrieved chunks refer to with
@@ -198,6 +209,8 @@ class Retriever:
                         chunk_id=match["chunk_id"], section=match["section"],
                     ))
                     break
+        self.last_stats["footnotes"] = len(added)
+        self.last_stats["passages"] = len(results) + len(added)
         return results + added
 
     def _expand_to_pages(self, results: list[RetrievedChunk]) -> list[RetrievedChunk]:
@@ -253,6 +266,10 @@ class Retriever:
             kept = self.reranker.rerank(question, results, top_k)
         else:
             kept = results[:top_k]
+        self.last_stats["compressed"] += min(top_k, len(results)) - len(kept)
+        self.last_stats["searches"] += 1
+        self.last_stats["candidates"] += len(results)
+        self.last_stats["kept"] += len(kept)
         return kept
 
     def _merge_keyword_hits(self, question: str, query_embedding: list[float], results: list[RetrievedChunk],
@@ -267,6 +284,7 @@ class Retriever:
         similarity = self._vector_store.similarities(query_embedding, [hit["chunk_id"] for hit in new])
         for hit in new:
             known[hit["chunk_id"]] = _to_chunk(hit, similarity.get(hit["chunk_id"], 0.0))
+        self.last_stats["keyword_only"] += len(new)
         order = fuse([chunk.chunk_id for chunk in results], [hit["chunk_id"] for hit in hits])
         return [known[chunk_id] for chunk_id in order]
 

@@ -276,6 +276,7 @@ See [`.env.example`](.env.example) for the full file with defaults:
 | `QUERY_DECOMPOSITION` | Split comparison/multi-part questions into sub-questions, each searched | `true` |
 | `AGENT_MODE` | Auto mode: the LLM decides whether/how often to search (needs Groq) | `true` |
 | `AGENT_MAX_SEARCHES` | Most searches auto mode may run per question | `3` |
+| `MODEL_PRICES` | Extra or changed paid-tier prices for cost estimates, `model=input/output` USD per 1M tokens | _(built-in table)_ |
 
 ## Running the Application
 
@@ -364,7 +365,6 @@ pipeline integration test. The Groq and Gemini APIs are mocked throughout, so
 - Streaming responses
 - Authentication
 - Cloud-hosted vector database option
-- Automated retrieval/answer quality evaluation
 - Multilingual document support
 
 ## Quick Start

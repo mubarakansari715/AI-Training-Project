@@ -35,6 +35,9 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--document", help="Override the document path in the questions file")
     parser.add_argument("--chunk-size", type=int, default=settings.chunk_size)
     parser.add_argument("--chunk-overlap", type=int, default=settings.chunk_overlap)
+    parser.add_argument("--chunk-strategy", choices=["recursive", "sentence"], default=settings.chunk_strategy)
+    parser.add_argument("--chunk-unit", choices=["chars", "tokens"], default=settings.chunk_unit,
+                        help="What --chunk-size and --chunk-overlap count")
     parser.add_argument("--embedding-model", default=settings.embedding_model)
     parser.add_argument("--embedding-query-prefix", default=settings.embedding_query_prefix)
     parser.add_argument("--top-k", type=int, default=settings.top_k)
@@ -42,8 +45,18 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--reranker", default=settings.reranker_model,
                         help='Cross-encoder reranker model ("" or "none" to disable)')
     parser.add_argument("--rerank-candidates", type=int, default=settings.rerank_candidates)
+    parser.add_argument("--rerank-margin", type=float, default=settings.rerank_relative_margin,
+                        help="Drop passages scored more than this below the best one (default: RERANK_RELATIVE_MARGIN)")
     parser.add_argument("--section-aware", action=argparse.BooleanOptionalAction, default=settings.section_aware,
                         help="Detect document sections and search named sections only (default: SECTION_AWARE)")
+    parser.add_argument("--structure-source", choices=["auto", "bookmarks", "fonts"],
+                        default=settings.structure_source, help="Where section headings come from")
+    parser.add_argument("--layout-tables", choices=["auto", "on", "off"], default=settings.layout_tables,
+                        help="Rebuild tables from the page layout (default: LAYOUT_TABLES)")
+    parser.add_argument("--query-routing", choices=["rules", "llm"], default=settings.query_routing,
+                        help="Route questions to sections by rules, or rules then an LLM call")
+    parser.add_argument("--hybrid-search", action=argparse.BooleanOptionalAction, default=settings.hybrid_search,
+                        help="Merge BM25 keyword search with the embedding search (default: HYBRID_SEARCH)")
     parser.add_argument("--read-visuals", action=argparse.BooleanOptionalAction,
                         default=settings.visual_reading_max_pages > 0,
                         help="Read charts/tables/call-outs from page images and attach footnotes (short PDFs)")
@@ -64,9 +77,14 @@ def main(argv: list[str] | None = None) -> None:
     document = args.document or questions_file["document"]
     questions = questions_file["questions"]
     reranker = "" if args.reranker.lower() in {"", "none", "off"} else args.reranker
-    config = EvalConfig(args.chunk_size, args.chunk_overlap, args.embedding_model,
-                        args.embedding_query_prefix, args.top_k, args.threshold,
-                        reranker, args.rerank_candidates, args.section_aware, args.read_visuals)
+    config = EvalConfig(chunk_size=args.chunk_size, chunk_overlap=args.chunk_overlap, chunk_strategy=args.chunk_strategy,
+                        chunk_unit=args.chunk_unit,
+                        embedding_model=args.embedding_model, embedding_query_prefix=args.embedding_query_prefix,
+                        top_k=args.top_k, score_threshold=args.threshold, reranker_model=reranker,
+                        rerank_candidates=args.rerank_candidates, rerank_margin=args.rerank_margin,
+                        section_aware=args.section_aware, structure_source=args.structure_source,
+                        layout_tables=args.layout_tables, query_routing=args.query_routing,
+                        hybrid_search=args.hybrid_search, read_visuals=args.read_visuals)
 
     print(f"Indexing {document} with {config.label} ...")
     pipeline, num_chunks = build_pipeline(document, config)

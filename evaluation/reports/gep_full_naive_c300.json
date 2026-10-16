@@ -1,0 +1,213 @@
+{
+  "document": "notebooks/GEP-Jun-2026.pdf",
+  "config": {
+    "chunk_size": 300,
+    "chunk_overlap": 50,
+    "chunk_strategy": "recursive",
+    "chunk_unit": "chars",
+    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "embedding_query_prefix": "",
+    "top_k": 5,
+    "score_threshold": 0.2,
+    "reranker_model": "",
+    "rerank_candidates": 20,
+    "rerank_min_score": null,
+    "rerank_margin": 5.0,
+    "section_aware": false,
+    "structure_source": "auto",
+    "layout_tables": "auto",
+    "hybrid_search": false,
+    "read_visuals": false,
+    "rewrite_queries": true,
+    "decompose_queries": true
+  },
+  "answer_model": "auto",
+  "retrieval": {
+    "summary": {
+      "hit_rate": 1.0,
+      "mrr": 0.693,
+      "avg_chunks": 5.7
+    },
+    "rows": [
+      {
+        "id": "sample-south-asia",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          98,
+          98,
+          83,
+          189,
+          96
+        ]
+      },
+      {
+        "id": "sample-ch3-debt",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          109,
+          116,
+          141,
+          109,
+          109
+        ]
+      },
+      {
+        "id": "sample-exec-risks",
+        "hit": true,
+        "rank": 5,
+        "retrieved_pages": [
+          54,
+          54,
+          12,
+          76,
+          19
+        ]
+      },
+      {
+        "id": "eap-growth",
+        "hit": true,
+        "rank": 3,
+        "retrieved_pages": [
+          13,
+          13,
+          83,
+          72,
+          82
+        ]
+      },
+      {
+        "id": "ssa-growth",
+        "hit": true,
+        "rank": 3,
+        "retrieved_pages": [
+          13,
+          190,
+          101,
+          102,
+          99
+        ]
+      },
+      {
+        "id": "lac-growth",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          90,
+          91,
+          188,
+          13,
+          71
+        ]
+      },
+      {
+        "id": "eca-growth",
+        "hit": true,
+        "rank": 2,
+        "retrieved_pages": [
+          13,
+          87,
+          13,
+          86,
+          83
+        ]
+      },
+      {
+        "id": "mna-growth",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          94,
+          13,
+          95,
+          72,
+          95
+        ]
+      },
+      {
+        "id": "sar-vs-ssa",
+        "hit": true,
+        "rank": 3,
+        "retrieved_pages": [
+          72,
+          51,
+          98,
+          71,
+          83
+        ]
+      },
+      {
+        "id": "global-growth",
+        "hit": true,
+        "rank": 2,
+        "retrieved_pages": [
+          51,
+          27,
+          72,
+          36,
+          5
+        ]
+      },
+      {
+        "id": "box-1-1-ai",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          34,
+          30,
+          35,
+          32,
+          33
+        ]
+      },
+      {
+        "id": "box-2-1-lics",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          79,
+          74,
+          192,
+          17,
+          25
+        ]
+      },
+      {
+        "id": "box-3-1-hidden-debt",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          117,
+          116,
+          140,
+          119,
+          116,
+          118,
+          116,
+          116,
+          11,
+          114,
+          117,
+          117,
+          116,
+          7,
+          118
+        ]
+      },
+      {
+        "id": "ch4-commodity",
+        "hit": true,
+        "rank": 2,
+        "retrieved_pages": [
+          20,
+          157,
+          177,
+          150,
+          176
+        ]
+      }
+    ]
+  },
+  "answers": null
+}

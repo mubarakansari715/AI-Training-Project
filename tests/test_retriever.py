@@ -318,6 +318,19 @@ def test_a_footnote_is_attached_once_even_when_several_pages_reference_it(tmp_pa
     ids = [r.chunk_id for r in retriever.retrieve(q)]
     assert ids[:2] == ["i.pdf:4:0:a", "i.pdf:1:1:f"]
     assert sum("Footnote 1," in t for t in (c.text for c in retriever.retrieve(q))) == 1
+
+
+def test_retrieval_stats_count_searches_candidates_and_attached_footnotes(tmp_path):
+    q = "What does the 15 percent recycled content claim measure?"
+    retriever = Retriever(_footnoted_store(tmp_path), FakeEmbeddingService({q: [1.0, 0.0, 0.0]}),
+                          top_k=1, score_threshold=-1.0, hybrid_search=False)
+
+    passages = retriever.retrieve(q)
+
+    assert retriever.last_stats == {"searches": 1, "candidates": 1, "keyword_only": 0, "kept": 1, "compressed": 0, "footnotes": 1,
+                                    "whole_pages": False, "passages": len(passages)}
+
+
 def test_relevance_cutoff_drops_low_scored_chunks_but_keeps_the_best_two():
     from app.rag.reranker import select
 

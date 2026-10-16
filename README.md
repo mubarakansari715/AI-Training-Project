@@ -295,10 +295,17 @@ Opens at `http://localhost:8501`.
 5. Pick a model from the dropdown next to the chat box.
 6. Open **⚙️ Advanced settings** to toggle strict document mode, the
    retrieval debug view, or adjust the temperature.
-7. Open **Use case results** (top navigation) to see how each hands-on use
-   case scores in its latest evaluation report, and to run the unit tests.
-   Each use case also shows its sample questions answered before and after
-   its improvement, side by side (saved by `python -m evaluation.compare`).
+7. Open **Use case results** (top navigation) to compare Naive and Advanced
+   RAG on each hands-on use case. In each use case, pick one of its three
+   main questions and click **Apply**: Naive RAG (similarity search only) and
+   Advanced RAG answer it side by side, with PASS/FAIL, the passages and
+   steps, faithfulness/relevance/context scores (LLM-judge estimates, marked
+   as such), what each technique (rewriting, decomposition, keyword search,
+   reranking) did on its own, latency, token usage and estimated cost at
+   paid-tier prices. Latency, tokens and cost are shown as the cost of the
+   extra steps, and the overall verdict is about the answer only.
+   `python -m evaluation.compare` saves the comparison for every question
+   (resuming if Groq's quota stops it), so it shows without an API call.
 
 ## How RAG Works
 

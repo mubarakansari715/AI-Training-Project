@@ -195,10 +195,11 @@ def render_sidebar(
 
             show_debug = st.checkbox(
                 "🔍 Show retrieval details",
-                value=st.session_state.get("show_debug", False),
-                help="Show the raw chunks retrieved for each answer, with "
-                "their similarity scores — useful to verify retrieval is "
-                "working.",
+                value=st.session_state.get("show_debug", True),
+                help="On (default): each answer has a Retrieval details box "
+                "with the passages it was built on, their page and match "
+                "score — to check a number against its source. Only shows "
+                "what was used; it doesn't change the answer.",
             )
             st.session_state.show_debug = show_debug
 

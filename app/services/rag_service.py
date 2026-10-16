@@ -15,7 +15,7 @@ from app.config.settings import settings
 from app.rag.agent import AgentError, run_agent
 from app.rag.chart_reader import answer_from_charts, chart_pages, is_chart_question
 from app.rag.chunker import chunk_pages
-from app.rag.citations import cited_chunks
+from app.rag.citations import cited_chunks, resolve_bracket_refs
 from app.rag.embeddings import EmbeddingService
 from app.rag.generator import AnswerGenerator
 from app.rag.model_router import resolve_groq_model
@@ -271,6 +271,7 @@ class RAGPipeline:
                 # Show only what the answer actually cites: when the agent
                 # searched but answered "not found" or from general knowledge,
                 # its unrelated search results aren't sources.
+                result.answer = resolve_bracket_refs(result.answer, result.sources)
                 chunks = cited_chunks(result.answer, result.sources)
                 if chunks:
                     source = SOURCE_DOCUMENT
@@ -333,6 +334,7 @@ class RAGPipeline:
             groq_model_name=groq_model,
         )
 
+        answer = resolve_bracket_refs(answer, chunks)
         # As in auto mode: sources are what the answer cites — a "not found"
         # reply shouldn't be labelled as coming from the retrieved chunks.
         if chunks:
@@ -370,6 +372,7 @@ class RAGPipeline:
                                                 groq_model_name=None if gemini_picked else groq_model)
         if not answer:
             return None
+        answer = resolve_bracket_refs(answer, chunks)
         shown = {page for _, page in pages}
         sources = [c for c in chunks if c.page in shown] or cited_chunks(answer, chunks)
         return AskResult(

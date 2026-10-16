@@ -1,4 +1,5 @@
 from app.rag.chart_reader import answer_from_charts, chart_pages, is_chart_question, measurements
+from app.rag.citations import resolve_bracket_refs
 from app.rag.page_store import PageStore
 from app.rag.retriever import RetrievedChunk
 from tests.test_chart_measure import _stacked_chart_page
@@ -83,6 +84,13 @@ def test_nothing_measured_and_no_vision_model_gives_no_chart_answer(tmp_path):
     assert answer_from_charts(generator, store, "q", [_chunk(3)], [("report.pdf", 3)]) == ("", False)
     assert not generator.text_prompts
 
+
+def test_bracket_markers_become_page_citations():
+    chunks = [_chunk(4), _chunk(110)]
+
+    answer = resolve_bracket_refs("It rose to 50 percent【2】 and fell【2†L3-L5】. Odd【9】.", chunks)
+
+    assert answer == "It rose to 50 percent (report.pdf, page 110) and fell (report.pdf, page 110). Odd."
 
 
 def test_pictures_on_a_chart_page_are_also_sent_as_close_ups(tmp_path):

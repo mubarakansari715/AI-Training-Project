@@ -1,0 +1,223 @@
+{
+  "document": "notebooks/GEP-Jun-2026.pdf",
+  "config": {
+    "chunk_size": 800,
+    "chunk_overlap": 150,
+    "chunk_strategy": "recursive",
+    "chunk_unit": "chars",
+    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "embedding_query_prefix": "",
+    "top_k": 5,
+    "score_threshold": 0.2,
+    "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    "rerank_candidates": 20,
+    "rerank_min_score": null,
+    "rerank_margin": 5.0,
+    "section_aware": true,
+    "structure_source": "auto",
+    "layout_tables": "auto",
+    "query_routing": "rules",
+    "hybrid_search": true,
+    "read_visuals": false,
+    "rewrite_queries": true,
+    "decompose_queries": true
+  },
+  "answer_model": "auto",
+  "retrieval": {
+    "summary": {
+      "hit_rate": 0.833,
+      "mrr": 0.667,
+      "avg_chunks": 5.0
+    },
+    "rows": [
+      {
+        "id": "chart-moderate-risk",
+        "hit": true,
+        "rank": 2,
+        "retrieved_pages": [
+          147,
+          110,
+          147,
+          51,
+          127
+        ]
+      },
+      {
+        "id": "chart-debt-service",
+        "hit": true,
+        "rank": 2,
+        "retrieved_pages": [
+          109,
+          110,
+          110,
+          112,
+          110
+        ]
+      },
+      {
+        "id": "chart-energy-revenue",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          59,
+          171,
+          59,
+          150,
+          171
+        ]
+      },
+      {
+        "id": "chart-fiscal-rule-swf",
+        "hit": false,
+        "rank": null,
+        "retrieved_pages": [
+          170,
+          161,
+          161,
+          161,
+          161
+        ]
+      },
+      {
+        "id": "chart-importers-high-risk",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          147,
+          147,
+          110,
+          147,
+          110
+        ]
+      },
+      {
+        "id": "chart-picture-advanced",
+        "hit": true,
+        "rank": 1,
+        "retrieved_pages": [
+          31,
+          31,
+          28,
+          31,
+          33
+        ]
+      }
+    ]
+  },
+  "answers": {
+    "summary": {
+      "accuracy": 0.167,
+      "citation_accuracy": 0.667,
+      "avg_tokens": 2622,
+      "total_cost_usd": 0.002281,
+      "avg_cost_usd": 0.00038
+    },
+    "rows": [
+      {
+        "id": "chart-moderate-risk",
+        "question": "explain what is moderate risk difference percentage wise between 2015 and 2026 from chart",
+        "search_query": "What is the moderate risk difference, expressed as a percentage, between 2015 and 2026 according to the chart?",
+        "searches": [],
+        "model": "openai/gpt-oss-120b",
+        "retrieved_pages": [
+          110
+        ],
+        "answer": "The uploaded document does not provide the specific numeric values for the “moderate‑risk” share of EMDEs in 2015 and in 2026. The chart in **[Ch. 3 A Rising Challenge: Sovereign Debt Levels and Interest Rates in EMDEs]** (GEP‑Jun‑2026.pdf, page 110) displays the moderate‑risk percentages over time, but the exact percentages for 2015 and 2026 are not listed in the text or tables.  \n\n**Result:** The information needed to calculate the percentage‑point difference in moderate‑risk exposure between 2015 and 2026 is not found in the uploaded documents.",
+        "correct": false,
+        "judge_reason": "The system stated that the information was unavailable, whereas the reference answer successfully extracted the data points and calculated the percentage-point difference from the chart.",
+        "citation_ok": true,
+        "prompt_tokens": 1990,
+        "completion_tokens": 445,
+        "cost_usd": 0.0005655
+      },
+      {
+        "id": "chart-debt-service",
+        "question": "From the debt-service costs chart, what were EMDE debt-service costs as a share of government revenues in 2010 and in 2025?",
+        "search_query": "From the debt-service costs chart, what were EMDE debt-service costs as a share of government revenues in 2010 and in 2025?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [
+          109
+        ],
+        "answer": "EMDE debt‑service costs were **6 % of government revenues in 2010** and are projected to rise to **about 11 % of government revenues in 2025** (GEP‑Jun‑2026.pdf, page 109).",
+        "correct": true,
+        "judge_reason": "The system answer accurately provides the 2010 and 2025 debt-service cost percentages (6% vs ~7% within acceptable rounding margin, and ~11% for 2025), capturing the key facts from the reference answer.",
+        "citation_ok": false,
+        "prompt_tokens": 1974,
+        "completion_tokens": 358,
+        "cost_usd": 0.00025545
+      },
+      {
+        "id": "chart-energy-revenue",
+        "question": "In the chart of the composition of fiscal revenues, what share of energy exporters' revenues is commodity nontax revenue?",
+        "search_query": "In the chart of the composition of fiscal revenues, what share of energy exporters' revenues is commodity nontax revenue?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [
+          59,
+          59
+        ],
+        "answer": "The uploaded documents do not provide a numeric value for the share of commodity‑nontax revenue in the total fiscal revenues of energy exporters. (GEP‑Jun‑2026.pdf, page 59)",
+        "correct": false,
+        "judge_reason": "The system stated that the information was unavailable, but the reference answer clearly provides the figure from the document (about 38 percent).",
+        "citation_ok": true,
+        "prompt_tokens": 1923,
+        "completion_tokens": 610,
+        "cost_usd": 0.000327225
+      },
+      {
+        "id": "chart-fiscal-rule-swf",
+        "question": "According to the fiscal framework combinations chart, what percent of energy exporters have both a fiscal rule and a sovereign wealth fund?",
+        "search_query": "According to the fiscal framework combinations chart, what percent of energy exporters have both a fiscal rule and a sovereign wealth fund?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [],
+        "answer": "The uploaded documents do not contain the specific percentage of energy exporters that have both a fiscal rule and a sovereign wealth fund.",
+        "correct": false,
+        "judge_reason": "The system answer states that the information is unavailable, whereas the reference answer provides the specific percentage from the document.",
+        "citation_ok": false,
+        "prompt_tokens": 2201,
+        "completion_tokens": 1082,
+        "cost_usd": 0.0004896750000000001
+      },
+      {
+        "id": "chart-importers-high-risk",
+        "question": "In the debt sustainability risks chart, what share of commodity importers was at high risk of debt distress in 2020?",
+        "search_query": "In the debt sustainability risks chart, what share of commodity importers was at high risk of debt distress in 2020?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [
+          147,
+          147,
+          147
+        ],
+        "answer": "The uploaded documents do not provide the share of commodity importers that were at high risk of debt distress in 2020. (GEP-Jun-2026.pdf, page 147)",
+        "correct": false,
+        "judge_reason": "The reference answer states the share was about 60 percent, but the system incorrectly claimed the information was not provided.",
+        "citation_ok": true,
+        "prompt_tokens": 2012,
+        "completion_tokens": 510,
+        "cost_usd": 0.00030389999999999996
+      },
+      {
+        "id": "chart-picture-advanced",
+        "question": "From the chart on the share of economies with potential growth below their 2000-09 average, what share of advanced economies is below it?",
+        "search_query": "From the chart on the share of economies with potential growth below their 2000‑09 average, what share of advanced economies is below it?",
+        "searches": [],
+        "model": "openai/gpt-oss-20b",
+        "retrieved_pages": [
+          31,
+          31,
+          31
+        ],
+        "answer": "I’m sorry, but the specific share of advanced economies that have potential growth below their 2000‑09 average is not provided in the text excerpts you supplied. The chart is referenced on page 31 of the GEP‑Jun‑2026.pdf, but the numeric value is not included in the provided context. (GEP‑Jun‑2026.pdf, page 31)",
+        "correct": false,
+        "judge_reason": "The system stated the information was not provided, whereas the reference answer actually contains the required data point (roughly 95 percent).",
+        "citation_ok": true,
+        "prompt_tokens": 1995,
+        "completion_tokens": 631,
+        "cost_usd": 0.00033892499999999996
+      }
+    ]
+  }
+}

@@ -91,11 +91,26 @@ class Settings:
     # PDFs up to this many pages — one vision call per page, cached in
     # VISION_CACHE_DIR. 0 turns it off.
     visual_reading_max_pages: int = _get_int("VISUAL_READING_MAX_PAGES", 30)
+    # For longer PDFs, only pages holding a chart that can't be measured from
+    # its drawing (a picture) are read, up to this many. 0 turns it off.
+    visual_chart_pages: int = _get_int("VISUAL_CHART_PAGES", 40)
     # Tables rebuilt from the page layout (header bars + word positions, no
     # vision model; app/rag/layout_tables.py): "auto" = whenever the vision
     # model doesn't read the PDF (too long, or no OPENROUTER_API_KEY), "on"
     # = always, "off" = never.
     layout_tables: str = os.getenv("LAYOUT_TABLES", "auto")
+    # Bar charts drawn as vector shapes are measured from the PDF's drawing
+    # (app/rag/chart_measure.py; free, local) and indexed as passages, so a
+    # question about a chart's values finds its page.
+    index_measured_charts: bool = _get_bool("INDEX_MEASURED_CHARTS", True)
+    # Answer chart questions from the chart pages (app/rag/chart_reader.py):
+    # their measured values, and the page images shown to a vision model;
+    # values judged from the image are marked as estimates. The images need
+    # GEMINI_API_KEY. CHART_MODEL defaults to GEMINI_MODEL.
+    chart_reading: bool = _get_bool("CHART_READING", True)
+    chart_model: str = os.getenv("CHART_MODEL", "") or os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+    # Copies of indexed PDFs, so chart pages can be rendered at answer time.
+    page_store_dir: str = os.getenv("PAGE_STORE_DIR", "data/documents")
     vision_cache_dir: str = os.getenv("VISION_CACHE_DIR", "data/vision_cache")
 
     # Fallback provider, used only when Groq is unconfigured or a call

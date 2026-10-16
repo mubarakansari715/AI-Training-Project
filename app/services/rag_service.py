@@ -13,11 +13,13 @@ from dataclasses import dataclass, field
 
 from app.config.settings import settings
 from app.rag.agent import AgentError, run_agent
+from app.rag.chart_reader import answer_from_charts, chart_pages, is_chart_question
 from app.rag.chunker import chunk_pages
 from app.rag.citations import cited_chunks
 from app.rag.embeddings import EmbeddingService
 from app.rag.generator import AnswerGenerator
 from app.rag.model_router import resolve_groq_model
+from app.rag.page_store import PageStore
 from app.rag.query_decomposer import decompose_query, needs_decomposition
 from app.rag.query_router import llm_route
 from app.rag.query_rewriter import needs_rewrite, rewrite_query, words
@@ -60,6 +62,9 @@ class AskResult:
     sub_queries: list[str] = field(default_factory=list)
     # The Groq model used (after resolving "auto"), for display.
     model: str | None = None
+    # Pages whose chart images the answer was read from (app.rag.chart_reader);
+    # empty for a normal text answer.
+    chart_pages: list[str] = field(default_factory=list)
 
 
 class RAGPipeline:
@@ -90,6 +95,7 @@ class RAGPipeline:
         structure_source: str | None = None,
         layout_tables: str | None = None,
         query_routing: str | None = None,
+        page_store_dir: str | None = None,
     ):
         self.chunk_size = chunk_size or settings.chunk_size
         self.chunk_overlap = settings.chunk_overlap if chunk_overlap is None else chunk_overlap
@@ -117,6 +123,8 @@ class RAGPipeline:
         self.indexed_documents: set[str] = set()
         self.rewrite_queries = settings.query_rewriting
         self.decompose_queries = settings.query_decomposition
+        self.chart_reading = settings.chart_reading
+        self.page_store = PageStore(page_store_dir)
         # Words of the indexed documents, for skipping needless rewrites;
         # rebuilt when the chunk count changes (see _document_vocabulary).
         self._vocabulary: tuple[int, set[str]] = (-1, set())
@@ -138,6 +146,7 @@ class RAGPipeline:
         Returns (num_chunks_added, errors) where `errors` maps
         filename to a friendly message for anything that failed.
         """
+        files = list(files)
         pages, errors = parse_uploaded_files(files, detect_structure=self.section_aware, read_visuals=self.read_visuals,
                                              structure_source=self.structure_source, layout_tables=self.layout_tables)
         if not pages:
@@ -163,6 +172,10 @@ class RAGPipeline:
             return 0, errors
 
         self.indexed_documents.update(page.source for page in pages)
+        indexed = {page.source for page in pages}
+        for file in files:
+            if file.name in indexed:
+                self.page_store.save(file.name, file.getvalue())
         self._vocabulary = (-1, set())
         return num_added, errors
 
@@ -232,6 +245,14 @@ class RAGPipeline:
         small_talk = is_small_talk(question)
         gemini_picked = model_name is not None and groq_model_name is None
         groq_model = resolve_groq_model(groq_model_name or self.generator.groq_model, question)
+
+        # A question about a chart is answered by looking at the chart page
+        # (app.rag.chart_reader), in auto mode too: no text-only model can
+        # see a value that exists only as a bar height.
+        if self.chart_reading and not small_talk and self.vector_store.count() > 0 and is_chart_question(question):
+            charted = self._answer_from_charts(question, gemini_picked, model_name, groq_model)
+            if charted is not None:
+                return charted
 
         agent_on = settings.agent_mode if auto_mode is None else auto_mode
         if agent_on and not gemini_picked and self.generator.groq_api_key and self.vector_store.count() > 0:
@@ -329,6 +350,32 @@ class RAGPipeline:
             answer=answer, sources=chunks, found_context=bool(chunks),
             source=source, search_query=search_query, sub_queries=sub_queries,
             model=None if gemini_picked else groq_model,
+        )
+
+    def _answer_from_charts(self, question: str, gemini_picked: bool, model_name: str | None,
+                            groq_model: str | None) -> AskResult | None:
+        """The answer read from the retrieved chart pages (their measurements
+        and images), or None (no chart page among the results, or neither
+        a measurement nor the vision model gave an answer)."""
+        try:
+            chunks = self.retriever.retrieve(question)
+            pages = chart_pages(self.page_store, question, chunks)
+        except Exception:
+            logger.exception("Finding chart pages failed")
+            return None
+        if not pages:
+            return None
+        answer, saw_images = answer_from_charts(self.generator, self.page_store, question, chunks, pages,
+                                                model_name=model_name if gemini_picked else None,
+                                                groq_model_name=None if gemini_picked else groq_model)
+        if not answer:
+            return None
+        shown = {page for _, page in pages}
+        sources = [c for c in chunks if c.page in shown] or cited_chunks(answer, chunks)
+        return AskResult(
+            answer=answer, sources=sources, found_context=True, source=SOURCE_DOCUMENT, search_query=question,
+            model=model_name if gemini_picked else settings.chart_model if saw_images else groq_model,
+            chart_pages=[f"{source}, page {page}" for source, page in pages],
         )
 
     def clear_index(self) -> None:

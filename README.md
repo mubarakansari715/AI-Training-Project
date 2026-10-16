@@ -49,7 +49,20 @@ up an earlier conversation later — even after restarting the app.
   `VISUAL_READING_MAX_PAGES` pages): a vision model transcribes each page's
   charts, tables and call-outs (cached once read), and every footnote is
   attached to the page that references it; a retrieved passage with a
-  footnote marker (`[1]`) brings that note along
+  footnote marker (`[1]`) brings that note along. Longer PDFs: only pages
+  with a chart that can't be measured (a pasted picture) are read, up to
+  `VISUAL_CHART_PAGES`
+- Chart questions ("…from the chart", "figure 3.1"): bar, grouped-bar and
+  stacked-bar charts drawn as vector shapes are measured from the PDF's own
+  drawing (axis ticks → scale, legend colours → series, labels → categories;
+  about ±1% of the axis range, free and local) and indexed as passages. The
+  answer is read from the chart page: Gemini sees the page image with the
+  measured values, and every number says where it came from: printed values
+  exactly, "≈ 51.7% (measured from the chart, page 110)", or "≈ 30% (estimated
+  from the chart image, page 110)" for charts that are pictures, line charts
+  or candlesticks. Without Gemini, the measured values are answered from by
+  the text model. Page numbers are the PDF's, and "📊 Chart read: …" under the
+  answer names the pages used
 - Robust text extraction with graceful handling of empty/corrupted files
 - Text cleaning (whitespace, broken line breaks, extraction artifacts)
 - Structure-aware chunking (paragraph/sentence-boundary-first splitting)
@@ -247,7 +260,11 @@ See [`.env.example`](.env.example) for the full file with defaults:
 | `GEMINI_TEMPERATURE` | Sampling temperature (0.0-2.0); lower = more literal/consistent | `0.2` |
 | `OPENROUTER_API_KEY` | OpenRouter key, used to read charts/tables from page images | _(none: text and footnotes only)_ |
 | `VISION_MODEL` | OpenRouter vision models (comma-separated, tried in order) | free models, see `.env.example` |
-| `VISUAL_READING_MAX_PAGES` | Read page images only for PDFs up to this many pages (`0` = off) | `30` |
+| `VISUAL_READING_MAX_PAGES` | Read every page image for PDFs up to this many pages (`0` = off) | `30` |
+| `VISUAL_CHART_PAGES` | Longer PDFs: read only this many pages with an unmeasurable chart (`0` = off) | `40` |
+| `INDEX_MEASURED_CHARTS` | Index bar charts measured from the PDF drawing as passages | `true` |
+| `CHART_READING` | Answer chart questions from the chart page (measured values + page image for Gemini) | `true` |
+| `CHART_MODEL` | Gemini model that looks at chart pages | `GEMINI_MODEL` |
 | `VISION_CACHE_DIR` | Where vision replies are cached | `data/vision_cache` |
 | `MODEL_DEVICE` | Device for local models: `cpu`, `cuda`, `mps` or `auto` (`mps` was 4-10× slower on Intel Macs) | `cpu` |
 | `EMBEDDING_MODEL` | sentence-transformers model name | `sentence-transformers/all-MiniLM-L6-v2` |

@@ -31,7 +31,8 @@ class FakeUploadedFile:
 @pytest.fixture
 def pipeline(tmp_path):
     pipeline = RAGPipeline(
-        persist_dir=str(tmp_path / "chroma"), collection_name="rag_pipeline_test"
+        persist_dir=str(tmp_path / "chroma"), collection_name="rag_pipeline_test",
+        page_store_dir=str(tmp_path / "documents"),
     )
     # The mocked LLM returns the same text for every call, so it would also
     # be used as the "rewritten" query; rewriting has its own tests below.

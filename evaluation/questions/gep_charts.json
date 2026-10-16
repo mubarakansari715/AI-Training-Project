@@ -1,0 +1,42 @@
+{
+  "document": "notebooks/GEP-Jun-2026.pdf",
+  "notes": "Chart questions: values that exist only as bar heights, not as printed numbers. References come from measuring the bars in the PDF's drawing (app/rag/chart_measure.py), each checked against the rendered chart; a correct answer gives values close to them (within about 2 points) and marks them as approximate. The last question's chart is pasted as a picture, so it can only be estimated by eye. 'expected_pages' are the PDF pages (1-based) of the chart.",
+  "questions": [
+    {
+      "id": "chart-moderate-risk",
+      "question": "explain what is moderate risk difference percentage wise between 2015 and 2026 from chart",
+      "reference_answer": "In figure 3.1.D (risk of debt distress in low- and middle-income countries), the share at moderate risk falls from about 52 percent in 2015 to about 40 percent in 2026, a drop of about 11-12 percentage points, while the share in or at high risk of debt distress rose from 26 percent to about 50 percent. The moderate-risk values are not printed; they are read from the chart.",
+      "expected_pages": [110]
+    },
+    {
+      "id": "chart-debt-service",
+      "question": "From the debt-service costs chart, what were EMDE debt-service costs as a share of government revenues in 2010 and in 2025?",
+      "reference_answer": "Figure 3.1.B shows debt-service costs of about 7 percent of government revenues in 2010, rising to about 11 percent in 2025 (an estimate).",
+      "expected_pages": [110]
+    },
+    {
+      "id": "chart-energy-revenue",
+      "question": "In the chart of the composition of fiscal revenues, what share of energy exporters' revenues is commodity nontax revenue?",
+      "reference_answer": "Figure 1.12.E shows commodity nontax revenue at about 38 percent of energy exporters' total revenues in 2020-24 (tax about 39 percent, other nontax about 23 percent).",
+      "expected_pages": [59]
+    },
+    {
+      "id": "chart-fiscal-rule-swf",
+      "question": "According to the fiscal framework combinations chart, what percent of energy exporters have both a fiscal rule and a sovereign wealth fund?",
+      "reference_answer": "Figure 1.12.F shows about 40 percent of energy exporters combining a fiscal rule and a sovereign wealth fund in 2024.",
+      "expected_pages": [59]
+    },
+    {
+      "id": "chart-importers-high-risk",
+      "question": "In the debt sustainability risks chart, what share of commodity importers was at high risk of debt distress in 2020?",
+      "reference_answer": "Figure 4.2.D shows about 60 percent of commodity-importing countries at high risk of debt distress in 2020 (with about 10 percent in distress).",
+      "expected_pages": [147]
+    },
+    {
+      "id": "chart-picture-advanced",
+      "question": "From the chart on the share of economies with potential growth below their 2000-09 average, what share of advanced economies is below it?",
+      "reference_answer": "Figure B1.1.1.B shows roughly 95 percent of advanced economies with potential growth in 2010-19 below their 2000-09 average (about 89 percent of advanced-economy GDP). The chart is a picture, so this is a visual estimate; anything from about 90 to 100 percent, marked as approximate, is correct.",
+      "expected_pages": [31]
+    }
+  ]
+}

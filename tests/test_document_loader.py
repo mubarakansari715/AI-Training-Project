@@ -114,3 +114,14 @@ def test_original_filename_is_preserved():
     pages = parse_document("employee_handbook.pdf", _make_minimal_pdf("Policy text"))
 
     assert pages[0].source == "employee_handbook.pdf"
+
+
+def test_measured_bar_charts_are_indexed_as_their_own_passages():
+    from tests.test_chart_measure import _stacked_chart_page
+
+    doc, _ = _stacked_chart_page()
+    pages = parse_document("risk.pdf", doc.tobytes())
+
+    [chart] = [p for p in pages if p.element]
+    assert chart.page == 1 and chart.text.startswith("[Chart on page 1 (values measured from the drawing)]")
+    assert "2015: High risk ≈ 30" in chart.text

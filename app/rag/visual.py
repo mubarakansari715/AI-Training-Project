@@ -16,8 +16,11 @@ additions make those searchable:
   question about a claim's condition finds the note itself — one block of
   every note on a page matched no single question well enough.
 
-Rendering every page costs one vision call each, so this runs only for
-documents up to VISUAL_READING_MAX_PAGES (see app.config.settings).
+Rendering every page costs one vision call each, so every page is read only
+for documents up to VISUAL_READING_MAX_PAGES (see app.config.settings). In a
+longer one, only pages holding a chart that can't be measured from its
+drawing (a picture; app.rag.chart_measure measures the rest for free) are
+read, up to VISUAL_CHART_PAGES.
 """
 
 from __future__ import annotations
@@ -44,6 +47,13 @@ VISION_TIMEOUT_SECONDS = 120
 _RATE_LIMIT_ATTEMPTS = 3
 _RATE_LIMIT_WAIT_SECONDS = 20.0
 _RENDER_DPI = 110
+# Free models that fail this many pages are rate-limited or down (each
+# failure has already waited through every model's retries): stop rather
+# than wait out the remaining pages.
+_MAX_FAILED_PAGES = 3
+_CHART_PAGE_DRAWINGS = 20
+_MIN_IMAGE_SHARE = 0.02  # of the page area: smaller images are logos and icons
+_CAPTION_RE = re.compile(r"\b(?:figure|chart|graph|exhibit)\s*[A-Z]?\d", re.IGNORECASE)
 # Bump when VISION_PROMPT changes, so cached replies from the old prompt are not reused.
 _PROMPT_VERSION = 1
 
@@ -144,15 +154,23 @@ def parse_visual_blocks(reply: str) -> list[tuple[str, str, str]]:
     return blocks
 
 
-def visual_pages(page_pngs: list[bytes], filename: str, describe: Describer) -> list[DocumentPage]:
-    """One DocumentPage per chart/table/call-out found on the rendered pages.
-    A page no model could read is skipped (logged), keeping the others."""
+def visual_pages(page_pngs: list[bytes], filename: str, describe: Describer,
+                 numbers: list[int] | None = None) -> list[DocumentPage]:
+    """One DocumentPage per chart/table/call-out found on the rendered pages
+    (page `numbers`, default 1, 2, ...). A page no model could read is
+    skipped (logged), keeping the others; after a few such pages the rest
+    are skipped too."""
     pages = []
-    for number, png in enumerate(page_pngs, start=1):
+    failed = 0
+    for number, png in zip(numbers or range(1, len(page_pngs) + 1), page_pngs):
+        if failed >= _MAX_FAILED_PAGES:
+            logger.warning("Vision models failed on %d pages; not reading the rest of %s", failed, filename)
+            break
         try:
             reply = describe(png, number)
         except Exception:
             logger.exception("Could not read the image of page %d of %s", number, filename)
+            failed += 1
             continue
         for kind, title, body in parse_visual_blocks(reply):
             label = f"{_TYPE_LABELS[kind]} on page {number}" + (f": {title}" if title else "")
@@ -226,8 +244,28 @@ def _ask_vision_model(model: str, prompt: str, image_url: str) -> str:
 # -------------------------------------------------------------------- entry
 
 
+def picture_chart_pages(doc) -> list[int]:
+    """Pages (1-based) holding a chart or diagram that can't be measured
+    from its drawing: a sizeable image (a pasted chart), or many drawn shapes
+    under a figure caption where no bar chart could be measured (line charts,
+    diagrams)."""
+    import pymupdf
+
+    from app.rag.chart_measure import measure_page
+
+    found = []
+    for page in doc:
+        area = abs(page.rect)
+        pictures = sum(abs(pymupdf.Rect(info["bbox"])) for info in page.get_image_info()) >= _MIN_IMAGE_SHARE * area
+        drawn = len(page.get_drawings()) >= _CHART_PAGE_DRAWINGS and _CAPTION_RE.search(page.get_text())
+        if pictures or (drawn and not measure_page(page)):
+            found.append(page.number + 1)
+    return found
+
+
 def read_visuals(data: bytes, filename: str, describe: Describer | None = None) -> list[DocumentPage]:
-    """Footnote and chart/table/call-out pages for a short PDF (none for a long one).
+    """Footnote and chart/table/call-out pages for a short PDF; for a long
+    one, the chart pages that can't be measured from their drawing.
 
     Any failure (no vision key, provider error) degrades to the footnotes
     alone: it is logged and nothing visual is added.
@@ -236,7 +274,15 @@ def read_visuals(data: bytes, filename: str, describe: Describer | None = None) 
 
     with pymupdf.open(stream=data, filetype="pdf") as doc:
         if doc.page_count > settings.visual_reading_max_pages:
-            return []
+            numbers = picture_chart_pages(doc)[:settings.visual_chart_pages]
+            pngs = [doc[n - 1].get_pixmap(dpi=_RENDER_DPI).tobytes("png") for n in numbers]
+            if not numbers or (describe is None and not settings.openrouter_api_key):
+                return []
+            try:
+                return visual_pages(pngs, filename, describe or openrouter_describer(filename), numbers)
+            except Exception:
+                logger.exception("Reading the chart pages of %s failed; using text only", filename)
+                return []
         notes_by_page = {page.number: parse_endnotes(page.get_text()) for page in doc}
         notes = {n: text for page_notes in notes_by_page.values() for n, text in page_notes.items()}
         markers_by_page = {

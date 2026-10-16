@@ -129,11 +129,28 @@ def _parse_pdf(
         from app.rag.layout_tables import read_layout_tables
 
         visuals += read_layout_tables(data, filename)
+    if settings.index_measured_charts:
+        visuals += _measured_charts(data, filename, sections)
     return [
         DocumentPage(text=text, source=filename, page=index, section=sections.get(index))
         for index, text in texts.items()
         if text
     ] + visuals
+
+
+def _measured_charts(data: bytes, filename: str, sections: dict) -> list[DocumentPage]:
+    """One passage per bar chart measured from the PDF's drawing
+    (app.rag.chart_measure), so its values can be found by search."""
+    from app.rag.chart_measure import measure_pdf
+
+    try:
+        charts = measure_pdf(data)
+    except Exception:
+        logger.warning("Measuring the charts of %s failed", filename, exc_info=True)
+        return []
+    return [DocumentPage(text=f"[Chart on page {page} (values measured from the drawing)]\n{chart.describe()}",
+                         source=filename, page=page, section=sections.get(page), element=True)
+            for page, chart in charts]
 
 
 def _outline(reader, data: bytes, source: str) -> list[tuple[str, int]]:

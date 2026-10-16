@@ -55,11 +55,14 @@ def _render_source_label(source: str | None) -> None:
         st.caption(label)
 
 
-def _render_agent_trace(searches: list[str], model: str | None) -> None:
-    """Auto mode transparency: what the agent searched for, and which
-    model answered — like ChatGPT's "Searched …" line."""
+def _render_agent_trace(searches: list[str], model: str | None, chart_pages: list[str] | None = None) -> None:
+    """Auto mode transparency: what the agent searched for, which chart
+    pages the answer was read from, and which model answered — like
+    ChatGPT's "Searched …" line."""
     if searches:
         st.caption("🔎 Searched: " + " · ".join(f"“{q}”" for q in searches))
+    if chart_pages:
+        st.caption("📊 Chart read: " + " · ".join(chart_pages))
     if model:
         st.caption(f"⚡ {model.split('/')[-1]}")
 
@@ -187,7 +190,7 @@ def render_chat(
                 st.markdown(_md(message["content"]))
             if message["role"] == "assistant":
                 _render_source_label(message.get("source"))
-                _render_agent_trace(message.get("searches", []), message.get("model"))
+                _render_agent_trace(message.get("searches", []), message.get("model"), message.get("chart_pages"))
                 _render_sources(message.get("sources", []))
                 if message.get("show_debug"):
                     _render_debug(message.get("sources", []))
@@ -248,7 +251,7 @@ def render_chat(
         index_note = _index_attached_files(pipeline, files) if files else None
         sources = []
         source_label = None
-        searches, answer_model = [], None
+        searches, answer_model, chart_pages = [], None, []
 
         if question:
             # Skip the cache when files were just attached — newly
@@ -261,6 +264,7 @@ def render_chat(
                     cached.get("source"),
                 )
                 searches, answer_model = cached.get("searches", []), cached.get("model")
+                chart_pages = cached.get("chart_pages", [])
             else:
                 with st.spinner("Thinking..."):
                     try:
@@ -276,6 +280,7 @@ def render_chat(
                         answer, sources, source_label = result.answer, result.sources, result.source
                         # Agent searches, or the sub-questions of a decomposed question.
                         searches, answer_model = result.searches or result.sub_queries, result.model
+                        chart_pages = result.chart_pages
                     except Exception:
                         answer, sources, source_label = (
                             "Something went wrong while generating the answer. Please try again.",
@@ -288,7 +293,7 @@ def render_chat(
 
         st.markdown(_md(display_answer))
         _render_source_label(source_label)
-        _render_agent_trace(searches, answer_model)
+        _render_agent_trace(searches, answer_model, chart_pages)
         _render_sources(sources)
         if show_debug:
             _render_debug(sources)
@@ -302,6 +307,7 @@ def render_chat(
             "show_debug": show_debug,
             "searches": searches,
             "model": answer_model,
+            "chart_pages": chart_pages,
         }
     )
     conversation_store.save(conversation_id, st.session_state.chat_history)

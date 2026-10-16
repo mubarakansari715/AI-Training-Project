@@ -206,6 +206,26 @@ class AnswerGenerator:
             logger.exception("Gemini generation failed")
             return ""
 
+    def describe_images(self, prompt: str, images: list[bytes], model_name: str | None = None) -> str:
+        """Gemini's answer to `prompt` about PNG `images` (pages of a document),
+        or "" when Gemini isn't configured or the call fails. Used for chart
+        questions (app.rag.chart_reader); Groq's models here read text only."""
+        if self._client is None:
+            return ""
+        model = model_name or settings.chart_model
+        contents = [types.Part.from_bytes(data=png, mime_type="image/png") for png in images] + [prompt]
+        try:
+            response = self._client.models.generate_content(
+                model=model, contents=contents, config=types.GenerateContentConfig(temperature=0.0),
+            )
+        except Exception:
+            logger.exception("Gemini chart reading failed")
+            return ""
+        meta = getattr(response, "usage_metadata", None)
+        if meta is not None:
+            self._record_usage("gemini", model, meta.prompt_token_count, meta.candidates_token_count)
+        return (response.text or "").strip()
+
     def _generate_with_groq(
         self,
         prompt: str,

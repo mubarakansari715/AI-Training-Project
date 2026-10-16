@@ -83,3 +83,42 @@ def test_a_page_no_model_can_read_is_skipped():
 
     pages = visual_pages([b"p1", b"p2"], "imac.pdf", describe)
     assert [p.page for p in pages] == [2]
+
+
+def test_reading_stops_after_several_pages_fail():
+    asked = []
+
+    def describe(png: bytes, page: int) -> str:
+        asked.append(page)
+        if page % 2:  # flaky free models: every other page fails
+            raise RuntimeError("429 rate-limited upstream")
+        return "NONE"
+
+    assert visual_pages([b"p"] * 10, "gep.pdf", describe) == []
+    assert asked == [1, 2, 3, 4, 5]
+
+
+def test_a_long_pdf_reads_only_its_unmeasurable_chart_pages(monkeypatch):
+    from dataclasses import replace
+
+    import pymupdf
+
+    from app.rag import visual
+    from tests.test_chart_measure import _stacked_chart_page
+
+    doc = pymupdf.open()
+    doc.new_page().insert_text((50, 60), "Prose only.", fontsize=10)
+    doc.insert_pdf(_stacked_chart_page()[0])  # page 2: measured from its drawing, no vision call
+    picture = doc.new_page()  # page 3: a chart pasted as a picture
+    picture.insert_text((50, 60), "Figure 1.2 Prices", fontsize=10)
+    picture.insert_image(pymupdf.Rect(50, 100, 400, 350), pixmap=pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, 20, 20), False))
+    monkeypatch.setattr(visual, "settings", replace(visual.settings, visual_reading_max_pages=2, visual_chart_pages=40))
+    asked = []
+
+    def describe(png: bytes, page: int) -> str:
+        asked.append(page)
+        return "TYPE: chart\nTITLE: Prices\nOil about 80"
+
+    pages = visual.read_visuals(doc.tobytes(), "long.pdf", describe)
+
+    assert asked == [3] and [p.page for p in pages] == [3]

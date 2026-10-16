@@ -22,7 +22,7 @@ INDEX_STEPS = [
     ("PDF", "One document, any length"),
     ("Extract & clean text", "Per page; ligatures expanded, broken words rejoined"),
     ("Find sections", "From PDF bookmarks, or headings by font size"),
-    ("Read charts & tables", "Vision model on page images, or tables from the page layout"),
+    ("Read charts & tables", "Bar charts measured from the drawing; vision on page images; layout tables"),
     ("Link footnotes", "Each marker gets its note"),
     ("Chunk", "800 characters with a section label; tables and footnotes whole"),
     ("Store", "Chroma vectors + BM25 keyword index"),
@@ -35,6 +35,7 @@ ANSWER_STEPS = [
     ("Hybrid search", "Vectors + BM25, merged by rank fusion"),
     ("Rerank & compress", "Cross-encoder keeps the best; far-below-best dropped"),
     ("Expand", "Whole page of the best hits + referenced footnotes"),
+    ("Chart?", "Chart questions: read the chart page (measured values + image)"),
     ("Answer", "From numbered passages, with page citations, or 'not found'"),
 ]
 
@@ -93,6 +94,12 @@ TECHNIQUES = [
      "Tables never split from their titles", "always", "app/rag/chunker.py"),
     ("iMac", "Charts described by a vision model, cached", "On",
      "Chart questions 86% -> 100%", "VISION_MODEL", "app/rag/visual.py"),
+    ("GEP", "Bar charts measured from the PDF's vector drawing", "On",
+     "GEP chart questions 1/6 -> 6/6; ~±1% of the axis, 101 charts in GEP", "INDEX_MEASURED_CHARTS",
+     "app/rag/chart_measure.py"),
+    ("GEP", "Chart questions answered from the chart page, estimates marked", "On",
+     "Figure 3.1.D moderate risk ≈52% -> ≈40% (ChatGPT guessed 30% -> 20%)", "CHART_READING",
+     "app/rag/chart_reader.py"),
     ("iMac", "Check the reranker doesn't hurt tables", "Checked",
      "iMac MRR 1.00 with and without it", "-", "-"),
     ("Evaluation", "Hand-checked question sets (guide: 37)", "Done",
@@ -121,6 +128,8 @@ STACK = [
     ("Answers, rewriting, routing", "Groq: gpt-oss-20b / gpt-oss-120b", "Free tier"),
     ("Judge and fallback answers", "Gemini 3.5 Flash-Lite", "Free tier"),
     ("Charts and tables from page images", "OpenRouter free vision models", "Free tier"),
+    ("Bar charts measured from the drawing", "PyMuPDF vector shapes", "Local"),
+    ("Chart pages at answer time", "Gemini 3.5 Flash-Lite (vision)", "Free tier"),
     ("App", "Streamlit", "Local"),
 ]
 

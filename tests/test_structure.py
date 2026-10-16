@@ -125,3 +125,46 @@ def test_world_bank_report_sections_end_to_end():
     assert sections[109].startswith("Ch. 3 A Rising Challenge")
     assert sections[189] == "Statistical Annex"
     assert sections[13] == "Contents"
+
+
+def _pdf_with_fonts() -> bytes:
+    import pymupdf
+
+    doc = pymupdf.open()
+    for number, heading in enumerate(["South Asia", "Europe and Central", None, None], start=1):
+        page = doc.new_page()
+        page.insert_text((50, 40), "GLOBAL REPORT | JUNE 2026", fontsize=8)  # running header
+        y = 90
+        if heading:
+            page.insert_text((50, y), heading, fontsize=18)
+            if number == 2:
+                page.insert_text((50, y + 22), "Asia", fontsize=18)  # a title wrapped over two lines
+            y += 60
+        for line in range(12):
+            page.insert_text((50, y + line * 14), f"Body text line {line} about growth on page {number}.",
+                             fontsize=11)
+    data = doc.tobytes()
+    doc.close()
+    return data
+
+
+def test_font_outline_finds_large_headings_and_skips_running_headers():
+    from app.rag.structure import font_outline
+
+    assert font_outline(_pdf_with_fonts()) == [("South Asia", 1), ("Europe and Central Asia", 2)]
+
+
+def test_structure_source_picks_bookmarks_or_fonts():
+    from types import SimpleNamespace
+
+    from app.rag.document_loader import _outline
+
+    data = _pdf_with_fonts()
+    with_bookmarks = SimpleNamespace(outline=[SimpleNamespace(title="Bookmarked")],
+                                     get_destination_page_number=lambda item: 0)
+    without = SimpleNamespace(outline=[], get_destination_page_number=lambda item: 0)
+
+    assert _outline(with_bookmarks, data, "auto") == [("Bookmarked", 1)]
+    assert _outline(without, data, "auto")[0] == ("South Asia", 1)  # no bookmarks: fonts
+    assert _outline(with_bookmarks, data, "fonts")[0] == ("South Asia", 1)
+    assert _outline(without, data, "bookmarks") == []

@@ -79,9 +79,11 @@ class RAGPipeline:
         rerank_candidates: int | None = None,
         section_aware: bool | None = None,
         read_visuals: bool | None = None,
+        structure_source: str | None = None,
     ):
         self.chunk_size = chunk_size or settings.chunk_size
         self.chunk_overlap = settings.chunk_overlap if chunk_overlap is None else chunk_overlap
+        self.structure_source = structure_source or settings.structure_source
         self.section_aware = settings.section_aware if section_aware is None else section_aware
         # Charts/tables/call-outs from page images + footnotes, for short PDFs (app/rag/visual.py).
         self.read_visuals = settings.visual_reading_max_pages > 0 if read_visuals is None else read_visuals
@@ -105,7 +107,8 @@ class RAGPipeline:
         Returns (num_chunks_added, errors) where `errors` maps
         filename to a friendly message for anything that failed.
         """
-        pages, errors = parse_uploaded_files(files, detect_structure=self.section_aware, read_visuals=self.read_visuals)
+        pages, errors = parse_uploaded_files(files, detect_structure=self.section_aware, read_visuals=self.read_visuals,
+                                             structure_source=self.structure_source)
         if not pages:
             return 0, errors
 

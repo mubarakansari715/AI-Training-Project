@@ -118,6 +118,9 @@ class Settings:
     # headers, boxes), label chunks with them, and let questions that name a
     # section search only there — see app/rag/structure.py.
     section_aware: bool = _get_bool("SECTION_AWARE", True)
+    # Where section headings come from: "auto" (PDF bookmarks, or headings
+    # found by font size when a PDF has none), "bookmarks" or "fonts".
+    structure_source: str = os.getenv("STRUCTURE_SOURCE", "auto")
     # False (default): answer from documents when they have the answer,
     # otherwise fall back to the model's general knowledge (source is
     # shown in the UI either way). True: only ever answer from documents,

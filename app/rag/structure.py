@@ -18,13 +18,16 @@ Signals, combined because none is reliable alone:
 - near-empty pages (separators, figure-only pages) inherit the label of
   the page before.
 
-Documents without bookmarks or chapter headers get no labels and are
-handled exactly as before.
+Documents without bookmarks can use their fonts instead (`font_outline`,
+the field guide's method): lines set clearly larger than the body text are
+headings, and they stand in for the bookmark list. Documents with neither
+get no labels and are handled exactly as before.
 """
 
 from __future__ import annotations
 
 import re
+from collections import Counter
 from dataclasses import dataclass
 
 SEPARATOR = " › "
@@ -37,6 +40,13 @@ _BOX_TITLE_RE = re.compile(r"^box\s*(\d+(?:\.\d+)?)\b", re.IGNORECASE)
 _HEADER_CHAPTER_RE = re.compile(r"chapter(\d+)")
 _BOX_LABEL_RE = re.compile(r"\bBOX\s*(\d+\.\d+)\b")  # case-sensitive on purpose
 _NEAR_EMPTY_CHARS = 200
+# A heading is set at least this many times the body font size (GEP: body
+# 11 pt, section headings 16 pt, chapter titles 26 pt).
+_HEADING_SIZE_RATIO = 1.3
+_HEADING_MAX_CHARS = 120
+# A line repeated on more than this share of pages is a running header or
+# footer, not a heading.
+_REPEATED_SHARE = 0.2
 
 
 def compact(text: str) -> str:
@@ -163,6 +173,49 @@ def flatten_outline(reader) -> list[tuple[str, int]]:
     except Exception:  # noqa: BLE001
         return []
     return result
+
+
+def font_outline(data: bytes) -> list[tuple[str, int]]:
+    """Headings found by font size, as (title, 1-based page) like a bookmark
+    list: lines at least `_HEADING_SIZE_RATIO` times the body size, with
+    consecutive heading lines of one size joined (a title over two lines)
+    and lines that repeat across pages (running headers) left out."""
+    import pymupdf
+
+    lines = []  # (page, size, text)
+    body = Counter()
+    with pymupdf.open(stream=data, filetype="pdf") as document:
+        for number, page in enumerate(document, start=1):
+            for block in page.get_text("dict")["blocks"]:
+                for line in block.get("lines", []):
+                    text = "".join(span["text"] for span in line["spans"]).strip()
+                    if text:
+                        size = round(max(span["size"] for span in line["spans"]), 1)
+                        body[size] += len(text)
+                        lines.append((number, size, text))
+        page_count = len(document)
+    if not body:
+        return []
+    threshold = body.most_common(1)[0][0] * _HEADING_SIZE_RATIO
+    pages_with = Counter()
+    for text, page in {(compact(text), page) for page, _, text in lines}:
+        pages_with[text] += 1
+    repeated = {text for text, count in pages_with.items() if count > max(2, page_count * _REPEATED_SHARE)}
+
+    outline: list[tuple[str, int]] = []
+    previous = None  # (page, size) of the heading line before, to join wrapped titles
+    for page, size, text in lines:
+        heading = (size >= threshold and len(text) <= _HEADING_MAX_CHARS and re.search(r"[A-Za-z]{2}", text)
+                   and compact(text) not in repeated)
+        if not heading:
+            previous = None
+            continue
+        if previous == (page, size) and len(outline[-1][0]) + len(text) < _HEADING_MAX_CHARS:
+            outline[-1] = (f"{outline[-1][0]} {text}", page)
+        else:
+            outline.append((text, page))
+        previous = (page, size)
+    return outline
 
 
 def is_front_matter(label: str | None) -> bool:

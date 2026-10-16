@@ -256,6 +256,7 @@ See [`.env.example`](.env.example) for the full file with defaults:
 | `RERANKER_MODEL` | Cross-encoder that reorders retrieved candidates (empty = off) | `cross-encoder/ms-marco-MiniLM-L-6-v2` |
 | `RERANK_CANDIDATES` | Candidates fetched for the reranker to choose `TOP_K` from | `20` |
 | `SECTION_AWARE` | Detect sections in structured PDFs; search only sections a question names | `true` |
+| `STRUCTURE_SOURCE` | Section headings from `auto` (bookmarks, else font sizes), `bookmarks` or `fonts` | `auto` |
 | `STRICT_DOCUMENT_MODE` | Refuse to answer beyond the documents | `false` |
 | `QUERY_REWRITING` | Rewrite questions with the LLM before searching (typos, follow-ups) | `true` |
 | `AGENT_MODE` | Auto mode: the LLM decides whether/how often to search (needs Groq) | `true` |

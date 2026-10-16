@@ -16,7 +16,8 @@ import docx
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
-from app.rag.structure import detect_sections, flatten_outline
+from app.config.settings import settings
+from app.rag.structure import detect_sections, flatten_outline, font_outline
 from app.rag.text_cleaner import expand_ligatures
 
 logger = logging.getLogger(__name__)
@@ -44,7 +45,8 @@ class DocumentPage:
 
 
 def parse_document(
-    filename: str, data: bytes, detect_structure: bool = True, read_visuals: bool = False
+    filename: str, data: bytes, detect_structure: bool = True, read_visuals: bool = False,
+    structure_source: str | None = None,
 ) -> list[DocumentPage]:
     """Parse raw file bytes into a list of DocumentPage.
 
@@ -55,7 +57,8 @@ def parse_document(
     pages (see app.rag.media_transcriber).
 
     `read_visuals` also reads a short PDF's charts, tables, call-outs and
-    footnotes (see app.rag.visual).
+    footnotes (see app.rag.visual). `structure_source` picks where section
+    headings come from (default: settings.structure_source).
 
     Returns an empty list if the file is readable but contains no
     extractable text. Raises DocumentParsingError for empty files,
@@ -74,7 +77,8 @@ def parse_document(
 
     try:
         if extension == "pdf":
-            return _parse_pdf(data, filename, detect_structure, read_visuals)
+            return _parse_pdf(data, filename, detect_structure, read_visuals,
+                              structure_source or settings.structure_source)
         if extension == "docx":
             return _parse_docx(data, filename)
         if extension in MEDIA_EXTENSIONS:
@@ -92,7 +96,8 @@ def parse_document(
 
 
 def _parse_pdf(
-    data: bytes, filename: str, detect_structure: bool = True, read_visuals: bool = False
+    data: bytes, filename: str, detect_structure: bool = True, read_visuals: bool = False,
+    structure_source: str = "auto",
 ) -> list[DocumentPage]:
     try:
         reader = PdfReader(io.BytesIO(data))
@@ -107,7 +112,7 @@ def _parse_pdf(
              for index, page in enumerate(reader.pages, start=1)}
     # Chapter/section per page, for structured reports (bookmarks, running
     # headers); empty for documents without detectable structure.
-    sections = detect_sections(texts, flatten_outline(reader)) if detect_structure else {}
+    sections = detect_sections(texts, _outline(reader, data, structure_source)) if detect_structure else {}
     visuals = []
     if read_visuals:
         from app.rag.visual import read_visuals as read_page_visuals
@@ -118,6 +123,13 @@ def _parse_pdf(
         for index, text in texts.items()
         if text
     ] + visuals
+
+
+def _outline(reader, data: bytes, source: str) -> list[tuple[str, int]]:
+    """Section headings as (title, page): the PDF's bookmarks, or headings
+    found by font size ("fonts", or "auto" when there are no bookmarks)."""
+    bookmarks = [] if source == "fonts" else flatten_outline(reader)
+    return bookmarks if bookmarks or source == "bookmarks" else font_outline(data)
 
 
 def _parse_docx(data: bytes, filename: str) -> list[DocumentPage]:

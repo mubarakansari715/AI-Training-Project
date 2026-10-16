@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def parse_uploaded_files(
-    files: Iterable, detect_structure: bool = True, read_visuals: bool = False
+    files: Iterable, detect_structure: bool = True, read_visuals: bool = False, structure_source: str | None = None,
 ) -> tuple[list[DocumentPage], dict[str, str]]:
     """Parse and clean Streamlit-uploaded files.
 
@@ -30,7 +30,7 @@ def parse_uploaded_files(
 
     for file in files:
         try:
-            file_pages = parse_document(file.name, file.getvalue(), detect_structure, read_visuals)
+            file_pages = parse_document(file.name, file.getvalue(), detect_structure, read_visuals, structure_source)
         except DocumentParsingError as exc:
             logger.warning("Parsing failed for %s: %s", file.name, exc)
             errors[file.name] = str(exc)

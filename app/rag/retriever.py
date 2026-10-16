@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 
 from app.config.settings import settings
 from app.rag.embeddings import EmbeddingService
+from app.rag.keyword_search import KeywordIndex, fuse
 from app.rag.structure import is_front_matter, sections_mentioned
 from app.rag.vector_store import VectorStore
 from app.rag.visual import footnote_label
@@ -79,6 +80,8 @@ class Retriever:
         reranker=None,
         rerank_candidates: int | None = None,
         section_aware: bool = True,
+        hybrid_search: bool | None = None,
+        keyword_candidates: int | None = None,
     ):
         self._vector_store = vector_store
         self._embeddings = embedding_service
@@ -91,6 +94,11 @@ class Retriever:
         self.reranker = reranker
         self.rerank_candidates = rerank_candidates or settings.rerank_candidates
         self.section_aware = section_aware
+        # Optional BM25 keyword search merged with the embedding search
+        # (app.rag.keyword_search); None = off.
+        hybrid = settings.hybrid_search if hybrid_search is None else hybrid_search
+        self.keyword_index = KeywordIndex(vector_store) if hybrid else None
+        self.keyword_candidates = keyword_candidates or settings.keyword_candidates
 
     def retrieve(self, question: str) -> list[RetrievedChunk]:
         """Return relevant chunks for `question`, most similar first.
@@ -203,9 +211,26 @@ class Retriever:
             if score < self.score_threshold and not summary:
                 continue
             results.append(_to_chunk(match, score))
+        if self.keyword_index:
+            results = self._merge_keyword_hits(question, query_embedding, results, fetch, where)
         if self.reranker:
             return self.reranker.rerank(question, results, top_k)
         return results[:top_k]
+
+    def _merge_keyword_hits(self, question: str, query_embedding: list[float], results: list[RetrievedChunk],
+                            fetch: int, where: dict | None) -> list[RetrievedChunk]:
+        """Hybrid search: merge the embedding candidates with BM25's by
+        reciprocal rank fusion. Chunks only BM25 found skip the similarity
+        threshold (they matched the question's exact words) and get their
+        real similarity score for display."""
+        hits = self.keyword_index.search(question, max(fetch, self.keyword_candidates), where)
+        known = {chunk.chunk_id: chunk for chunk in results}
+        new = [hit for hit in hits if hit["chunk_id"] not in known]
+        similarity = self._vector_store.similarities(query_embedding, [hit["chunk_id"] for hit in new])
+        for hit in new:
+            known[hit["chunk_id"]] = _to_chunk(hit, similarity.get(hit["chunk_id"], 0.0))
+        order = fuse([chunk.chunk_id for chunk in results], [hit["chunk_id"] for hit in hits])
+        return [known[chunk_id] for chunk_id in order]
 
     def _section_filter(self, question: str) -> tuple[list[list[str]], dict | None]:
         """(named groups, where): search only the sections the question names

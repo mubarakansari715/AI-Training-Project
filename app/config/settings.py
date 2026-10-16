@@ -123,6 +123,12 @@ class Settings:
     reranker_model: str = os.getenv("RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
     # How many embedding-search candidates the reranker chooses top_k from.
     rerank_candidates: int = _get_int("RERANK_CANDIDATES", 20)
+    # Hybrid search: also rank chunks by exact words (BM25) and merge both
+    # rankings, so exact names and figures ("FDsys", "802,834") are found
+    # even when embedding search ranks them low — see app/rag/keyword_search.py.
+    hybrid_search: bool = _get_bool("HYBRID_SEARCH", True)
+    # How many BM25 candidates join the embedding candidates per search.
+    keyword_candidates: int = _get_int("KEYWORD_CANDIDATES", 20)
     # Detect chapters/sections in structured PDFs (bookmarks, running
     # headers, boxes), label chunks with them, and let questions that name a
     # section search only there — see app/rag/structure.py.

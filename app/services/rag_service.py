@@ -79,6 +79,7 @@ class RAGPipeline:
         rerank_candidates: int | None = None,
         section_aware: bool | None = None,
         read_visuals: bool | None = None,
+        hybrid_search: bool | None = None,
         chunk_strategy: str | None = None,
         chunk_unit: str | None = None,
         structure_source: str | None = None,
@@ -99,7 +100,7 @@ class RAGPipeline:
         self.retriever = Retriever(
             self.vector_store, self.embedding_service, top_k=top_k, score_threshold=score_threshold,
             reranker=Reranker(reranker_model) if reranker_model else None,
-            rerank_candidates=rerank_candidates, section_aware=self.section_aware,
+            rerank_candidates=rerank_candidates, section_aware=self.section_aware, hybrid_search=hybrid_search,
         )
         self.generator = AnswerGenerator()
         self.indexed_documents: set[str] = set()

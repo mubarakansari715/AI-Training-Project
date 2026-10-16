@@ -158,6 +158,7 @@ app/
 │   ├── embeddings.py             # Cached sentence-transformers wrapper
 │   ├── vector_store.py           # Persistent ChromaDB wrapper
 │   ├── retriever.py              # Question -> relevant chunks
+│   ├── keyword_search.py         # BM25 keyword search, merged with vectors (hybrid)
 │   ├── prompt.py                 # RAG prompt template
 │   ├── generator.py              # Groq/Gemini answer generation (+ Groq tool calling)
 │   ├── agent.py                  # Auto mode: LLM-driven search with a tool
@@ -257,6 +258,8 @@ See [`.env.example`](.env.example) for the full file with defaults:
 | `SIMILARITY_THRESHOLD` | Minimum cosine similarity ([-1, 1]) for a chunk to count as relevant | `0.2` |
 | `RERANKER_MODEL` | Cross-encoder that reorders retrieved candidates (empty = off) | `cross-encoder/ms-marco-MiniLM-L-6-v2` |
 | `RERANK_CANDIDATES` | Candidates fetched for the reranker to choose `TOP_K` from | `20` |
+| `HYBRID_SEARCH` | Also rank chunks by exact words (BM25) and merge with the embedding search | `true` |
+| `KEYWORD_CANDIDATES` | BM25 candidates merged into each search | `20` |
 | `SECTION_AWARE` | Detect sections in structured PDFs; search only sections a question names | `true` |
 | `STRUCTURE_SOURCE` | Section headings from `auto` (bookmarks, else font sizes), `bookmarks` or `fonts` | `auto` |
 | `STRICT_DOCUMENT_MODE` | Refuse to answer beyond the documents | `false` |
@@ -347,8 +350,6 @@ pipeline integration test. The Groq and Gemini APIs are mocked throughout, so
 
 ## Future Improvements
 
-- Reranking of retrieved chunks
-- Hybrid (keyword + semantic) search
 - OCR support for scanned/image-only PDFs
 - Streaming responses
 - Authentication

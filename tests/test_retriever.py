@@ -318,3 +318,46 @@ def test_a_footnote_is_attached_once_even_when_several_pages_reference_it(tmp_pa
     ids = [r.chunk_id for r in retriever.retrieve(q)]
     assert ids[:2] == ["i.pdf:4:0:a", "i.pdf:1:1:f"]
     assert sum("Footnote 1," in t for t in (c.text for c in retriever.retrieve(q))) == 1
+def _exact_term_store(tmp_path):
+    """The chunk with the exact figure is far from the question's embedding."""
+    store = VectorStore(persist_dir=str(tmp_path / "chroma"), collection_name="hybrid_test")
+    chunks = [
+        Chunk(text="Library services reached many readers this year.", source="r.pdf", page=1, chunk_id="near",
+              section="Libraries"),
+        Chunk(text="GPO distributed 802,834 copies of 4,211 titles through FDsys.", source="r.pdf", page=2,
+              chunk_id="exact", section="Libraries"),
+        Chunk(text="FDsys was retired in December 2018.", source="r.pdf", page=3, chunk_id="other",
+              section="Technology"),
+    ]
+    store.add_chunks(chunks, [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+    return store
+
+
+def test_hybrid_search_finds_an_exact_figure_that_embedding_search_misses(tmp_path):
+    q = "How many copies were 802,834?"
+    embeddings = FakeEmbeddingService({q: [1.0, 0.0, 0.0]})
+    store = _exact_term_store(tmp_path)
+
+    vector_only = Retriever(store, embeddings, top_k=1, score_threshold=0.5, hybrid_search=False).retrieve(q)
+    hybrid = Retriever(store, embeddings, top_k=2, score_threshold=0.5, hybrid_search=True)
+    results = hybrid.retrieve(q)
+
+    assert [c.chunk_id for c in vector_only] == ["near"]
+    assert "exact" in [c.chunk_id for c in results]
+    assert hybrid.last_stats["keyword_only"] == 1
+    exact = next(c for c in results if c.chunk_id == "exact")
+    assert exact.score == pytest.approx(0.0)  # its real similarity, though the threshold was skipped
+
+
+def test_hybrid_search_respects_the_section_filter(tmp_path):
+    q = "When was FDsys retired in Technology?"
+    store = _exact_term_store(tmp_path)
+    retriever = Retriever(store, FakeEmbeddingService({q: [1.0, 0.0, 0.0]}), top_k=3, score_threshold=0.5,
+                          hybrid_search=True)
+
+    retriever.last_stats = {"searches": 0, "candidates": 0, "keyword_only": 0, "kept": 0, "compressed": 0}
+    results = retriever._search(q, [1.0, 0.0, 0.0], 3, {"section": {"$in": ["Technology"]}}, summary=False)
+
+    assert [c.chunk_id for c in results] == ["other"]  # "exact" also says FDsys but is in another section
+
+

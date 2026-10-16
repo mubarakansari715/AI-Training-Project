@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 
 import chromadb
+import numpy as np
 
 from app.config.settings import settings
 from app.rag.chunker import Chunk
@@ -151,6 +152,20 @@ class VectorStore:
             }
             for chunk_id, text, meta in zip(stored["ids"], stored["documents"], stored["metadatas"])
         ]
+
+    def similarities(self, query_embedding: list[float], ids: list[str]) -> dict[str, float]:
+        """Cosine similarity of `query_embedding` to each stored chunk in `ids`
+        (the same score `search` gives), for chunks found another way."""
+        if not ids:
+            return {}
+        stored = self._collection.get(ids=list(ids), include=["embeddings"])
+        query = np.asarray(query_embedding, dtype=float)
+        query_norm = np.linalg.norm(query) or 1.0
+        result = {}
+        for chunk_id, vector in zip(stored["ids"], stored["embeddings"]):
+            vector = np.asarray(vector, dtype=float)
+            result[chunk_id] = float(vector @ query / ((np.linalg.norm(vector) or 1.0) * query_norm))
+        return result
 
     def chunk_ids_for_source(self, source: str) -> set[str]:
         """IDs of every stored chunk from one document."""

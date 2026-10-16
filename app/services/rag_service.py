@@ -18,6 +18,7 @@ from app.rag.citations import cited_chunks
 from app.rag.embeddings import EmbeddingService
 from app.rag.generator import AnswerGenerator
 from app.rag.model_router import resolve_groq_model
+from app.rag.query_decomposer import decompose_query, needs_decomposition
 from app.rag.query_router import llm_route
 from app.rag.query_rewriter import rewrite_query
 from app.rag.reranker import Reranker
@@ -54,6 +55,9 @@ class AskResult:
     search_query: str | None = None
     # Auto mode: every search the agent decided to run, in order.
     searches: list[str] = field(default_factory=list)
+    # The sub-questions searched for a decomposed multi-part question
+    # (empty when it was searched as one question).
+    sub_queries: list[str] = field(default_factory=list)
     # The Groq model used (after resolving "auto"), for display.
     model: str | None = None
 
@@ -110,6 +114,7 @@ class RAGPipeline:
                 self.generator, question, labels, groq_model_name=settings.groq_fast_model)
         self.indexed_documents: set[str] = set()
         self.rewrite_queries = settings.query_rewriting
+        self.decompose_queries = settings.query_decomposition
 
     def index_files(self, files) -> tuple[int, dict[str, str]]:
         """Parse, clean, chunk, embed, and store uploaded files.
@@ -253,16 +258,31 @@ class RAGPipeline:
             )
             small_talk = is_small_talk(search_query)
 
+        # Split comparison/multi-part questions into sub-questions, each
+        # searched on its own (app.rag.query_decomposer). Questions naming
+        # sections are already searched per section by the retriever.
+        sub_queries = []
+        if (self.decompose_queries and not small_talk and self.vector_store.count() > 0
+                and needs_decomposition(search_query) and not self.retriever.named_sections(search_query)):
+            sub_queries = decompose_query(self.generator, search_query, model_name=model_name,
+                                          groq_model_name=groq_model)
+            sub_queries = sub_queries if len(sub_queries) > 1 else []
+
         # Small talk ("hi", "who are you?") never needs document
         # context — searching anyway attaches unrelated chunks as sources.
         try:
-            chunks = [] if small_talk else self.retriever.retrieve(search_query)
+            if small_talk:
+                chunks = []
+            elif sub_queries:
+                chunks = self.retriever.retrieve_many(sub_queries)
+            else:
+                chunks = self.retriever.retrieve(search_query)
         except Exception:
             logger.exception("Retrieval failed")
             return AskResult(answer="Something went wrong while searching your documents.")
 
         if strict and not chunks and not small_talk:
-            return AskResult(answer=NOT_FOUND_MESSAGE, sources=[], search_query=search_query)
+            return AskResult(answer=NOT_FOUND_MESSAGE, sources=[], search_query=search_query, sub_queries=sub_queries)
 
         answer = self.generator.generate(
             question,
@@ -288,7 +308,7 @@ class RAGPipeline:
 
         return AskResult(
             answer=answer, sources=chunks, found_context=bool(chunks),
-            source=source, search_query=search_query,
+            source=source, search_query=search_query, sub_queries=sub_queries,
             model=None if gemini_picked else groq_model,
         )
 

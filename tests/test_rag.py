@@ -36,6 +36,7 @@ def pipeline(tmp_path):
     # The mocked LLM returns the same text for every call, so it would also
     # be used as the "rewritten" query; rewriting has its own tests below.
     pipeline.rewrite_queries = False
+    pipeline.decompose_queries = False
     return pipeline
 
 
@@ -400,4 +401,41 @@ def _minimal_pdf(text: str) -> bytes:
     from tests.test_document_loader import _make_minimal_pdf
 
     return _make_minimal_pdf(text)
+
+
+
+def test_multi_part_question_is_searched_per_sub_question(pipeline, monkeypatch):
+    _mock_gemini(pipeline, monkeypatch, "24 days of leave; the office is downtown.")
+    pipeline.index_files([
+        FakeUploadedFile("leave.txt", b"Employees are entitled to 24 days of annual leave per year."),
+        FakeUploadedFile("office.txt", b"The head office is located downtown, next to the station."),
+    ])
+    pipeline.decompose_queries = True
+    parts = ["How many days of annual leave do employees get?", "Where is the head office located?"]
+    calls = []
+
+    def fake_decompose(generator, question, **kwargs):
+        calls.append(question)
+        return parts
+
+    monkeypatch.setattr("app.services.rag_service.decompose_query", fake_decompose)
+
+    result = pipeline.ask("How many leave days are there, and where is the head office?", strict_mode=True)
+
+    assert calls == ["How many leave days are there, and where is the head office?"]
+    assert result.sub_queries == parts
+    assert pipeline.retriever.last_stats["searches"] == 2
+
+
+def test_single_part_question_is_not_decomposed(pipeline, monkeypatch):
+    _mock_gemini(pipeline, monkeypatch, "24 days.")
+    pipeline.index_files([FakeUploadedFile("leave.txt", b"Employees are entitled to 24 days of annual leave per year.")])
+    pipeline.decompose_queries = True
+    monkeypatch.setattr("app.services.rag_service.decompose_query",
+                        lambda *a, **k: (_ for _ in ()).throw(AssertionError("should not decompose")))
+
+    result = pipeline.ask("How many days of annual leave do employees get?", strict_mode=True)
+
+    assert result.sub_queries == [] and result.sources
+
 

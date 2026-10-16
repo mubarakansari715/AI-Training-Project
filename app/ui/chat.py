@@ -268,7 +268,8 @@ def render_chat(
                             auto_mode=auto_mode,
                         )
                         answer, sources, source_label = result.answer, result.sources, result.source
-                        searches, answer_model = result.searches, result.model
+                        # Agent searches, or the sub-questions of a decomposed question.
+                        searches, answer_model = result.searches or result.sub_queries, result.model
                     except Exception:
                         answer, sources, source_label = (
                             "Something went wrong while generating the answer. Please try again.",

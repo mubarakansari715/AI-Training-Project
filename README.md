@@ -159,6 +159,7 @@ app/
 │   ├── vector_store.py           # Persistent ChromaDB wrapper
 │   ├── retriever.py              # Question -> relevant chunks
 │   ├── keyword_search.py         # BM25 keyword search, merged with vectors (hybrid)
+│   ├── query_decomposer.py       # Multi-part questions -> sub-questions
 │   ├── query_router.py           # LLM routing of questions to sections (optional)
 │   ├── prompt.py                 # RAG prompt template
 │   ├── generator.py              # Groq/Gemini answer generation (+ Groq tool calling)
@@ -268,6 +269,7 @@ See [`.env.example`](.env.example) for the full file with defaults:
 | `QUERY_ROUTING` | Route questions to sections by `rules`, or `llm` (rules first, then one LLM call) | `rules` |
 | `STRICT_DOCUMENT_MODE` | Refuse to answer beyond the documents | `false` |
 | `QUERY_REWRITING` | Rewrite questions with the LLM before searching (typos, follow-ups) | `true` |
+| `QUERY_DECOMPOSITION` | Split comparison/multi-part questions into sub-questions, each searched | `true` |
 | `AGENT_MODE` | Auto mode: the LLM decides whether/how often to search (needs Groq) | `true` |
 | `AGENT_MAX_SEARCHES` | Most searches auto mode may run per question | `3` |
 

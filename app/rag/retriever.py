@@ -148,6 +148,29 @@ class Retriever:
             results = self._expand_to_pages(results)
         return self._attach_footnotes(results)
 
+    def retrieve_many(self, queries: list[str]) -> list[RetrievedChunk]:
+        """Search each sub-question of a decomposed question (see
+        app.rag.query_decomposer) with its own share of the top-k, so every
+        part gets evidence; duplicates are dropped, first search first."""
+        queries = [q for q in queries if q and q.strip()]
+        if len(queries) <= 1:
+            return self.retrieve(queries[0] if queries else "")
+        # Same split as searching several named sections (see `retrieve`).
+        share = self.top_k if len(queries) <= 2 else max(2, -(-2 * self.top_k // len(queries)))
+        results, seen = [], set()
+        for query in queries:
+            embedding = self._embeddings.embed_query(query)
+            where = self._section_filter(query)[1]
+            for chunk in self._search(query, embedding, share, where, summary=False):
+                if chunk.chunk_id not in seen:
+                    seen.add(chunk.chunk_id)
+                    results.append(chunk)
+        return self._attach_footnotes(results)
+
+    def named_sections(self, question: str) -> list[list[str]]:
+        """The document sections `question` names (empty when not section-aware)."""
+        return self._section_filter(question)[0]
+
     def _attach_footnotes(self, results: list[RetrievedChunk]) -> list[RetrievedChunk]:
         """Append the footnote passages that retrieved chunks refer to with
         an [n] marker (same document and page, at most `_FOOTNOTES_MAX`).

@@ -160,6 +160,10 @@ class Settings:
     # resolves follow-ups like "and my cholesterol?"); costs one short
     # extra LLM call per question while documents are indexed.
     query_rewriting: bool = _get_bool("QUERY_REWRITING", True)
+    # Split comparison and multi-part questions into sub-questions and
+    # search each one (one short extra LLM call, only for such questions);
+    # see app/rag/query_decomposer.py.
+    query_decomposition: bool = _get_bool("QUERY_DECOMPOSITION", True)
     # Auto (agent) mode: the LLM gets a document-search tool and decides
     # whether, how often and with what wording to search before answering,
     # like ChatGPT/Claude — see app/rag/agent.py. Needs Groq (tool calling).

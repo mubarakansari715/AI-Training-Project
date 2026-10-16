@@ -405,6 +405,24 @@ def test_hybrid_search_respects_the_section_filter(tmp_path):
     assert [c.chunk_id for c in results] == ["other"]  # "exact" also says FDsys but is in another section
 
 
+def test_retrieve_many_gives_each_sub_question_its_share_and_drops_duplicates(tmp_path):
+    store = _exact_term_store(tmp_path)
+    embeddings = FakeEmbeddingService({"libraries?": [1.0, 0.0, 0.0], "retired?": [0.0, 0.0, 1.0],
+                                       "both?": [1.0, 0.0, 0.0]})
+    retriever = Retriever(store, embeddings, top_k=1, score_threshold=0.5, hybrid_search=False)
+
+    results = retriever.retrieve_many(["libraries?", "retired?", "both?"])
+
+    assert [c.chunk_id for c in results] == ["near", "other"]  # "both?" found "near" again
+    assert retriever.last_stats["searches"] == 3
+
+
+def test_retrieve_many_with_one_query_is_a_normal_retrieve(populated_store):
+    retriever = Retriever(populated_store, FakeEmbeddingService({"leave": [1.0, 0.0, 0.0]}), top_k=1)
+    assert [c.chunk_id for c in retriever.retrieve_many(["leave"])] == ["c1"]
+    assert retriever.retrieve_many([]) == []
+
+
 def test_router_runs_only_when_the_rules_name_no_section_and_is_cached():
     calls = []
 

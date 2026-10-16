@@ -455,3 +455,20 @@ def test_single_part_question_is_not_decomposed(pipeline, monkeypatch):
     assert result.sub_queries == [] and result.sources
 
 
+def test_indexing_reports_progress_from_start_to_done(pipeline):
+    from tests.test_chart_measure import _stacked_chart_page
+
+    doc, _ = _stacked_chart_page()
+    heard = []
+
+    added, errors = pipeline.index_files([FakeUploadedFile("risk.pdf", doc.tobytes())],
+                                         progress=lambda label, fraction: heard.append((label, fraction)))
+
+    assert added and not errors
+    fractions = [f for _, f in heard]
+    assert fractions == sorted(fractions) and fractions[0] == 0.0 and heard[-1] == ("Done", 1.0)
+    labels = [label for label, _ in heard]
+    for stage in ["Reading text (page 1 of 1)", "Measuring charts", "Splitting into passages", "Saving"]:
+        assert stage in labels
+    assert any(label.startswith("Embedding passages") for label in labels)
+    assert pipeline.last_indexed["risk.pdf"] == {"pages": 1, "passages": added, "charts": 1}

@@ -139,3 +139,13 @@ def test_chunk_pages_round_trip_through_search(tmp_path):
     assert store.all_chunks()[0]["pages"] == [4, 5]
 
 
+def test_sources_lists_each_indexed_document_once(tmp_path):
+    from app.rag.chunker import Chunk
+    from app.rag.vector_store import VectorStore
+
+    store = VectorStore(persist_dir=str(tmp_path), collection_name="sources_test")
+    chunks = [Chunk(text=f"t{i}", source=name, page=1, chunk_id=f"{name}-{i}")
+              for i, name in enumerate(["b.pdf", "a.pdf", "b.pdf"])]
+    store.add_chunks(chunks, [[0.1, 0.2, 0.3]] * 3)
+
+    assert store.sources() == ["a.pdf", "b.pdf"]

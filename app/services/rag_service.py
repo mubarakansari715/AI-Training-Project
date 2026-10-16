@@ -20,6 +20,7 @@ from app.rag.embeddings import EmbeddingService
 from app.rag.generator import AnswerGenerator
 from app.rag.model_router import resolve_groq_model
 from app.rag.page_store import PageStore
+from app.rag.progress import Progress, report, scaled
 from app.rag.query_decomposer import decompose_query, needs_decomposition
 from app.rag.query_router import llm_route
 from app.rag.query_rewriter import needs_rewrite, rewrite_query, words
@@ -30,6 +31,8 @@ from app.rag.vector_store import VectorStore, VectorStoreError
 from app.services.document_service import parse_uploaded_files
 
 logger = logging.getLogger(__name__)
+
+_EMBED_BATCH = 64
 
 NOT_FOUND_MESSAGE = (
     "I couldn't find this information in the uploaded documents, "
@@ -125,6 +128,10 @@ class RAGPipeline:
         self.decompose_queries = settings.query_decomposition
         self.chart_reading = settings.chart_reading
         self.page_store = PageStore(page_store_dir)
+        # What the last index_files call read, per document: {"pages",
+        # "passages", "charts"} (charts measured from the drawing); shown
+        # when an upload finishes.
+        self.last_indexed: dict[str, dict[str, int]] = {}
         # Words of the indexed documents, for skipping needless rewrites;
         # rebuilt when the chunk count changes (see _document_vocabulary).
         self._vocabulary: tuple[int, set[str]] = (-1, set())
@@ -139,24 +146,36 @@ class RAGPipeline:
             self._vocabulary = (count, vocabulary)
         return self._vocabulary[1]
 
-    def index_files(self, files) -> tuple[int, dict[str, str]]:
-
+    def index_files(self, files, progress: Progress | None = None) -> tuple[int, dict[str, str]]:
         """Parse, clean, chunk, embed, and store uploaded files.
 
         Returns (num_chunks_added, errors) where `errors` maps
         filename to a friendly message for anything that failed.
+        `progress` hears about each stage (app.rag.progress): reading
+        takes the first half, embedding most of the rest.
         """
         files = list(files)
+        self.last_indexed = {}
+        report(progress, "Reading the document", 0.0)
         pages, errors = parse_uploaded_files(files, detect_structure=self.section_aware, read_visuals=self.read_visuals,
-                                             structure_source=self.structure_source, layout_tables=self.layout_tables)
+                                             structure_source=self.structure_source, layout_tables=self.layout_tables,
+                                             progress=scaled(progress, 0.0, 0.5))
         if not pages:
             return 0, errors
 
+        report(progress, "Splitting into passages", 0.5)
         length = self.embedding_service.count_tokens if self.chunk_unit == "tokens" else len
         chunks = chunk_pages(pages, chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap,
                              strategy=self.chunk_strategy, length_function=length)
         if not chunks:
             return 0, errors
+        for source in {page.source for page in pages}:
+            self.last_indexed[source] = {
+                "pages": max((p.page for p in pages if p.source == source and p.page is not None), default=0),
+                "passages": sum(1 for c in chunks if c.source == source),
+                "charts": sum(1 for p in pages if p.source == source and p.text.startswith("[Chart on page")
+                              and "measured from the drawing" in p.text),
+            }
 
         try:
             # Re-uploading a document replaces it. Unchanged content with the
@@ -164,7 +183,8 @@ class RAGPipeline:
             # anything else — edited file, new chunking/section settings —
             # would otherwise leave the old chunks next to the new ones.
             chunks = self._replace_changed_sources(chunks)
-            embeddings = self.embedding_service.embed_texts([c.text for c in chunks])
+            embeddings = self._embed_with_progress([c.text for c in chunks], scaled(progress, 0.52, 0.95))
+            report(progress, "Saving", 0.96)
             num_added = self.vector_store.add_chunks(chunks, embeddings)
         except VectorStoreError as exc:
             logger.exception("Indexing failed")
@@ -177,7 +197,16 @@ class RAGPipeline:
             if file.name in indexed:
                 self.page_store.save(file.name, file.getvalue())
         self._vocabulary = (-1, set())
+        report(progress, "Done", 1.0)
         return num_added, errors
+
+    def _embed_with_progress(self, texts: list[str], progress: Progress | None) -> list[list[float]]:
+        """Embed in batches, so a long document's progress keeps moving."""
+        embeddings: list[list[float]] = []
+        for start in range(0, len(texts), _EMBED_BATCH):
+            report(progress, f"Embedding passages ({start:,} of {len(texts):,})", start / len(texts))
+            embeddings += self.embedding_service.embed_texts(texts[start:start + _EMBED_BATCH])
+        return embeddings
 
     def _replace_changed_sources(self, chunks: list) -> list:
         """Drop chunks already stored unchanged; delete a document's old

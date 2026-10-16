@@ -160,7 +160,7 @@ def render_sidebar(
 
         st.divider()
         st.subheader(":material/description: Documents")
-        st.caption("Attach files using the 📎 icon in the chat box below.")
+        st.caption("Add files with the Attach button above the chat box.")
 
         if "document_names" not in st.session_state:
             st.session_state.document_names = []

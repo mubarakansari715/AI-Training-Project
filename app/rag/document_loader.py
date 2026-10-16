@@ -17,6 +17,7 @@ from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
 from app.config.settings import settings
+from app.rag.progress import Progress, report, scaled
 from app.rag.structure import detect_sections, flatten_outline, font_outline
 from app.rag.text_cleaner import expand_ligatures
 
@@ -49,7 +50,7 @@ class DocumentPage:
 
 def parse_document(
     filename: str, data: bytes, detect_structure: bool = True, read_visuals: bool = False,
-    structure_source: str | None = None, layout_tables: str | None = None,
+    structure_source: str | None = None, layout_tables: str | None = None, progress: Progress | None = None,
 ) -> list[DocumentPage]:
     """Parse raw file bytes into a list of DocumentPage.
 
@@ -64,6 +65,7 @@ def parse_document(
     headings come from (default: settings.structure_source), and
     `layout_tables` whether tables are rebuilt from the page layout
     (default: settings.layout_tables; see app.rag.layout_tables).
+    `progress` hears about each stage of reading a PDF (app.rag.progress).
 
     Returns an empty list if the file is readable but contains no
     extractable text. Raises DocumentParsingError for empty files,
@@ -83,7 +85,8 @@ def parse_document(
     try:
         if extension == "pdf":
             return _parse_pdf(data, filename, detect_structure, read_visuals,
-                              structure_source or settings.structure_source, layout_tables or settings.layout_tables)
+                              structure_source or settings.structure_source, layout_tables or settings.layout_tables,
+                              progress)
         if extension == "docx":
             return _parse_docx(data, filename)
         if extension in MEDIA_EXTENSIONS:
@@ -102,7 +105,7 @@ def parse_document(
 
 def _parse_pdf(
     data: bytes, filename: str, detect_structure: bool = True, read_visuals: bool = False,
-    structure_source: str = "auto", layout_tables: str = "auto",
+    structure_source: str = "auto", layout_tables: str = "auto", progress: Progress | None = None,
 ) -> list[DocumentPage]:
     try:
         reader = PdfReader(io.BytesIO(data))
@@ -113,8 +116,11 @@ def _parse_pdf(
 
     # Ligatures expanded before section detection too, so headings and section
     # labels read "Fiscal", not "ﬁscal" (app.rag.text_cleaner).
-    texts = {index: expand_ligatures(page.extract_text() or "").strip()
-             for index, page in enumerate(reader.pages, start=1)}
+    texts = {}
+    for index, page in enumerate(reader.pages, start=1):
+        report(progress, f"Reading text (page {index} of {len(reader.pages)})", 0.4 * (index - 1) / len(reader.pages))
+        texts[index] = expand_ligatures(page.extract_text() or "").strip()
+    report(progress, "Finding chapters and sections", 0.4)
     # Chapter/section per page, for structured reports (bookmarks, running
     # headers); empty for documents without detectable structure.
     sections = detect_sections(texts, _outline(reader, data, structure_source)) if detect_structure else {}
@@ -122,7 +128,7 @@ def _parse_pdf(
     if read_visuals:
         from app.rag.visual import read_visuals as read_page_visuals
 
-        visuals = read_page_visuals(data, filename)
+        visuals = read_page_visuals(data, filename, progress=scaled(progress, 0.45, 0.85))
     vision = read_visuals and len(reader.pages) <= settings.visual_reading_max_pages and bool(
         settings.openrouter_api_key)
     if layout_tables == "on" or (layout_tables == "auto" and not vision):
@@ -130,7 +136,9 @@ def _parse_pdf(
 
         visuals += read_layout_tables(data, filename)
     if settings.index_measured_charts:
+        report(progress, "Measuring charts", 0.85)
         visuals += _measured_charts(data, filename, sections)
+    report(progress, "Text read", 1.0)
     return [
         DocumentPage(text=text, source=filename, page=index, section=sections.get(index))
         for index, text in texts.items()

@@ -38,6 +38,7 @@ import requests
 
 from app.config.settings import settings
 from app.rag.document_loader import DocumentPage
+from app.rag.progress import Progress, report
 
 logger = logging.getLogger(__name__)
 
@@ -155,14 +156,15 @@ def parse_visual_blocks(reply: str) -> list[tuple[str, str, str]]:
 
 
 def visual_pages(page_pngs: list[bytes], filename: str, describe: Describer,
-                 numbers: list[int] | None = None) -> list[DocumentPage]:
+                 numbers: list[int] | None = None, progress: Progress | None = None) -> list[DocumentPage]:
     """One DocumentPage per chart/table/call-out found on the rendered pages
     (page `numbers`, default 1, 2, ...). A page no model could read is
     skipped (logged), keeping the others; after a few such pages the rest
     are skipped too."""
     pages = []
     failed = 0
-    for number, png in zip(numbers or range(1, len(page_pngs) + 1), page_pngs):
+    for done, (number, png) in enumerate(zip(numbers or range(1, len(page_pngs) + 1), page_pngs)):
+        report(progress, f"Reading charts and tables (page {done + 1} of {len(page_pngs)})", done / len(page_pngs))
         if failed >= _MAX_FAILED_PAGES:
             logger.warning("Vision models failed on %d pages; not reading the rest of %s", failed, filename)
             break
@@ -263,7 +265,8 @@ def picture_chart_pages(doc) -> list[int]:
     return found
 
 
-def read_visuals(data: bytes, filename: str, describe: Describer | None = None) -> list[DocumentPage]:
+def read_visuals(data: bytes, filename: str, describe: Describer | None = None,
+                 progress: Progress | None = None) -> list[DocumentPage]:
     """Footnote and chart/table/call-out pages for a short PDF; for a long
     one, the chart pages that can't be measured from their drawing.
 
@@ -279,7 +282,7 @@ def read_visuals(data: bytes, filename: str, describe: Describer | None = None) 
             if not numbers or (describe is None and not settings.openrouter_api_key):
                 return []
             try:
-                return visual_pages(pngs, filename, describe or openrouter_describer(filename), numbers)
+                return visual_pages(pngs, filename, describe or openrouter_describer(filename), numbers, progress)
             except Exception:
                 logger.exception("Reading the chart pages of %s failed; using text only", filename)
                 return []
@@ -298,7 +301,7 @@ def read_visuals(data: bytes, filename: str, describe: Describer | None = None) 
             return footnotes
         describe = openrouter_describer(filename)
     try:
-        return footnotes + visual_pages(pngs, filename, describe)
+        return footnotes + visual_pages(pngs, filename, describe, progress=progress)
     except Exception:
         logger.exception("Reading page images of %s failed; using text only", filename)
         return footnotes

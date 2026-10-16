@@ -137,6 +137,11 @@ class VectorStore:
     def count(self) -> int:
         return self._collection.count()
 
+    def sources(self) -> list[str]:
+        """Names of the indexed documents, in alphabetical order."""
+        stored = self._collection.get(include=["metadatas"])
+        return sorted({m["source"] for m in stored["metadatas"] or [] if m and m.get("source")})
+
     def all_chunks(self) -> list[dict]:
         """Every stored chunk as {chunk_id, text, source, page} — for
         whole-corpus work like keyword (BM25) scoring or building test sets."""

@@ -100,6 +100,14 @@ def chat_page() -> None:
         st.session_state.conversation_id = conversation_store.new_id()
         st.session_state.chat_history = []
 
+    if "document_names" not in st.session_state:
+        # Documents indexed in earlier sessions are still searchable.
+        try:
+            st.session_state.document_names = pipeline.vector_store.sources()
+        except Exception:
+            logger.exception("Could not list the indexed documents")
+            st.session_state.document_names = []
+
     sidebar = render_sidebar(
         conversations=conversation_store.list_conversations(),
         active_conversation_id=st.session_state.conversation_id,
@@ -111,8 +119,8 @@ def chat_page() -> None:
     if not st.session_state.get("chat_history"):
         st.title(f"Welcome to {APP_NAME}")
         st.write(
-            "Attach documents using the 📎 icon in the chat box and ask "
-            "questions about their content."
+            "Add documents with the **Attach** button above the chat box, "
+            "then ask questions about their content."
         )
 
         if not pipeline.generator.is_configured():

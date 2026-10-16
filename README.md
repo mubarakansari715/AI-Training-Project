@@ -23,8 +23,8 @@ Gemini as a fallback).
 ## Overview
 
 Attach PDF, DOCX, TXT, or Markdown documents — or video/audio files, which
-are transcribed — right from the chat box (the 📎 icon, same as
-ChatGPT/Gemini) and ask questions about them. The
+are transcribed — with the **Attach** button above the chat box, watch them
+being indexed, and ask questions about them. The
 assistant answers from your uploaded documents whenever they contain the
 answer — it retrieves the most relevant chunks, sends just that context to
 the LLM, and cites the source file (and page, when available). If nothing
@@ -37,8 +37,10 @@ up an earlier conversation later — even after restarting the app.
 ## Features
 
 **Document handling**
-- Multi-document upload directly from the chat input's attach icon
-  (PDF, DOCX, TXT, Markdown) — ChatGPT/Gemini-style, no separate uploader
+- Multi-document upload from the **Attach** button above the chat box: a
+  dialog shows each file's progress (reading text, reading charts, embedding
+  420 of 1,194 passages, ...), then "GEP-Jun-2026.pdf is ready: 200 pages,
+  1,676 passages, 101 charts measured" and a note in the chat
 - Video/audio support (MP4, MOV, WebM, MKV, AVI, MP3, WAV, M4A, OGG, FLAC):
   speech is transcribed locally with `faster-whisper` into `[mm:ss]`-timestamped
   text, plus an info page (duration, resolution, frame rate, language), so you
@@ -303,9 +305,9 @@ streamlit run app/main.py
 
 Opens at `http://localhost:8501`.
 
-1. Click the 📎 attach icon in the chat box, pick a document, and send —
-   you'll see a "📄 Indexed N chunk(s)..." confirmation in the reply.
-2. Ask questions in the same chat box (with or without an attachment).
+1. Click **Attach** above the chat box, pick documents and press **Upload**.
+   The dialog shows each file's progress; press **Start asking** when it's ready.
+2. Ask questions in the chat box.
 3. Use **New chat** to start a fresh conversation, or click any past
    conversation in the sidebar to reopen it.
 4. Tap 🎤 in the chat box to ask a question by voice instead of typing.
@@ -326,8 +328,8 @@ Opens at `http://localhost:8501`.
 
 ## How RAG Works
 
-1. **Upload** — you attach PDF/DOCX/TXT/MD or video/audio files via the
-   chat input's 📎 icon.
+1. **Upload** — you attach PDF/DOCX/TXT/MD or video/audio files with the
+   **Attach** button.
 2. **Parse** — each format is converted into plain text, preserving the
    source filename and page number (PDF only). Video/audio is transcribed,
    each line prefixed with its `[mm:ss]` timestamp.

@@ -7,14 +7,15 @@ model's general knowledge instead of refusing — either way, the
 source is labeled under the answer. Re-asking a question already
 answered earlier in this conversation returns that same stored answer
 instead of a fresh (and possibly different) LLM call. Documents are
-uploaded via the chat input's attach icon (ChatGPT/Gemini-style)
-rather than a separate sidebar widget. Each exchange is persisted via
+added through the Attach button above the chat box, which opens a dialog
+showing each file's indexing progress. Each exchange is persisted via
 ConversationStore so it survives an app restart and shows up in the
 sidebar's conversation list.
 """
 
 from __future__ import annotations
 
+import logging
 import re
 
 import streamlit as st
@@ -31,6 +32,8 @@ from app.services.rag_service import (
 )
 from app.ui.components import SUPPORTED_DOCUMENT_TYPES
 from app.ui.sidebar import render_model_picker
+
+logger = logging.getLogger(__name__)
 
 # Neutral icon so the user avatar follows the theme instead of
 # Streamlit's default red.
@@ -140,28 +143,102 @@ def _transcribe_voice(audio) -> str | None:
     return spoken
 
 
-def _index_attached_files(pipeline: RAGPipeline, files: list) -> str | None:
-    """Index newly attached files and return a status note, or None."""
-    with st.spinner(f"Indexing {len(files)} document(s)..."):
-        try:
-            num_chunks, errors = pipeline.index_files(files)
-        except Exception:
-            num_chunks, errors = 0, {
-                "_index": "Something went wrong while processing your documents."
-            }
-
-    if "document_names" not in st.session_state:
-        st.session_state.document_names = []
+def _index_with_progress(pipeline: RAGPipeline, files: list) -> list[dict]:
+    """Index each file in turn, with a live progress bar and stage label;
+    return one result per file: {"name", "error", "stats", "added"}."""
+    results = []
     for file in files:
-        if file.name not in st.session_state.document_names:
-            st.session_state.document_names.append(file.name)
+        with st.container(border=True):
+            st.markdown(f"**{file.name}**")
+            bar = st.progress(0.0, text="Starting...")
+            try:
+                added, errors = pipeline.index_files(
+                    [file], progress=lambda label, fraction: bar.progress(fraction, text=label))
+            except Exception:
+                logger.exception("Indexing %s failed", file.name)
+                added, errors = 0, {"_index": "Something went wrong while processing this document."}
+        error = errors.get(file.name) or errors.get("_index")
+        results.append({"name": file.name, "error": error, "stats": pipeline.last_indexed.get(file.name),
+                        "added": added})
+    return results
 
+
+def _ready_note(result: dict) -> str:
+    """ "200 pages, 1,194 passages, 101 charts measured" for a finished upload."""
+    stats = result["stats"] or {}
     parts = []
-    if num_chunks:
-        parts.append(f"📄 Indexed {num_chunks} chunk(s) from {len(files)} document(s).")
-    for filename, message in errors.items():
-        parts.append(f"⚠️ {filename}: {message}")
-    return "\n\n".join(parts) if parts else None
+    if stats.get("pages"):
+        parts.append(f"{stats['pages']:,} page{'s' if stats['pages'] != 1 else ''}")
+    if stats.get("passages"):
+        parts.append(f"{stats['passages']:,} passages")
+    if stats.get("charts"):
+        parts.append(f"{stats['charts']:,} chart{'s' if stats['charts'] != 1 else ''} measured")
+    note = ", ".join(parts)
+    if not result["added"]:
+        note += " (already indexed, unchanged)" if note else "already indexed, unchanged"
+    return note
+
+
+@st.dialog("Add documents", width="medium", dismissible=False)
+def _attach_dialog(pipeline: RAGPipeline, conversation_store: ConversationStore, conversation_id: str) -> None:
+    """Pick files, watch them being indexed, then go back to the chat.
+
+    Not dismissible, so a long upload can't be cut off by a stray click:
+    it closes through Cancel or Start asking (a full rerun)."""
+    results = st.session_state.get("attach_results")
+    if results is None:
+        picker = st.empty()  # cleared once the upload starts, leaving only its progress
+        with picker.container():
+            files = st.file_uploader(
+                "Choose documents",
+                type=SUPPORTED_DOCUMENT_TYPES,
+                accept_multiple_files=True,
+                key=f"attach_uploader_{st.session_state.get('attach_round', 0)}",
+                help="PDF, Word, text, Markdown, video or audio. A long PDF takes a few minutes.",
+            )
+            with st.container(horizontal=True, horizontal_alignment="right"):
+                cancel = st.button("Cancel", key="attach_cancel")
+                upload = st.button("Upload", type="primary", icon=":material/upload:", disabled=not files,
+                                   key="attach_upload")
+        if cancel:
+            st.rerun()
+        if upload:
+            picker.empty()
+            st.session_state.attach_results = _index_with_progress(pipeline, files)
+            st.rerun(scope="fragment")
+        return
+
+    for result in results:
+        if result["error"]:
+            st.error(f"**{result['name']}**: {result['error']}", icon=":material/error:")
+        else:
+            st.success(f"**{result['name']}** is ready: {_ready_note(result)}", icon=":material/check_circle:")
+    ready = [r for r in results if not r["error"]]
+    with st.container(horizontal=True, horizontal_alignment="right"):
+        more = st.button("Add more", icon=":material/add:", key="attach_more")
+        done = st.button("Start asking" if ready else "Close", type="primary", key="attach_done")
+    if more:
+        st.session_state.attach_results = None
+        st.session_state.attach_round = st.session_state.get("attach_round", 0) + 1
+        st.rerun(scope="fragment")
+    if done:
+        if ready:
+            _announce_documents(ready, conversation_store, conversation_id)
+        st.session_state.attach_results = None
+        st.rerun()
+
+
+def _announce_documents(ready: list[dict], conversation_store: ConversationStore, conversation_id: str) -> None:
+    """Note the new documents in the chat and the sidebar list."""
+    names = st.session_state.setdefault("document_names", [])
+    lines = []
+    for result in ready:
+        if result["name"] not in names:
+            names.append(result["name"])
+        lines.append(f"📄 **{result['name']}** is ready: {_ready_note(result)}.")
+    lines.append("Ask me anything about " + ("it." if len(ready) == 1 else "them."))
+    st.session_state.chat_history.append({"role": "assistant", "content": "\n\n".join(lines), "sources": []})
+    conversation_store.save(conversation_id, st.session_state.chat_history)
 
 
 def render_chat(
@@ -196,21 +273,24 @@ def render_chat(
                     _render_debug(message.get("sources", []))
 
     with st.bottom:
-        with st.container(horizontal=True, horizontal_alignment="right"):
+        with st.container(horizontal=True, vertical_alignment="center"):
+            attach = st.button("Attach", icon=":material/attach_file:", key="attach_open",
+                               help="Add documents to ask about")
+            st.space("stretch")
             model_name, groq_model_name = render_model_picker()
 
         submission = st.chat_input(
-            "Ask a question, attach documents, or record your voice...",
-            accept_file="multiple",
-            file_type=SUPPORTED_DOCUMENT_TYPES,
+            "Ask a question about your documents, or record your voice...",
             accept_audio=True,
             submit_mode="disable",
         )
+    if attach:
+        st.session_state.attach_results = None  # a fresh dialog each time
+        _attach_dialog(pipeline, conversation_store, conversation_id)
     if not submission:
         return
 
     question = (submission.text or "").strip()
-    files = submission.files or []
     audio = submission.audio
 
     if audio is not None:
@@ -219,12 +299,12 @@ def render_chat(
             return
         question = f"{question} {spoken}".strip()
 
-    if not question and not files:
+    if not question:
         return
 
-    # Snapshot prior turns (skipping empty-text ones, e.g. attachment-only
-    # turns) before appending the new message, so the generator gets
-    # history that doesn't duplicate the current turn.
+    # Snapshot prior turns (skipping empty-text ones) before appending the
+    # new message, so the generator gets history that doesn't duplicate the
+    # current turn.
     history = [
         {"role": m["role"], "content": m["content"]}
         for m in st.session_state.chat_history
@@ -232,66 +312,55 @@ def render_chat(
     ]
 
     with st.chat_message("user", avatar=USER_AVATAR):
-        for file in files:
-            st.caption(f"📎 {file.name}")
         if audio is not None:
             st.caption("🎤 Voice message")
-        if question:
-            st.write(question)
+        st.write(question)
     st.session_state.chat_history.append(
         {
             "role": "user",
             "content": question,
-            "attached_files": [file.name for file in files],
             "voice": audio is not None,
         }
     )
 
     with st.chat_message("assistant", avatar=APP_ICON):
-        index_note = _index_attached_files(pipeline, files) if files else None
         sources = []
         source_label = None
         searches, answer_model, chart_pages = [], None, []
 
-        if question:
-            # Skip the cache when files were just attached — newly
-            # indexed content can change what the right answer is.
-            cached = None if files else _find_cached_answer(st.session_state.chat_history, question)
-            if cached is not None:
-                answer, sources, source_label = (
-                    cached["content"],
-                    cached.get("sources", []),
-                    cached.get("source"),
-                )
-                searches, answer_model = cached.get("searches", []), cached.get("model")
-                chart_pages = cached.get("chart_pages", [])
-            else:
-                with st.spinner("Thinking..."):
-                    try:
-                        result = pipeline.ask(
-                            question,
-                            strict_mode=strict_mode,
-                            history=history,
-                            model_name=model_name,
-                            groq_model_name=groq_model_name,
-                            temperature=temperature,
-                            auto_mode=auto_mode,
-                        )
-                        answer, sources, source_label = result.answer, result.sources, result.source
-                        # Agent searches, or the sub-questions of a decomposed question.
-                        searches, answer_model = result.searches or result.sub_queries, result.model
-                        chart_pages = result.chart_pages
-                    except Exception:
-                        answer, sources, source_label = (
-                            "Something went wrong while generating the answer. Please try again.",
-                            [],
-                            None,
-                        )
-            display_answer = f"{index_note}\n\n{answer}" if index_note else answer
+        cached = _find_cached_answer(st.session_state.chat_history, question)
+        if cached is not None:
+            answer, sources, source_label = (
+                cached["content"],
+                cached.get("sources", []),
+                cached.get("source"),
+            )
+            searches, answer_model = cached.get("searches", []), cached.get("model")
+            chart_pages = cached.get("chart_pages", [])
         else:
-            display_answer = index_note or "No files were indexed."
+            with st.spinner("Thinking..."):
+                try:
+                    result = pipeline.ask(
+                        question,
+                        strict_mode=strict_mode,
+                        history=history,
+                        model_name=model_name,
+                        groq_model_name=groq_model_name,
+                        temperature=temperature,
+                        auto_mode=auto_mode,
+                    )
+                    answer, sources, source_label = result.answer, result.sources, result.source
+                    # Agent searches, or the sub-questions of a decomposed question.
+                    searches, answer_model = result.searches or result.sub_queries, result.model
+                    chart_pages = result.chart_pages
+                except Exception:
+                    answer, sources, source_label = (
+                        "Something went wrong while generating the answer. Please try again.",
+                        [],
+                        None,
+                    )
 
-        st.markdown(_md(display_answer))
+        st.markdown(_md(answer))
         _render_source_label(source_label)
         _render_agent_trace(searches, answer_model, chart_pages)
         _render_sources(sources)
@@ -301,7 +370,7 @@ def render_chat(
     st.session_state.chat_history.append(
         {
             "role": "assistant",
-            "content": display_answer,
+            "content": answer,
             "sources": sources,
             "source": source_label,
             "show_debug": show_debug,

@@ -11,6 +11,7 @@ import logging
 from collections.abc import Iterable
 
 from app.rag.document_loader import DocumentPage, DocumentParsingError, parse_document
+from app.rag.progress import Progress, scaled
 from app.rag.text_cleaner import clean_text
 
 logger = logging.getLogger(__name__)
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 def parse_uploaded_files(
     files: Iterable, detect_structure: bool = True, read_visuals: bool = False, structure_source: str | None = None,
-    layout_tables: str | None = None,
+    layout_tables: str | None = None, progress: Progress | None = None,
 ) -> tuple[list[DocumentPage], dict[str, str]]:
     """Parse and clean Streamlit-uploaded files.
 
@@ -29,10 +30,12 @@ def parse_uploaded_files(
     pages: list[DocumentPage] = []
     errors: dict[str, str] = {}
 
-    for file in files:
+    files = list(files)
+    for number, file in enumerate(files):
         try:
             file_pages = parse_document(file.name, file.getvalue(), detect_structure, read_visuals, structure_source,
-                                        layout_tables)
+                                        layout_tables,
+                                        scaled(progress, number / len(files), (number + 1) / len(files)))
         except DocumentParsingError as exc:
             logger.warning("Parsing failed for %s: %s", file.name, exc)
             errors[file.name] = str(exc)

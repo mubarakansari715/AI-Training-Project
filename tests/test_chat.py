@@ -63,3 +63,12 @@ def test_find_cached_answer_uses_most_recent_matching_reply():
     cached = _find_cached_answer(history, "What is the leave policy?")
 
     assert cached["content"] == "Second answer."
+
+
+def test_ready_note_summarises_an_upload():
+    from app.ui.chat import _ready_note
+
+    gep = {"stats": {"pages": 200, "passages": 1194, "charts": 101}, "added": 1194}
+    assert _ready_note(gep) == "200 pages, 1,194 passages, 101 charts measured"
+    notes = {"stats": {"pages": 0, "passages": 3, "charts": 0}, "added": 0}
+    assert _ready_note(notes) == "3 passages (already indexed, unchanged)"

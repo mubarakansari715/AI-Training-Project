@@ -111,6 +111,8 @@ def _serialize_message(message: dict) -> dict:
         "voice": message.get("voice", False),
         "searches": message.get("searches", []),
         "model": message.get("model"),
+        "chart_pages": message.get("chart_pages", []),
+        "seconds": message.get("seconds"),
     }
 
 
@@ -125,4 +127,6 @@ def _deserialize_message(message: dict) -> dict:
         "voice": message.get("voice", False),
         "searches": message.get("searches", []),
         "model": message.get("model"),
+        "chart_pages": message.get("chart_pages", []),
+        "seconds": message.get("seconds"),
     }

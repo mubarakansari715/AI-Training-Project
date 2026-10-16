@@ -43,6 +43,8 @@ def test_save_and_load_round_trips_messages(store):
         "voice": False,
         "searches": [],
         "model": None,
+        "chart_pages": [],
+        "seconds": None,
     }
     assert loaded[1]["content"] == "You get 24 days."
     assert loaded[1]["source"] == "document"
@@ -165,3 +167,16 @@ def test_save_and_load_round_trips_agent_trace(store):
     assert loaded[0]["searches"] == ["How many passports?", "How many staff?"]
     assert loaded[0]["model"] == "openai/gpt-oss-120b"
 
+
+
+def test_save_and_load_round_trips_chart_pages_and_answer_time(store):
+    conversation_id = store.new_id()
+    store.save(conversation_id, [
+        {"role": "user", "content": "moderate risk from the chart?"},
+        {"role": "assistant", "content": "≈ 51.7% → ≈ 40.3%", "chart_pages": ["GEP-Jun-2026.pdf, page 110"],
+         "seconds": 12.0},
+    ])
+
+    loaded = store.load(conversation_id)
+
+    assert loaded[1]["chart_pages"] == ["GEP-Jun-2026.pdf, page 110"] and loaded[1]["seconds"] == 12.0

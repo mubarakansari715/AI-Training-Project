@@ -101,6 +101,15 @@ class Settings:
 
     chunk_size: int = _get_int("CHUNK_SIZE", 800)
     chunk_overlap: int = _get_int("CHUNK_OVERLAP", 150)
+    # "recursive": paragraph/line/sentence/word boundaries, in that order
+    # (may cut a long sentence); "sentence": whole sentences only, overlap =
+    # the previous chunk's last sentence(s) — see app/rag/chunker.py.
+    chunk_strategy: str = os.getenv("CHUNK_STRATEGY", "recursive")
+    # What CHUNK_SIZE and CHUNK_OVERLAP count: "chars" or "tokens" (the
+    # embedding model's tokens, as the field guide sizes its chunks). Keep a
+    # token size under the model's limit (all-MiniLM-L6-v2 embeds only the
+    # first 256 tokens of a chunk; 800 characters is about 180).
+    chunk_unit: str = os.getenv("CHUNK_UNIT", "chars")
 
     top_k: int = _get_int("TOP_K", 5)
     # Minimum cosine similarity ([-1, 1]) for a retrieved chunk to be

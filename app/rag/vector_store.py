@@ -74,6 +74,7 @@ class VectorStore:
                         # Chroma metadata can't store None, so use a sentinel.
                         "page": c.page if c.page is not None else -1,
                         "section": c.section or "",
+                        "pages": ",".join(map(str, c.pages)),
                     }
                     for c, _ in new_items
                 ],
@@ -114,6 +115,7 @@ class VectorStore:
                     "source": metadata.get("source"),
                     "page": None if page == -1 else page,
                     "section": metadata.get("section") or None,
+                    "pages": _pages(metadata),
                     "distance": results["distances"][0][i],
                 }
             )
@@ -145,6 +147,7 @@ class VectorStore:
                 "source": meta.get("source"),
                 "page": None if meta.get("page") == -1 else meta.get("page"),
                 "section": meta.get("section") or None,
+                "pages": _pages(meta),
             }
             for chunk_id, text, meta in zip(stored["ids"], stored["documents"], stored["metadatas"])
         ]
@@ -184,3 +187,8 @@ class VectorStore:
 def _chunk_index(chunk_id: str) -> int:
     parts = chunk_id.split(":")
     return int(parts[-2]) if len(parts) >= 4 and parts[-2].isdigit() else 0
+
+
+def _pages(metadata: dict) -> list[int]:
+    """The pages a chunk covers; empty for chunks indexed before pages were stored."""
+    return [int(page) for page in (metadata.get("pages") or "").split(",") if page]

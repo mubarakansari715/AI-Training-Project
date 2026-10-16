@@ -48,6 +48,10 @@ class EmbeddingService:
         )
         return embeddings.tolist()
 
+    def count_tokens(self, text: str) -> int:
+        """Tokens `text` takes in this model (for token-sized chunks)."""
+        return len(self._model.tokenizer.encode(text, add_special_tokens=False))
+
     def embed_query(self, text: str) -> list[float]:
         """Embed a single query string (e.g. a user question)."""
         return self.embed_texts([self.query_prefix + text])[0]

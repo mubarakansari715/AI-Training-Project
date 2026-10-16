@@ -114,7 +114,7 @@ def footnote_pages(markers_by_page: dict[int, list[str]], notes: dict[int, str],
     for page, markers in markers_by_page.items():
         for number in dict.fromkeys(int(m) for m in markers if int(m) in notes):
             pages.append(DocumentPage(
-                text=f"{footnote_label(number, page)} {notes[number]}", source=filename, page=page,
+                text=f"{footnote_label(number, page)} {notes[number]}", source=filename, page=page, element=True,
             ))
     return pages
 
@@ -156,7 +156,8 @@ def visual_pages(page_pngs: list[bytes], filename: str, describe: Describer) -> 
             continue
         for kind, title, body in parse_visual_blocks(reply):
             label = f"{_TYPE_LABELS[kind]} on page {number}" + (f": {title}" if title else "")
-            pages.append(DocumentPage(text=f"[{label} (read from the page image)]\n{body}", source=filename, page=number))
+            pages.append(DocumentPage(text=f"[{label} (read from the page image)]\n{body}", source=filename, page=number,
+                                      element=True))
     return pages
 
 

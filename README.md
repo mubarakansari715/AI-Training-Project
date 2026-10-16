@@ -251,6 +251,8 @@ See [`.env.example`](.env.example) for the full file with defaults:
 | `CHROMA_COLLECTION_NAME` | ChromaDB collection name | `rag_documents` |
 | `CHUNK_SIZE` | Characters per chunk | `800` |
 | `CHUNK_OVERLAP` | Character overlap between chunks | `150` |
+| `CHUNK_STRATEGY` | `recursive` (paragraph/line/sentence/word boundaries) or `sentence` (whole sentences, packed across pages of a section) | `recursive` |
+| `CHUNK_UNIT` | What chunk size/overlap count: `chars` or `tokens` (embedding model tokens) | `chars` |
 | `TOP_K` | Number of chunks retrieved per question | `5` |
 | `SIMILARITY_THRESHOLD` | Minimum cosine similarity ([-1, 1]) for a chunk to count as relevant | `0.2` |
 | `RERANKER_MODEL` | Cross-encoder that reorders retrieved candidates (empty = off) | `cross-encoder/ms-marco-MiniLM-L-6-v2` |

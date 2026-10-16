@@ -42,6 +42,9 @@ class DocumentPage:
     # Chapter/section path for structured documents, e.g.
     # "Ch. 2 Regional Outlooks › South Asia" (see app.rag.structure).
     section: str | None = None
+    # A self-contained element (a chart, table or footnote passage from
+    # app.rag.visual): chunked whole, never merged with neighbouring text.
+    element: bool = False
 
 
 def parse_document(

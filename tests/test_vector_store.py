@@ -91,8 +91,8 @@ def test_all_chunks_returns_every_stored_chunk(tmp_path):
     chunks = sorted(store.all_chunks(), key=lambda c: c["chunk_id"])
 
     assert chunks == [
-        {"chunk_id": "c1", "text": "a", "source": "d.pdf", "page": 3, "section": None},
-        {"chunk_id": "c2", "text": "b", "source": "d.txt", "page": None, "section": None},
+        {"chunk_id": "c1", "text": "a", "source": "d.pdf", "page": 3, "section": None, "pages": []},
+        {"chunk_id": "c2", "text": "b", "source": "d.txt", "page": None, "section": None, "pages": []},
     ]
 
 
@@ -129,3 +129,13 @@ def test_chunks_indexed_before_sections_existed_still_match_filters(tmp_path):
     found = [m["chunk_id"] for m in store.search([1.0, 0.0], top_k=5, where={"section": {"$nin": ["Contents"]}})]
 
     assert found == ["old"]
+
+
+def test_chunk_pages_round_trip_through_search(tmp_path):
+    store = VectorStore(persist_dir=str(tmp_path / "chroma"), collection_name="pages_test")
+    store.add_chunks([Chunk(text="spans", source="d.pdf", page=4, chunk_id="x", pages=[4, 5])], [[1.0, 0.0]])
+
+    assert store.search([1.0, 0.0], top_k=1)[0]["pages"] == [4, 5]
+    assert store.all_chunks()[0]["pages"] == [4, 5]
+
+

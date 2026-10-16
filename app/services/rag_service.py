@@ -79,10 +79,14 @@ class RAGPipeline:
         rerank_candidates: int | None = None,
         section_aware: bool | None = None,
         read_visuals: bool | None = None,
+        chunk_strategy: str | None = None,
+        chunk_unit: str | None = None,
         structure_source: str | None = None,
     ):
         self.chunk_size = chunk_size or settings.chunk_size
         self.chunk_overlap = settings.chunk_overlap if chunk_overlap is None else chunk_overlap
+        self.chunk_strategy = chunk_strategy or settings.chunk_strategy
+        self.chunk_unit = chunk_unit or settings.chunk_unit
         self.structure_source = structure_source or settings.structure_source
         self.section_aware = settings.section_aware if section_aware is None else section_aware
         # Charts/tables/call-outs from page images + footnotes, for short PDFs (app/rag/visual.py).
@@ -112,7 +116,9 @@ class RAGPipeline:
         if not pages:
             return 0, errors
 
-        chunks = chunk_pages(pages, chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap)
+        length = self.embedding_service.count_tokens if self.chunk_unit == "tokens" else len
+        chunks = chunk_pages(pages, chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap,
+                             strategy=self.chunk_strategy, length_function=length)
         if not chunks:
             return 0, errors
 

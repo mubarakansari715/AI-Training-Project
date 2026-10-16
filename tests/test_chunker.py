@@ -122,3 +122,77 @@ def test_pages_without_section_are_unchanged():
 
     chunks = chunk_pages([DocumentPage(text="Plain memo text.", source="m.txt")])
     assert chunks[0].text == "Plain memo text." and chunks[0].section is None
+
+
+def test_split_sentences_keeps_abbreviations_initials_and_numbers_together():
+    from app.rag.chunker import split_sentences
+
+    text = ("The U.S. Government Publishing Office was expanded by Franklin D. Roosevelt. See No. 5 for details. "
+            "Growth was 6.3 percent in 2026.\nIt rose 2.1 percent.\n\nHeading\nNext paragraph. No. It fell.")
+    assert split_sentences(text) == [
+        "The U.S. Government Publishing Office was expanded by Franklin D. Roosevelt.",
+        "See No. 5 for details.",
+        "Growth was 6.3 percent in 2026.",
+        "It rose 2.1 percent.",
+        "Heading\nNext paragraph.",
+        "No.",
+        "It fell.",
+    ]
+
+
+def test_sentence_chunks_never_cut_a_sentence_and_overlap_by_whole_sentences():
+    sentences = [f"Sentence number {i} says the value was {i * 11} units." for i in range(1, 30)]
+    page = DocumentPage(text=" ".join(sentences), source="r.pdf", page=1)
+
+    chunks = chunk_pages([page], chunk_size=200, chunk_overlap=60, strategy="sentence")
+
+    assert len(chunks) > 1
+    for chunk in chunks:
+        assert len(chunk.text) <= 200
+        assert chunk.text.startswith("Sentence number ") and chunk.text.endswith("units.")
+    first_last = chunks[0].text.split(". ")[-1]
+    assert chunks[1].text.startswith(first_last.rstrip("."))  # overlap = the previous chunk's last sentence
+
+
+def test_sentence_longer_than_a_chunk_falls_back_to_the_recursive_split():
+    page = DocumentPage(text="word " * 120 + "end.", source="r.pdf", page=1)
+    chunks = chunk_pages([page], chunk_size=200, chunk_overlap=50, strategy="sentence")
+    assert len(chunks) > 1 and all(len(c.text) <= 200 for c in chunks)
+
+
+def test_guide_packing_closes_only_past_the_overlap_and_keeps_a_sentence_tail():
+    from app.rag.chunker import pack_sentences
+
+    sentences = [("a" * 40, 1), ("b" * 40, 1), ("c" * 40, 2), ("d" * 40, 2)]
+    chunks = pack_sentences(sentences, target=100, overlap=50)
+
+    assert [[s[0][0] for s in chunk] for chunk in chunks] == [["a", "b"], ["b", "c"], ["c", "d"]]
+
+
+def test_sentence_chunks_run_across_pages_of_one_section_but_not_across_sections():
+    pages = [
+        DocumentPage(text="The program grew in 2018. It reached", source="r.pdf", page=4, section="Libraries"),
+        DocumentPage(text="many readers. Visits rose.", source="r.pdf", page=5, section="Libraries"),
+        DocumentPage(text="Printing costs fell.", source="r.pdf", page=6, section="Printing"),
+    ]
+    chunks = chunk_pages(pages, chunk_size=300, chunk_overlap=50, strategy="sentence")
+
+    assert [(c.page, c.pages, c.section) for c in chunks] == [(4, [4, 5], "Libraries"), (6, [6], "Printing")]
+    assert "It reached many readers." in chunks[0].text  # the sentence split by the page break is whole
+
+
+def test_visual_elements_stay_one_chunk_each():
+    pages = [DocumentPage(text="Short text.", source="r.pdf", page=2),
+             DocumentPage(text="[Table (read from the page image)]\n| a | b |", source="r.pdf", page=2, element=True),
+             DocumentPage(text="More text.", source="r.pdf", page=2)]
+    chunks = chunk_pages(pages, chunk_size=300, chunk_overlap=50, strategy="sentence")
+
+    assert [c.text for c in chunks] == ["Short text.", "[Table (read from the page image)]\n| a | b |", "More text."]
+
+
+def test_sizes_can_be_measured_in_tokens():
+    words = " ".join(f"Item {i}." for i in range(30))  # 30 sentences of 2 words
+    page = DocumentPage(text=words, source="r.pdf", page=1)
+    chunks = chunk_pages([page], chunk_size=20, chunk_overlap=0, strategy="sentence",
+                         length_function=lambda text: len(text.split()))
+    assert len(chunks) == 3 and all(len(c.text.split()) == 20 for c in chunks)

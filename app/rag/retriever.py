@@ -8,7 +8,7 @@ to the LLM instead of the entire document collection.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from app.config.settings import settings
 from app.rag.embeddings import EmbeddingService
@@ -57,6 +57,12 @@ class RetrievedChunk:
     score: float
     chunk_id: str
     section: str | None = None
+    # Every page the chunk covers (a sentence-packed chunk can span pages).
+    pages: list[int] = field(default_factory=list)
+
+    def covers(self, pages) -> bool:
+        """True when the chunk comes from any of `pages`."""
+        return self.page in pages or any(page in pages for page in self.pages)
 
 
 class Retriever:
@@ -190,16 +196,7 @@ class Retriever:
             score = 1 - match["distance"]
             if score < self.score_threshold and not summary:
                 continue
-            results.append(
-                RetrievedChunk(
-                    text=match["text"],
-                    source=match["source"],
-                    page=match["page"],
-                    score=score,
-                    chunk_id=match["chunk_id"],
-                    section=match.get("section"),
-                )
-            )
+            results.append(_to_chunk(match, score))
         if self.reranker:
             return self.reranker.rerank(question, results, top_k)
         return results[:top_k]
@@ -225,3 +222,9 @@ class Retriever:
             self._labels = self._vector_store.sections()
             self._labels_count = count
         return self._labels
+
+
+def _to_chunk(match: dict, score: float) -> RetrievedChunk:
+    return RetrievedChunk(text=match["text"], source=match["source"], page=match["page"], score=score,
+                          chunk_id=match["chunk_id"], section=match.get("section"), pages=match.get("pages") or [])
+

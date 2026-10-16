@@ -35,6 +35,8 @@ _SUMMARY_TOP_K_MAX = 15
 # forecast, a chapter's key numbers) sit on its opening page but often in a
 # chunk that scored lower than its neighbours. Capped to bound the prompt.
 _EXPAND_MAX_PAGES = 2
+# Shortest repeated text treated as chunk overlap when joining a page.
+_MIN_OVERLAP = 20
 # A footnote marker in a retrieved passage ("more than 15 percent recycled
 # content.[1]") pulls in that note's passage from the same page (see
 # app.rag.visual), since the note itself rarely shares the question's words.
@@ -173,14 +175,18 @@ class Retriever:
                     seen.add(chunk.chunk_id)
                     expanded.append(chunk)
                 continue
-            for match in self._vector_store.page_chunks(*key):
-                if match["chunk_id"] in seen or match["section"] != chunk.section:
-                    continue
-                seen.add(match["chunk_id"])
-                expanded.append(RetrievedChunk(
-                    text=match["text"], source=match["source"], page=match["page"], score=chunk.score,
-                    chunk_id=match["chunk_id"], section=match["section"],
-                ))
+            matches = [m for m in self._vector_store.page_chunks(*key)
+                       if m["chunk_id"] not in seen and m["section"] == chunk.section]
+            if not matches:
+                continue
+            seen.update(m["chunk_id"] for m in matches)
+            # One passage per page, not its overlapping chunks: fragments that
+            # repeat each other's ends made the model skip a sentence's
+            # continuation as a duplicate.
+            expanded.append(RetrievedChunk(
+                text=_join_page([m["text"] for m in matches], chunk.section), source=matches[0]["source"],
+                page=matches[0]["page"], score=chunk.score, chunk_id=matches[0]["chunk_id"], section=chunk.section,
+            ))
         return expanded
 
     def _search(
@@ -228,3 +234,16 @@ def _to_chunk(match: dict, score: float) -> RetrievedChunk:
     return RetrievedChunk(text=match["text"], source=match["source"], page=match["page"], score=score,
                           chunk_id=match["chunk_id"], section=match.get("section"), pages=match.get("pages") or [])
 
+
+def _join_page(texts: list[str], section: str | None) -> str:
+    """A page's chunks (reading order) as one text: the section label kept
+    once, and each chunk's overlap with the one before it dropped."""
+    label = f"[{section}]\n" if section and texts[0].startswith(f"[{section}]\n") else ""
+    pieces = [t[len(label):] if label and t.startswith(label) else t for t in texts]
+    joined = pieces[0]
+    for piece in pieces[1:]:
+        overlap = next((n for n in range(min(len(joined), len(piece)), _MIN_OVERLAP - 1, -1)
+                        if joined.endswith(piece[:n])), 0)
+        rest = piece[overlap:]
+        joined += rest if overlap else "\n" + rest
+    return label + joined

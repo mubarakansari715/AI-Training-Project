@@ -235,8 +235,30 @@ def test_single_named_section_sends_whole_pages_of_its_best_hits(tmp_path):
     q = "What is the growth outlook for South Asia?"
     retriever = Retriever(store, FakeEmbeddingService({q: [1.0, 0.0, 0.0]}), top_k=1, score_threshold=0.5)
 
-    # The whole of p. 96 in reading order; p. 97 had no hit, so it stays out.
-    assert [r.chunk_id for r in retriever.retrieve(q)] == ["r.pdf:96:0:a", "r.pdf:96:1:b", "r.pdf:96:2:c"]
+    # The whole of p. 96 as one passage in reading order; p. 97 had no hit, so it stays out.
+    results = retriever.retrieve(q)
+    assert [(r.chunk_id, r.page) for r in results] == [("r.pdf:96:0:a", 96)]
+    assert results[0].text == "text r.pdf:96:0:a\ntext r.pdf:96:1:b\ntext r.pdf:96:2:c"
+
+
+def test_whole_page_passage_drops_chunk_overlap_and_repeated_section_labels(tmp_path):
+    """Overlapping fragments made the model treat the continuation of a
+    sentence as a repeat and skip it (GEP executive summary risks)."""
+    store = VectorStore(persist_dir=str(tmp_path / "chroma"), collection_name="overlap")
+    texts = [
+        "[Executive Summary]\nRisks are skewed to the downside. If energy\nsupply disruptions prove more severe than",
+        "[Executive Summary]\nsupply disruptions prove more severe than\nassumed, growth could fall to 1.3 percent.",
+    ]
+    store.add_chunks(
+        [Chunk(text=t, source="r.pdf", page=19, chunk_id=f"r.pdf:19:{i}:x{i}", section="Executive Summary")
+         for i, t in enumerate(texts)],
+        [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+    )
+    q = "According to the executive summary, what are the risks?"
+    retriever = Retriever(store, FakeEmbeddingService({q: [1.0, 0.0, 0.0]}), top_k=1, score_threshold=0.5)
+    [passage] = retriever.retrieve(q)
+    assert passage.text == ("[Executive Summary]\nRisks are skewed to the downside. If energy\n"
+                            "supply disruptions prove more severe than\nassumed, growth could fall to 1.3 percent.")
 
 
 def test_page_expansion_is_off_without_a_named_section(tmp_path):

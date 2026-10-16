@@ -259,6 +259,8 @@ See [`.env.example`](.env.example) for the full file with defaults:
 | `SIMILARITY_THRESHOLD` | Minimum cosine similarity ([-1, 1]) for a chunk to count as relevant | `0.2` |
 | `RERANKER_MODEL` | Cross-encoder that reorders retrieved candidates (empty = off) | `cross-encoder/ms-marco-MiniLM-L-6-v2` |
 | `RERANK_CANDIDATES` | Candidates fetched for the reranker to choose `TOP_K` from | `20` |
+| `RERANK_MIN_SCORE` | Drop passages the reranker scores below this (empty = off) | _(empty)_ |
+| `RERANK_RELATIVE_MARGIN` | Context compression: drop passages scored more than this below the best one (`off` = disabled) | `5` |
 | `HYBRID_SEARCH` | Also rank chunks by exact words (BM25) and merge with the embedding search | `true` |
 | `KEYWORD_CANDIDATES` | BM25 candidates merged into each search | `20` |
 | `SECTION_AWARE` | Detect sections in structured PDFs; search only sections a question names | `true` |

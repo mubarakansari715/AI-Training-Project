@@ -95,6 +95,10 @@ class Retriever:
         # candidate set, then let the reranker pick the best top_k.
         self.reranker = reranker
         self.rerank_candidates = rerank_candidates or settings.rerank_candidates
+        # Relevance cutoff after reranking (None = off); not for summaries,
+        # which need the whole document.
+        self.rerank_min_score = settings.rerank_min_score
+        self.rerank_margin = settings.rerank_relative_margin
         self.section_aware = section_aware
         # Optional BM25 keyword search merged with the embedding search
         # (app.rag.keyword_search); None = off.
@@ -219,9 +223,14 @@ class Retriever:
             results.append(_to_chunk(match, score))
         if self.keyword_index:
             results = self._merge_keyword_hits(question, query_embedding, results, fetch, where)
-        if self.reranker:
-            return self.reranker.rerank(question, results, top_k)
-        return results[:top_k]
+        if self.reranker and not summary:
+            kept = self.reranker.rerank(question, results, top_k, min_score=self.rerank_min_score,
+                                        margin=self.rerank_margin)
+        elif self.reranker:
+            kept = self.reranker.rerank(question, results, top_k)
+        else:
+            kept = results[:top_k]
+        return kept
 
     def _merge_keyword_hits(self, question: str, query_embedding: list[float], results: list[RetrievedChunk],
                             fetch: int, where: dict | None) -> list[RetrievedChunk]:

@@ -8,6 +8,18 @@ chunk *together* and scores how well the chunk answers it, so the best
 candidates move to the top. It only reorders what the embedding search
 already returned (after the similarity threshold), so it never adds
 unrelated chunks.
+
+Two optional cutoffs compress the context (fewer off-topic passages and
+tokens) by dropping kept chunks the cross-encoder scores low:
+
+- `min_score`: below a fixed score. Simple, but cross-encoder scores shift
+  from question to question, so one value is too strict for some questions
+  and too loose for others.
+- `margin`: more than `margin` below the best chunk's score for *this*
+  question, so the cutoff follows each question's own score range.
+
+The best `MIN_KEEP` always stay, so a question never loses its top
+passages to a strict cutoff.
 """
 
 from __future__ import annotations
@@ -21,6 +33,8 @@ from app.config.settings import settings
 from app.rag.retriever import RetrievedChunk
 
 logger = logging.getLogger(__name__)
+
+MIN_KEEP = 2
 
 
 @lru_cache(maxsize=2)
@@ -37,9 +51,19 @@ class Reranker:
         self.model_name = model_name
         self._model = _load_model(model_name)
 
-    def rerank(self, question: str, chunks: list[RetrievedChunk], top_k: int) -> list[RetrievedChunk]:
+    def rerank(self, question: str, chunks: list[RetrievedChunk], top_k: int,
+               min_score: float | None = None, margin: float | None = None) -> list[RetrievedChunk]:
         if len(chunks) <= 1:
             return chunks[:top_k]
         scores = self._model.predict([(question, chunk.text) for chunk in chunks], show_progress_bar=False)
-        ranked = sorted(zip(scores, chunks), key=lambda pair: pair[0], reverse=True)
-        return [chunk for _, chunk in ranked[:top_k]]
+        return select(list(zip(scores, chunks)), top_k, min_score, margin)
+
+
+def select(scored: list[tuple[float, RetrievedChunk]], top_k: int, min_score: float | None,
+           margin: float | None = None) -> list[RetrievedChunk]:
+    """The top_k chunks by score, minus those under `min_score` or more than
+    `margin` below the best score, after the first MIN_KEEP."""
+    ranked = sorted(scored, key=lambda pair: pair[0], reverse=True)[:top_k]
+    floor = max(min_score if min_score is not None else float("-inf"),
+                ranked[0][0] - margin if ranked and margin is not None else float("-inf"))
+    return [chunk for i, (score, chunk) in enumerate(ranked) if i < MIN_KEEP or score >= floor]

@@ -35,8 +35,10 @@ def _get_bool(name: str, default: bool) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
-def _get_float(name: str, default: float) -> float:
+def _get_float(name: str, default: float | None) -> float | None:
     value = os.getenv(name)
+    if value and value.strip().lower() == "off":
+        return None
     return float(value) if value else default
 
 
@@ -123,6 +125,15 @@ class Settings:
     reranker_model: str = os.getenv("RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
     # How many embedding-search candidates the reranker chooses top_k from.
     rerank_candidates: int = _get_int("RERANK_CANDIDATES", 20)
+    # Relevance cutoff after reranking: drop passages the cross-encoder scores
+    # below this (its raw score; ms-marco: > 0 relevant, < 0 not), always
+    # keeping the best few. Empty = off: always send top_k.
+    rerank_min_score: float | None = _get_float("RERANK_MIN_SCORE", None)
+    # Relative cutoff (context compression): also drop passages scored more
+    # than this below the best passage for the same question. 5 sent ~15%
+    # fewer passages on GPO with no lost answer page or failed answer
+    # (evaluation/reports/*_compare.json). "off" = no relative cutoff.
+    rerank_relative_margin: float | None = _get_float("RERANK_RELATIVE_MARGIN", 5.0)
     # Hybrid search: also rank chunks by exact words (BM25) and merge both
     # rankings, so exact names and figures ("FDsys", "802,834") are found
     # even when embedding search ranks them low — see app/rag/keyword_search.py.

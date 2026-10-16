@@ -1,7 +1,7 @@
 import pytest
 
 from app.rag.chunker import Chunk
-from app.rag.retriever import Retriever, is_summary_request
+from app.rag.retriever import RetrievedChunk, Retriever, is_summary_request
 from app.rag.vector_store import VectorStore
 
 
@@ -127,7 +127,7 @@ class _ReverseReranker:
     def __init__(self):
         self.calls = []
 
-    def rerank(self, question, chunks, top_k):
+    def rerank(self, question, chunks, top_k, min_score=None, margin=None):
         self.calls.append((question, [c.chunk_id for c in chunks], top_k))
         return list(reversed(chunks))[:top_k]
 
@@ -318,6 +318,50 @@ def test_a_footnote_is_attached_once_even_when_several_pages_reference_it(tmp_pa
     ids = [r.chunk_id for r in retriever.retrieve(q)]
     assert ids[:2] == ["i.pdf:4:0:a", "i.pdf:1:1:f"]
     assert sum("Footnote 1," in t for t in (c.text for c in retriever.retrieve(q))) == 1
+def test_relevance_cutoff_drops_low_scored_chunks_but_keeps_the_best_two():
+    from app.rag.reranker import select
+
+    chunks = [RetrievedChunk(text=c, source="s", page=1, score=0.5, chunk_id=c) for c in "abcde"]
+    scored = list(zip([3.0, -4.0, 1.0, -2.0, 0.5], chunks))
+
+    assert [c.chunk_id for c in select(scored, 5, None)] == ["a", "c", "e", "d", "b"]
+    assert [c.chunk_id for c in select(scored, 5, 0.0)] == ["a", "c", "e"]
+    assert [c.chunk_id for c in select(scored, 5, 10.0)] == ["a", "c"]  # best two always stay
+    assert [c.chunk_id for c in select(scored, 2, 0.0)] == ["a", "c"]
+
+
+def test_relative_margin_follows_each_questions_own_score_range():
+    from app.rag.reranker import select
+
+    chunks = [RetrievedChunk(text=c, source="s", page=1, score=0.5, chunk_id=c) for c in "abcde"]
+    high = list(zip([9.0, 8.5, 8.0, 4.0, 3.0], chunks))  # one question scores everything high
+    low = list(zip([-1.0, -1.5, -2.0, -6.0, -7.0], chunks))  # another scores everything low
+
+    assert [c.chunk_id for c in select(high, 5, None, margin=2.0)] == ["a", "b", "c"]
+    assert [c.chunk_id for c in select(low, 5, None, margin=2.0)] == ["a", "b", "c"]
+    assert [c.chunk_id for c in select(low, 5, 0.0)] == ["a", "b"]  # a fixed cutoff over-drops here
+    assert [c.chunk_id for c in select(high, 5, None, margin=0.1)] == ["a", "b"]  # best two always stay
+
+
+def test_cutoff_is_passed_to_the_reranker_except_for_summaries(populated_store):
+    embeddings = FakeEmbeddingService({"leave": [0.9, 0.4, 0.0], "summarize this document": [0.9, 0.4, 0.0]})
+    seen = []
+
+    class _Recorder(_ReverseReranker):
+        def rerank(self, question, chunks, top_k, min_score=None, margin=None):
+            seen.append((min_score, margin))
+            return chunks[:1]
+
+    retriever = Retriever(populated_store, embeddings, top_k=2, score_threshold=0.0, reranker=_Recorder(),
+                          hybrid_search=False)
+    retriever.rerank_min_score, retriever.rerank_margin = 0.5, 3.0
+    retriever.retrieve("leave")
+    assert retriever.last_stats["compressed"] == 1  # 2 candidates, 1 kept
+    retriever.retrieve("summarize this document")
+
+    assert seen == [(0.5, 3.0), (None, None)]
+
+
 def _exact_term_store(tmp_path):
     """The chunk with the exact figure is far from the question's embedding."""
     store = VectorStore(persist_dir=str(tmp_path / "chroma"), collection_name="hybrid_test")

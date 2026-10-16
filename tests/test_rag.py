@@ -233,6 +233,21 @@ def test_rewrite_is_skipped_when_no_documents_are_indexed(pipeline, monkeypatch)
     assert result.search_query == "What is the capital of France?"
 
 
+def test_rewrite_is_skipped_for_a_clear_question(pipeline, monkeypatch):
+    _mock_gemini(pipeline, monkeypatch, "You get 24 days.")
+    pipeline.index_files([FakeUploadedFile("handbook.txt", b"Employees are entitled to 24 days of annual leave per year.")])
+    pipeline.rewrite_queries = True
+    monkeypatch.setattr(
+        "app.services.rag_service.rewrite_query",
+        lambda *a, **k: (_ for _ in ()).throw(AssertionError("should not rewrite")),
+    )
+
+    result = pipeline.ask("How many days of annual leave are employees entitled to?", strict_mode=True)
+
+    assert result.search_query == "How many days of annual leave are employees entitled to?"
+    assert result.sources
+
+
 def test_typo_question_recognised_as_small_talk_after_rewrite(pipeline, monkeypatch):
     _mock_gemini(pipeline, monkeypatch, "I was built by the team.")
     pipeline.index_files([FakeUploadedFile("handbook.txt", b"Who built the office? Contractors.")])

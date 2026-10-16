@@ -64,7 +64,9 @@ up an earlier conversation later — even after restarting the app.
 - Persistent ChromaDB vector store (no re-indexing after a restart)
 - Query rewriting before search: one short LLM call fixes typos ("wat is my
   vitamn d") and turns follow-ups ("and my cholesterol?") into standalone
-  queries; falls back to your exact words if it fails
+  queries; falls back to your exact words if it fails, and is skipped (no
+  extra call or tokens) when every word is a common word or appears in your
+  documents and the question is not a follow-up
 - Semantic retrieval with a configurable similarity threshold; summary requests
   ("summarize this video", "what is the report about?") fetch more chunks and
   skip the threshold so the whole document is covered
@@ -309,8 +311,8 @@ Opens at `http://localhost:8501`.
    sentence-transformers model.
 6. **Store** — chunks + vectors + metadata are saved in a persistent
    ChromaDB collection (survives app restarts).
-7. **Ask** — your question is first rewritten by the LLM (typos fixed,
-   follow-ups made standalone), then embedded the same way and compared against
+7. **Ask** — your question is first rewritten by the LLM when needed (typos
+   fixed, follow-ups made standalone), then embedded the same way and compared against
    stored chunks to find the most similar ones.
 8. **Generate** — only the retrieved chunks (not your whole document
    collection) are sent to the LLM, along with recent conversation history

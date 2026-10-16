@@ -20,7 +20,7 @@ from app.rag.generator import AnswerGenerator
 from app.rag.model_router import resolve_groq_model
 from app.rag.query_decomposer import decompose_query, needs_decomposition
 from app.rag.query_router import llm_route
-from app.rag.query_rewriter import rewrite_query
+from app.rag.query_rewriter import needs_rewrite, rewrite_query, words
 from app.rag.reranker import Reranker
 from app.rag.retriever import RetrievedChunk, Retriever
 from app.rag.small_talk import is_small_talk
@@ -115,8 +115,22 @@ class RAGPipeline:
         self.indexed_documents: set[str] = set()
         self.rewrite_queries = settings.query_rewriting
         self.decompose_queries = settings.query_decomposition
+        # Words of the indexed documents, for skipping needless rewrites;
+        # rebuilt when the chunk count changes (see _document_vocabulary).
+        self._vocabulary: tuple[int, set[str]] = (-1, set())
+
+    def _document_vocabulary(self) -> set[str]:
+        """Every word in the indexed chunks, cached until the index changes."""
+        count = self.vector_store.count()
+        if self._vocabulary[0] != count:
+            vocabulary = set()
+            for chunk in self.vector_store.all_chunks():
+                vocabulary.update(words(chunk["text"]))
+            self._vocabulary = (count, vocabulary)
+        return self._vocabulary[1]
 
     def index_files(self, files) -> tuple[int, dict[str, str]]:
+
         """Parse, clean, chunk, embed, and store uploaded files.
 
         Returns (num_chunks_added, errors) where `errors` maps
@@ -147,6 +161,7 @@ class RAGPipeline:
             return 0, errors
 
         self.indexed_documents.update(page.source for page in pages)
+        self._vocabulary = (-1, set())
         return num_added, errors
 
     def _replace_changed_sources(self, chunks: list) -> list:
@@ -249,9 +264,11 @@ class RAGPipeline:
                 )
 
         # Fix typos and resolve follow-ups before searching (see
-        # app.rag.query_rewriter). Skipped when there's nothing to search.
+        # app.rag.query_rewriter). Skipped when there's nothing to search,
+        # or nothing to fix (no unknown words, not a follow-up).
         search_query = question
-        if self.rewrite_queries and not small_talk and self.vector_store.count() > 0:
+        if (self.rewrite_queries and not small_talk and self.vector_store.count() > 0
+                and needs_rewrite(question, history, self._document_vocabulary())):
             search_query = rewrite_query(
                 self.generator, question, history,
                 model_name=model_name, groq_model_name=groq_model,

@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.rag.query_rewriter import REWRITE_PROMPT, rewrite_query
+from app.rag.query_rewriter import REWRITE_PROMPT, needs_rewrite, rewrite_query, words
 
 
 def _generator(reply: str = "", configured: bool = True):
@@ -64,3 +64,33 @@ def test_prompt_without_history_says_none():
     rewrite_query(gen, "whu bilt yu")
     assert "Conversation so far:\n(none)" in gen.calls[0][0]
     assert REWRITE_PROMPT.startswith("Prepare the user's latest message")
+
+
+_VOCABULARY = set(words("The iMac uses 58 percent less energy than the ENERGY STAR requirements. "
+                        "govinfo replaced FDsys. Depository libraries in 25 states."))
+_HISTORY = [{"role": "user", "content": "How much energy does the iMac use?"}]
+
+
+@pytest.mark.parametrize("question", [
+    "How much less energy does the iMac use than the ENERGY STAR requirement?",  # singular of a document word
+    "What replaced FDsys?",
+    "What is the iMac's energy use in 2026?",  # possessive and numbers
+])
+def test_clear_question_needs_no_rewrite(question):
+    assert needs_rewrite(question, None, _VOCABULARY) is False
+
+
+def test_clear_question_with_history_but_no_follow_up_words_needs_no_rewrite():
+    assert needs_rewrite("How many depository libraries are there?", _HISTORY, _VOCABULARY) is False
+
+
+@pytest.mark.parametrize("question", ["wat is enrgy use of imac", "What does the iMac weigh?"])
+def test_unknown_word_needs_rewrite(question):
+    # A typo, or a correct word the documents never use: rewriting is the safe side.
+    assert needs_rewrite(question, None, _VOCABULARY) is True
+
+
+@pytest.mark.parametrize("question", ["And in 2027?", "What about govinfo?", "Is it less than that?"])
+def test_follow_up_needs_rewrite_only_with_history(question):
+    assert needs_rewrite(question, _HISTORY, _VOCABULARY) is True
+    assert needs_rewrite(question, None, _VOCABULARY) is False

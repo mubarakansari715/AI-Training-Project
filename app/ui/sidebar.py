@@ -125,7 +125,7 @@ def render_sidebar(
     """
     with st.sidebar:
         st.logo(APP_ICON, size="large")
-        st.title(APP_NAME)
+        st.markdown(f"### {APP_NAME}")
 
         new_chat = st.button(
             "New chat", icon=":material/edit_square:", width="stretch"

@@ -43,6 +43,11 @@ up an earlier conversation later — even after restarting the app.
   1,676 passages, 101 charts measured" and a note in the chat
 - Light theme, and strict document mode on by default (answers only from
   your documents)
+- Chat styled like ChatGPT: your messages in bubbles on the right, a live
+  "Searching your documents..." status that collapses into "Answered in 3.2 s"
+  with the steps inside, one row of tags under each answer (from your
+  documents, searched, chart read, model, time), and clickable starter
+  questions for the indexed document before the first question
 - Video/audio support (MP4, MOV, WebM, MKV, AVI, MP3, WAV, M4A, OGG, FLAC):
   speech is transcribed locally with `faster-whisper` into `[mm:ss]`-timestamped
   text, plus an info page (duration, resolution, frame rate, language), so you

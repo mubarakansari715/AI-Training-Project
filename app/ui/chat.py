@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 
 import streamlit as st
 
@@ -39,35 +40,83 @@ logger = logging.getLogger(__name__)
 # Streamlit's default red.
 USER_AVATAR = ":material/person:"
 
-# Small-talk answers aren't labeled — only these two are worth calling out.
-_SOURCE_LABELS = {
-    SOURCE_DOCUMENT: "📄 Source: your uploaded documents",
-    SOURCE_GENERAL_KNOWLEDGE: "🌐 Source: general AI knowledge (not from your documents)",
+# Chat bubbles: the user's messages on the right in a tinted bubble, ALLY's
+# answers on the left, both in a centred column of comfortable width. Styles
+# only (st.html sends them to the event container, taking no space).
+_CHAT_STYLE = """<style>
+.stMainBlockContainer, [data-testid="stBottomBlockContainer"] { max-width: 920px; }
+.stMainBlockContainer { padding-top: 4.75rem; padding-bottom: 2rem; }
+[data-testid="stSidebarUserContent"] { padding-top: 0; }
+[data-testid="stSidebarUserContent"] h3:first-of-type { padding-top: 0.25rem; }
+[data-testid="stSidebar"] hr { margin: 0.75rem 0; }
+[data-testid="stChatMessage"] { background: transparent; padding: 0.4rem 0; }
+[data-testid="stChatMessage"]:has([aria-label="Chat message from user"]) { flex-direction: row-reverse; }
+[data-testid="stChatMessage"]:has([aria-label="Chat message from user"]) [data-testid="stChatMessageContent"] {
+  flex: 0 1 auto; max-width: 75%; margin: 0 0 0 auto; padding: 0.55rem 1rem;
+  border-radius: 18px 18px 4px 18px; background: #e6f2ec; border: 1px solid #d3e7dc;
 }
+[data-testid="stChatMessage"]:has([aria-label="Chat message from user"]) [data-testid^="stChatMessageAvatar"] { display: none; }
+[data-testid="stChatMessage"]:has([aria-label="Chat message from user"]) p { margin: 0; line-height: 1.5; }
+[data-testid="stChatMessage"]:has([aria-label="Chat message from user"]) [data-testid="stMarkdownContainer"] { margin-bottom: 0; }
+</style>"""
+
+# Starter questions offered before the first question: for the reports this
+# project is evaluated on, and general ones for any other document.
+_SUGGESTIONS = {
+    "GEP": [":material/trending_up: What is the global growth forecast for 2026?",
+            ":material/bar_chart: From the chart, how did moderate debt-distress risk change from 2015 to 2026?",
+            ":material/public: What is the growth outlook for South Asia?",
+            ":material/warning: What are the main downside risks to the outlook?"],
+    "GPO": [":material/local_library: How many depository libraries did GPO visit in FY 2018?",
+            ":material/sync_alt: What system replaced FDsys, and when?",
+            ":material/payments: What were GPO's total revenues in FY 2018?"],
+    "iMac": [":material/eco: What is the iMac's total carbon footprint?",
+             ":material/bolt: How much less energy does iMac use than the ENERGY STAR requirement?",
+             ":material/recycling: What is the iMac stand made of?"],
+}
+_GENERAL_SUGGESTIONS = [":material/summarize: Summarize this document in five points",
+                        ":material/pin: What are the key numbers in this document?",
+                        ":material/bar_chart: What do the charts in this document show?"]
+
+
+def _suggestions(document_names: list[str]) -> list[str]:
+    for key, questions in _SUGGESTIONS.items():
+        if any(key.lower() in name.lower() for name in document_names):
+            return questions
+    return _GENERAL_SUGGESTIONS
+
+
+def _question_from_suggestion(label: str) -> str:
+    """The question without its ":material/...:" icon."""
+    return re.sub(r"^:material/[a-z_]+:\s*", "", label)
 
 
 def _format_location(source: str, page: int | None) -> str:
     return f"{source}, page {page}" if page is not None else source
 
 
-
-
-def _render_source_label(source: str | None) -> None:
-    label = _SOURCE_LABELS.get(source or "")
-    if label:
-        st.caption(label)
-
-
-def _render_agent_trace(searches: list[str], model: str | None, chart_pages: list[str] | None = None) -> None:
-    """Auto mode transparency: what the agent searched for, which chart
-    pages the answer was read from, and which model answered — like
-    ChatGPT's "Searched …" line."""
-    if searches:
-        st.caption("🔎 Searched: " + " · ".join(f"“{q}”" for q in searches))
-    if chart_pages:
-        st.caption("📊 Chart read: " + " · ".join(chart_pages))
-    if model:
-        st.caption(f"⚡ {model.split('/')[-1]}")
+def _render_answer_meta(source: str | None, searches: list[str], model: str | None,
+                        chart_pages: list[str] | None = None, seconds: float | None = None) -> None:
+    """One row of tags under an answer: where it came from, what was searched,
+    which chart pages were read, which model answered and how long it took
+    (like ChatGPT's "Searched …" line)."""
+    with st.container(horizontal=True, gap="small"):
+        if source == SOURCE_DOCUMENT:
+            st.badge("From your documents", icon=":material/description:", color="green")
+        elif source == SOURCE_GENERAL_KNOWLEDGE:
+            st.badge("General knowledge, not from your documents", icon=":material/public:", color="blue")
+        if searches:
+            query = searches[0] if len(searches[0]) <= 40 else searches[0][:38].rstrip() + "…"
+            label = f"Searched “{query}”" if len(searches) == 1 else f"Searched {len(searches)} times"
+            st.badge(label, icon=":material/search:", color="gray", help="\n\n".join(f"“{q}”" for q in searches))
+        if chart_pages:
+            pages = " · ".join(re.sub(r"^.*, page ", "p. ", page) for page in chart_pages)
+            st.badge(f"Chart read: {pages}", icon=":material/bar_chart:", color="violet",
+                     help="\n\n".join(chart_pages))
+        if model:
+            st.badge(model.split("/")[-1], icon=":material/bolt:", color="gray")
+        if seconds:
+            st.badge(f"{seconds:.1f} s", icon=":material/timer:", color="gray")
 
 
 def _normalize_question(text: str) -> str:
@@ -114,6 +163,17 @@ def _render_sources(sources: list[RetrievedChunk]) -> None:
                 continue
             seen.add(location)
             st.markdown(f"📄 {location}")
+
+
+def _render_passages(sources: list[RetrievedChunk], show_debug: bool) -> None:
+    """Sources and (when on) retrieval details side by side, so an answer
+    isn't followed by two full-width boxes."""
+    if not sources:
+        return
+    with st.container(horizontal=True, gap="small"):
+        _render_sources(sources)
+        if show_debug:
+            _render_debug(sources)
 
 
 def _render_debug(sources: list[RetrievedChunk]) -> None:
@@ -255,6 +315,7 @@ def render_chat(
     """
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
+    st.html(_CHAT_STYLE)
 
     for message in st.session_state.chat_history:
         avatar = APP_ICON if message["role"] == "assistant" else USER_AVATAR
@@ -265,12 +326,20 @@ def render_chat(
                 st.caption("🎤 Voice message")
             if message["content"]:
                 st.markdown(_md(message["content"]))
+            if message["role"] == "assistant" and (message.get("source") or message.get("model")):
+                _render_answer_meta(message.get("source"), message.get("searches", []), message.get("model"),
+                                    message.get("chart_pages"), message.get("seconds"))
             if message["role"] == "assistant":
-                _render_source_label(message.get("source"))
-                _render_agent_trace(message.get("searches", []), message.get("model"), message.get("chart_pages"))
-                _render_sources(message.get("sources", []))
-                if message.get("show_debug"):
-                    _render_debug(message.get("sources", []))
+                _render_passages(message.get("sources", []), message.get("show_debug"))
+
+    suggested = None
+    documents = st.session_state.get("document_names") or []
+    if documents and not any(m["role"] == "user" for m in st.session_state.chat_history):
+        picked = st.pills("Try asking", _suggestions(documents), label_visibility="collapsed",
+                          key=f"suggestion_{st.session_state.get('suggestion_round', 0)}")
+        if picked:
+            suggested = _question_from_suggestion(picked)
+            st.session_state.suggestion_round = st.session_state.get("suggestion_round", 0) + 1
 
     with st.bottom:
         with st.container(horizontal=True, vertical_alignment="center"):
@@ -287,11 +356,11 @@ def render_chat(
     if attach:
         st.session_state.attach_results = None  # a fresh dialog each time
         _attach_dialog(pipeline, conversation_store, conversation_id)
-    if not submission:
+    if not submission and not suggested:
         return
 
-    question = (submission.text or "").strip()
-    audio = submission.audio
+    question = suggested or (submission.text or "").strip()
+    audio = None if suggested else submission.audio
 
     if audio is not None:
         spoken = _transcribe_voice(audio)
@@ -326,7 +395,7 @@ def render_chat(
     with st.chat_message("assistant", avatar=APP_ICON):
         sources = []
         source_label = None
-        searches, answer_model, chart_pages = [], None, []
+        searches, answer_model, chart_pages, seconds = [], None, [], None
 
         cached = _find_cached_answer(st.session_state.chat_history, question)
         if cached is not None:
@@ -338,7 +407,8 @@ def render_chat(
             searches, answer_model = cached.get("searches", []), cached.get("model")
             chart_pages = cached.get("chart_pages", [])
         else:
-            with st.spinner("Thinking..."):
+            started = time.perf_counter()
+            with st.status("Searching your documents...", expanded=False) as status:
                 try:
                     result = pipeline.ask(
                         question,
@@ -359,13 +429,19 @@ def render_chat(
                         [],
                         None,
                     )
+                seconds = time.perf_counter() - started
+                for query in searches:
+                    st.write(f":material/search: Searched “{query}”")
+                for page in chart_pages:
+                    st.write(f":material/bar_chart: Read the chart on {page}")
+                if sources:
+                    pages = sorted({_format_location(c.source, c.page) for c in sources})
+                    st.write(f":material/description: Used {len(pages)} page(s): " + "; ".join(pages))
+                status.update(label=f"Answered in {seconds:.1f} s", state="complete")
 
         st.markdown(_md(answer))
-        _render_source_label(source_label)
-        _render_agent_trace(searches, answer_model, chart_pages)
-        _render_sources(sources)
-        if show_debug:
-            _render_debug(sources)
+        _render_answer_meta(source_label, searches, answer_model, chart_pages, seconds)
+        _render_passages(sources, show_debug)
 
     st.session_state.chat_history.append(
         {
@@ -377,6 +453,7 @@ def render_chat(
             "searches": searches,
             "model": answer_model,
             "chart_pages": chart_pages,
+            "seconds": seconds,
         }
     )
     conversation_store.save(conversation_id, st.session_state.chat_history)

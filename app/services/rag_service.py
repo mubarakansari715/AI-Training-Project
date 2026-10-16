@@ -88,6 +88,7 @@ class RAGPipeline:
         chunk_strategy: str | None = None,
         chunk_unit: str | None = None,
         structure_source: str | None = None,
+        layout_tables: str | None = None,
         query_routing: str | None = None,
     ):
         self.chunk_size = chunk_size or settings.chunk_size
@@ -95,6 +96,7 @@ class RAGPipeline:
         self.chunk_strategy = chunk_strategy or settings.chunk_strategy
         self.chunk_unit = chunk_unit or settings.chunk_unit
         self.structure_source = structure_source or settings.structure_source
+        self.layout_tables = layout_tables or settings.layout_tables
         self.section_aware = settings.section_aware if section_aware is None else section_aware
         # Charts/tables/call-outs from page images + footnotes, for short PDFs (app/rag/visual.py).
         self.read_visuals = settings.visual_reading_max_pages > 0 if read_visuals is None else read_visuals
@@ -137,7 +139,7 @@ class RAGPipeline:
         filename to a friendly message for anything that failed.
         """
         pages, errors = parse_uploaded_files(files, detect_structure=self.section_aware, read_visuals=self.read_visuals,
-                                             structure_source=self.structure_source)
+                                             structure_source=self.structure_source, layout_tables=self.layout_tables)
         if not pages:
             return 0, errors
 

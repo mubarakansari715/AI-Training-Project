@@ -71,6 +71,11 @@ class Settings:
     # PDFs up to this many pages — one vision call per page, cached in
     # VISION_CACHE_DIR. 0 turns it off.
     visual_reading_max_pages: int = _get_int("VISUAL_READING_MAX_PAGES", 30)
+    # Tables rebuilt from the page layout (header bars + word positions, no
+    # vision model; app/rag/layout_tables.py): "auto" = whenever the vision
+    # model doesn't read the PDF (too long, or no OPENROUTER_API_KEY), "on"
+    # = always, "off" = never.
+    layout_tables: str = os.getenv("LAYOUT_TABLES", "auto")
     vision_cache_dir: str = os.getenv("VISION_CACHE_DIR", "data/vision_cache")
 
     # Fallback provider, used only when Groq is unconfigured or a call

@@ -16,6 +16,15 @@ _IDENTITY = f"""Only if the user asks who you are or what your name is, say you 
 asked who built, created, founded or owns {APP_NAME}, say it was built
 by {APP_CREATOR}."""
 
+# How answers are laid out, shared by every answering prompt (also auto mode,
+# app.rag.agent): the chat renders Markdown, so comparisons read as tables.
+FORMAT_RULE = """Format the answer for reading in a chat: when it gives several values to
+compare (figures by year, region, product, model, setting or category, or a
+breakdown into parts), put them in a Markdown table — one row per item, one
+column per attribute, units in the column headers, and a Source column with
+the page (or the citation right under the table). Keep a single fact or a short
+explanation as plain sentences; never force a table on one or two values."""
+
 SYSTEM_INSTRUCTIONS = f"""You are {APP_NAME}, a document question-answering assistant.
 {_IDENTITY}
 
@@ -39,6 +48,8 @@ introduced as "On the upside, ..." and not called a risk); leave that
 line out only when the context has none.
 Video/audio transcripts have no pages — their lines start with [mm:ss]
 timestamps; cite those instead.
+
+{FORMAT_RULE}
 
 You may also use the earlier turns of this conversation for
 continuity (e.g. remembering the user's name or referring back to
@@ -87,7 +98,9 @@ yet), so answer the question using your own general knowledge instead.
 
 Do not claim the answer came from the user's documents — it didn't. You
 may also use the earlier turns of this conversation for continuity (e.g.
-remembering the user's name or referring back to something they said)."""
+remembering the user's name or referring back to something they said).
+
+{FORMAT_RULE}"""
 
 
 def build_general_knowledge_prompt(question: str) -> str:

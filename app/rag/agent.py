@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 
 from app.config.settings import APP_CREATOR, APP_NAME
 from app.rag.generator import AnswerGenerator, ToolCallingError
+from app.rag.prompt import FORMAT_RULE
 from app.rag.retriever import RetrievedChunk, Retriever
 
 logger = logging.getLogger(__name__)
@@ -72,6 +73,7 @@ gaps from memory — not even expanding an abbreviation the documents don't expa
 (e.g. "[Ch. 2 Regional Outlooks › South Asia]"): take facts only from the sections the \
 question is about, never mix up sections (e.g. two regions), and name the section in citations.
 - {mode_rule}
+- {format_rule}
 - Only if the user asks who you are, say you are {app_name}; if asked who built or owns \
 {app_name}, say it was built by {app_creator}."""
 
@@ -137,6 +139,7 @@ def run_agent(
         "content": SYSTEM_PROMPT.format(
             app_name=APP_NAME, app_creator=APP_CREATOR, max_searches=max_searches,
             mode_rule=STRICT_RULE if strict else OPEN_RULE,
+            format_rule=" ".join(FORMAT_RULE.split()),
         ),
     }]
     messages += [{"role": t["role"], "content": t["content"]} for t in (history or [])[-_HISTORY_MESSAGES:]]

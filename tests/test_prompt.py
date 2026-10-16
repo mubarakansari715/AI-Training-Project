@@ -84,3 +84,12 @@ def test_prompts_name_who_built_the_assistant():
     assert APP_CREATOR in build_prompt("q", [])
     assert APP_CREATOR in build_general_knowledge_prompt("q")
 
+
+
+def test_every_answering_prompt_asks_for_tables_when_comparing_values():
+    from app.rag.agent import SYSTEM_PROMPT
+    from app.rag.prompt import FORMAT_RULE, build_general_knowledge_prompt
+
+    assert "Markdown table" in FORMAT_RULE and "never force a table" in FORMAT_RULE
+    assert FORMAT_RULE in build_prompt("q", []) and FORMAT_RULE in build_general_knowledge_prompt("q")
+    assert "{format_rule}" in SYSTEM_PROMPT

@@ -68,6 +68,12 @@ def _normalize_question(text: str) -> str:
     return re.sub(r"\s+", " ", text.strip().lower())
 
 
+def _md(text: str) -> str:
+    """Message text as Markdown: a "$" (as in "$375.7 million") would otherwise
+    start a math formula and garble the line, or a table of amounts."""
+    return text.replace("$", "\\$")
+
+
 def _find_cached_answer(chat_history: list[dict], question: str) -> dict | None:
     """Return a previous answer to this same question in this conversation,
     if any, so asking it again gives back the same answer instead of a
@@ -178,7 +184,7 @@ def render_chat(
             if message.get("voice"):
                 st.caption("🎤 Voice message")
             if message["content"]:
-                st.write(message["content"])
+                st.markdown(_md(message["content"]))
             if message["role"] == "assistant":
                 _render_source_label(message.get("source"))
                 _render_agent_trace(message.get("searches", []), message.get("model"))
@@ -280,7 +286,7 @@ def render_chat(
         else:
             display_answer = index_note or "No files were indexed."
 
-        st.write(display_answer)
+        st.markdown(_md(display_answer))
         _render_source_label(source_label)
         _render_agent_trace(searches, answer_model)
         _render_sources(sources)

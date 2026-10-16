@@ -41,6 +41,8 @@ up an earlier conversation later — even after restarting the app.
   dialog shows each file's progress (reading text, reading charts, embedding
   420 of 1,194 passages, ...), then "GEP-Jun-2026.pdf is ready: 200 pages,
   1,676 passages, 101 charts measured" and a note in the chat
+- Light theme, and strict document mode on by default (answers only from
+  your documents)
 - Video/audio support (MP4, MOV, WebM, MKV, AVI, MP3, WAV, M4A, OGG, FLAC):
   speech is transcribed locally with `faster-whisper` into `[mm:ss]`-timestamped
   text, plus an info page (duration, resolution, frame rate, language), so you
@@ -290,7 +292,7 @@ See [`.env.example`](.env.example) for the full file with defaults:
 | `STRUCTURE_SOURCE` | Section headings from `auto` (bookmarks, else font sizes), `bookmarks` or `fonts` | `auto` |
 | `QUERY_ROUTING` | Route questions to sections by `rules`, or `llm` (rules first, then one LLM call) | `rules` |
 | `LAYOUT_TABLES` | Rebuild tables from page layout (no vision): `auto`, `on` or `off` | `auto` |
-| `STRICT_DOCUMENT_MODE` | Refuse to answer beyond the documents | `false` |
+| `STRICT_DOCUMENT_MODE` | Refuse to answer beyond the documents | `true` |
 | `QUERY_REWRITING` | Rewrite questions with the LLM before searching (typos, follow-ups) | `true` |
 | `QUERY_DECOMPOSITION` | Split comparison/multi-part questions into sub-questions, each searched | `true` |
 | `AGENT_MODE` | Auto mode: the LLM decides whether/how often to search (needs Groq) | `true` |

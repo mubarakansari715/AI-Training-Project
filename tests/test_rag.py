@@ -69,12 +69,22 @@ def test_index_files_adds_chunks(pipeline):
     assert pipeline.document_count() == 1
 
 
-def test_ask_without_any_documents_falls_back_to_general_knowledge_by_default(pipeline, monkeypatch):
-    # Non-strict is the default: no documents at all shouldn't refuse
-    # outright, it should answer from the model's general knowledge.
+def test_ask_without_any_documents_refuses_by_default(pipeline, monkeypatch):
+    # Strict is the default: the app answers only from the documents.
     _mock_gemini(pipeline, monkeypatch, "Paris is the capital of France.")
 
     result = pipeline.ask("What is the capital of France?")
+
+    assert result.answer == NOT_FOUND_MESSAGE
+    assert result.sources == []
+
+
+def test_ask_without_any_documents_falls_back_to_general_knowledge_when_not_strict(pipeline, monkeypatch):
+    # Non-strict: no documents at all shouldn't refuse outright, it should
+    # answer from the model's general knowledge.
+    _mock_gemini(pipeline, monkeypatch, "Paris is the capital of France.")
+
+    result = pipeline.ask("What is the capital of France?", strict_mode=False)
 
     assert result.answer == "Paris is the capital of France."
     assert result.sources == []

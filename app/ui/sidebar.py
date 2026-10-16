@@ -185,11 +185,11 @@ def render_sidebar(
             strict_mode = st.checkbox(
                 "Strict document mode",
                 value=st.session_state.get("strict_mode", settings.strict_document_mode),
-                help="Off (default): answers come from your documents when "
-                "possible, and from the model's general knowledge otherwise "
-                "— each answer shows which one it came from. On: only ever "
-                "answer from your documents, refusing when nothing relevant "
-                "is found.",
+                help="On (default): only ever answer from your documents, "
+                "refusing when nothing relevant is found. Off: answers come "
+                "from your documents when possible, and from the model's "
+                "general knowledge otherwise — each answer shows which one "
+                "it came from.",
             )
             st.session_state.strict_mode = strict_mode
 

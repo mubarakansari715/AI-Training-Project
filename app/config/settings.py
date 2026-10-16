@@ -191,11 +191,11 @@ class Settings:
     # or "llm" (rules first; a question naming none gets one short LLM call
     # that picks sections, e.g. "India" -> South Asia; app/rag/query_router.py).
     query_routing: str = os.getenv("QUERY_ROUTING", "rules")
-    # False (default): answer from documents when they have the answer,
-    # otherwise fall back to the model's general knowledge (source is
-    # shown in the UI either way). True: only ever answer from documents,
-    # refusing when nothing relevant is found.
-    strict_document_mode: bool = _get_bool("STRICT_DOCUMENT_MODE", False)
+    # True (default): only ever answer from documents, refusing when
+    # nothing relevant is found. False: answer from documents when they
+    # have the answer, otherwise fall back to the model's general knowledge
+    # (source is shown in the UI either way).
+    strict_document_mode: bool = _get_bool("STRICT_DOCUMENT_MODE", True)
     # Rewrite each question with the LLM before searching (fixes typos,
     # resolves follow-ups like "and my cholesterol?"); costs one short
     # extra LLM call per question while documents are indexed.

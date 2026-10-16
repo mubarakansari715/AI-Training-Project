@@ -159,6 +159,7 @@ app/
 │   ├── vector_store.py           # Persistent ChromaDB wrapper
 │   ├── retriever.py              # Question -> relevant chunks
 │   ├── keyword_search.py         # BM25 keyword search, merged with vectors (hybrid)
+│   ├── query_router.py           # LLM routing of questions to sections (optional)
 │   ├── prompt.py                 # RAG prompt template
 │   ├── generator.py              # Groq/Gemini answer generation (+ Groq tool calling)
 │   ├── agent.py                  # Auto mode: LLM-driven search with a tool
@@ -262,6 +263,7 @@ See [`.env.example`](.env.example) for the full file with defaults:
 | `KEYWORD_CANDIDATES` | BM25 candidates merged into each search | `20` |
 | `SECTION_AWARE` | Detect sections in structured PDFs; search only sections a question names | `true` |
 | `STRUCTURE_SOURCE` | Section headings from `auto` (bookmarks, else font sizes), `bookmarks` or `fonts` | `auto` |
+| `QUERY_ROUTING` | Route questions to sections by `rules`, or `llm` (rules first, then one LLM call) | `rules` |
 | `STRICT_DOCUMENT_MODE` | Refuse to answer beyond the documents | `false` |
 | `QUERY_REWRITING` | Rewrite questions with the LLM before searching (typos, follow-ups) | `true` |
 | `AGENT_MODE` | Auto mode: the LLM decides whether/how often to search (needs Groq) | `true` |

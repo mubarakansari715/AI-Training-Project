@@ -136,6 +136,10 @@ class Settings:
     # Where section headings come from: "auto" (PDF bookmarks, or headings
     # found by font size when a PDF has none), "bookmarks" or "fonts".
     structure_source: str = os.getenv("STRUCTURE_SOURCE", "auto")
+    # How a question is routed to sections: "rules" (the sections it names)
+    # or "llm" (rules first; a question naming none gets one short LLM call
+    # that picks sections, e.g. "India" -> South Asia; app/rag/query_router.py).
+    query_routing: str = os.getenv("QUERY_ROUTING", "rules")
     # False (default): answer from documents when they have the answer,
     # otherwise fall back to the model's general knowledge (source is
     # shown in the UI either way). True: only ever answer from documents,

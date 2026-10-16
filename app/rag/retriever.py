@@ -8,6 +8,7 @@ to the LLM instead of the entire document collection.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from app.config.settings import settings
@@ -82,6 +83,7 @@ class Retriever:
         section_aware: bool = True,
         hybrid_search: bool | None = None,
         keyword_candidates: int | None = None,
+        router: Callable[[str, list[str]], list[str]] | None = None,
     ):
         self._vector_store = vector_store
         self._embeddings = embedding_service
@@ -99,6 +101,10 @@ class Retriever:
         hybrid = settings.hybrid_search if hybrid_search is None else hybrid_search
         self.keyword_index = KeywordIndex(vector_store) if hybrid else None
         self.keyword_candidates = keyword_candidates or settings.keyword_candidates
+        # Optional LLM router (app.rag.query_router) for questions the rules
+        # can't place; its picks are cached per question.
+        self.router = router
+        self._routes: dict[str, list[str]] = {}
 
     def retrieve(self, question: str) -> list[RetrievedChunk]:
         """Return relevant chunks for `question`, most similar first.
@@ -241,6 +247,10 @@ class Retriever:
         if not labels:
             return [], None
         named = sections_mentioned(question, labels)
+        if not named and self.router:
+            if question not in self._routes:
+                self._routes[question] = self.router(question, labels)
+            named = [[label] for label in self._routes[question]]
         if named:
             return named, {"section": {"$in": sorted({label for group in named for label in group})}}
         front = [label for label in labels if is_front_matter(label)]

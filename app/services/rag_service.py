@@ -18,6 +18,7 @@ from app.rag.citations import cited_chunks
 from app.rag.embeddings import EmbeddingService
 from app.rag.generator import AnswerGenerator
 from app.rag.model_router import resolve_groq_model
+from app.rag.query_router import llm_route
 from app.rag.query_rewriter import rewrite_query
 from app.rag.reranker import Reranker
 from app.rag.retriever import RetrievedChunk, Retriever
@@ -83,6 +84,7 @@ class RAGPipeline:
         chunk_strategy: str | None = None,
         chunk_unit: str | None = None,
         structure_source: str | None = None,
+        query_routing: str | None = None,
     ):
         self.chunk_size = chunk_size or settings.chunk_size
         self.chunk_overlap = settings.chunk_overlap if chunk_overlap is None else chunk_overlap
@@ -103,6 +105,9 @@ class RAGPipeline:
             rerank_candidates=rerank_candidates, section_aware=self.section_aware, hybrid_search=hybrid_search,
         )
         self.generator = AnswerGenerator()
+        if (query_routing or settings.query_routing) == "llm":
+            self.retriever.router = lambda question, labels: llm_route(
+                self.generator, question, labels, groq_model_name=settings.groq_fast_model)
         self.indexed_documents: set[str] = set()
         self.rewrite_queries = settings.query_rewriting
 

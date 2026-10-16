@@ -361,3 +361,18 @@ def test_hybrid_search_respects_the_section_filter(tmp_path):
     assert [c.chunk_id for c in results] == ["other"]  # "exact" also says FDsys but is in another section
 
 
+def test_router_runs_only_when_the_rules_name_no_section_and_is_cached():
+    calls = []
+
+    def router(question, labels):
+        calls.append(question)
+        return ["Europe and Central Asia"]
+
+    store = VectorStore(persist_dir="/tmp/unused", collection_name="unused")
+    retriever = Retriever(store, FakeEmbeddingService({}), section_aware=True, hybrid_search=False, router=router)
+    retriever._section_labels = lambda: ["South Asia", "Europe and Central Asia"]
+
+    assert retriever.named_sections("What is the growth outlook for South Asia?") == [["South Asia"]]
+    assert retriever.named_sections("How fast will Poland grow?") == [["Europe and Central Asia"]]
+    assert retriever.named_sections("How fast will Poland grow?") == [["Europe and Central Asia"]]
+    assert calls == ["How fast will Poland grow?"]  # rules first; the LLM pick is cached

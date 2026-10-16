@@ -50,3 +50,7 @@ def test_does_not_alter_already_clean_text():
 def test_does_not_merge_words_that_are_not_hyphen_broken():
     text = "Well-known facts about the annual leave policy."
     assert clean_text(text) == text
+
+
+def test_expands_ligature_characters():
+    assert clean_text("\ufb01scal in\ufb02ation e\ufb00ects e\ufb03cient") == "fiscal inflation effects efficient"

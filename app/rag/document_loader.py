@@ -17,6 +17,7 @@ from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
 from app.rag.structure import detect_sections, flatten_outline
+from app.rag.text_cleaner import expand_ligatures
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +101,10 @@ def _parse_pdf(
             f"Could not read '{filename}'. The PDF may be corrupted."
         ) from exc
 
-    texts = {index: (page.extract_text() or "").strip() for index, page in enumerate(reader.pages, start=1)}
+    # Ligatures expanded before section detection too, so headings and section
+    # labels read "Fiscal", not "ﬁscal" (app.rag.text_cleaner).
+    texts = {index: expand_ligatures(page.extract_text() or "").strip()
+             for index, page in enumerate(reader.pages, start=1)}
     # Chapter/section per page, for structured reports (bookmarks, running
     # headers); empty for documents without detectable structure.
     sections = detect_sections(texts, flatten_outline(reader)) if detect_structure else {}

@@ -16,11 +16,14 @@ additions make those searchable:
   question about a claim's condition finds the note itself — one block of
   every note on a page matched no single question well enough.
 
-Rendering every page costs one vision call each, so every page is read only
-for documents up to VISUAL_READING_MAX_PAGES (see app.config.settings). In a
-longer one, only pages holding a chart that can't be measured from its
-drawing (a picture; app.rag.chart_measure measures the rest for free) are
-read, up to VISUAL_CHART_PAGES.
+Each page read costs one vision call (about a minute on the free models),
+so pages are read VISION_CONCURRENCY at a time, and only pages that draw
+something are read: a page of plain text (no picture, almost no drawn
+shapes) holds nothing the text extraction misses. That applies to documents
+up to VISUAL_READING_MAX_PAGES (see app.config.settings). In a longer one,
+only pages holding a chart that can't be measured from its drawing (a
+picture; app.rag.chart_measure measures the rest for free) are read, up to
+VISUAL_CHART_PAGES.
 """
 
 from __future__ import annotations
@@ -30,6 +33,7 @@ import hashlib
 import logging
 import re
 from collections.abc import Callable
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from pathlib import Path
 
 import time
@@ -53,6 +57,9 @@ _RENDER_DPI = 110
 # than wait out the remaining pages.
 _MAX_FAILED_PAGES = 3
 _CHART_PAGE_DRAWINGS = 20
+# A page with fewer drawn shapes than this (and no picture) is plain text:
+# a header rule or two, no chart, table grid or icon.
+_VISUAL_PAGE_DRAWINGS = 5
 _MIN_IMAGE_SHARE = 0.02  # of the page area: smaller images are logos and icons
 _CAPTION_RE = re.compile(r"\b(?:figure|chart|graph|exhibit)\s*[A-Z]?\d", re.IGNORECASE)
 # Bump when VISION_PROMPT changes, so cached replies from the old prompt are not reused.
@@ -156,25 +163,50 @@ def parse_visual_blocks(reply: str) -> list[tuple[str, str, str]]:
 
 
 def visual_pages(page_pngs: list[bytes], filename: str, describe: Describer,
-                 numbers: list[int] | None = None, progress: Progress | None = None) -> list[DocumentPage]:
+                 numbers: list[int] | None = None, progress: Progress | None = None,
+                 workers: int | None = None) -> list[DocumentPage]:
     """One DocumentPage per chart/table/call-out found on the rendered pages
-    (page `numbers`, default 1, 2, ...). A page no model could read is
-    skipped (logged), keeping the others; after a few such pages the rest
-    are skipped too."""
-    pages = []
-    failed = 0
-    for done, (number, png) in enumerate(zip(numbers or range(1, len(page_pngs) + 1), page_pngs)):
-        report(progress, f"Reading charts and tables (page {done + 1} of {len(page_pngs)})", done / len(page_pngs))
-        if failed >= _MAX_FAILED_PAGES:
+    (page `numbers`, default 1, 2, ...), in page order. `workers` pages
+    (default VISION_CONCURRENCY) are read at a time. A page no model could
+    read is skipped (logged), keeping the others; after a few such pages the
+    rest are skipped too."""
+    numbers = list(numbers or range(1, len(page_pngs) + 1))
+    todo = iter(zip(numbers, page_pngs))
+    replies: dict[int, str] = {}
+    failed = done = 0
+    report(progress, f"Reading charts and tables (0 of {len(numbers)} pages)", 0.0)
+    # Progress is reported from this thread only: Streamlit widgets can't be
+    # updated from the worker threads.
+    workers = max(1, workers or settings.vision_concurrency)
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        running = {}
+
+        def start_next() -> None:
+            for number, png in todo:
+                running[pool.submit(describe, png, number)] = number
+                return
+
+        for _ in range(workers):
+            start_next()
+        while running:
+            finished, _ = wait(running, return_when=FIRST_COMPLETED)
+            for future in finished:
+                number = running.pop(future)
+                done += 1
+                try:
+                    replies[number] = future.result()
+                except Exception:
+                    logger.exception("Could not read the image of page %d of %s", number, filename)
+                    failed += 1
+                if failed < _MAX_FAILED_PAGES:
+                    start_next()
+                report(progress, f"Reading charts and tables ({done} of {len(numbers)} pages)", done / len(numbers))
+        if failed >= _MAX_FAILED_PAGES and done < len(numbers):
             logger.warning("Vision models failed on %d pages; not reading the rest of %s", failed, filename)
-            break
-        try:
-            reply = describe(png, number)
-        except Exception:
-            logger.exception("Could not read the image of page %d of %s", number, filename)
-            failed += 1
-            continue
-        for kind, title, body in parse_visual_blocks(reply):
+
+    pages = []
+    for number in numbers:
+        for kind, title, body in parse_visual_blocks(replies.get(number, "")):
             label = f"{_TYPE_LABELS[kind]} on page {number}" + (f": {title}" if title else "")
             pages.append(DocumentPage(text=f"[{label} (read from the page image)]\n{body}", source=filename, page=number,
                                       element=True))
@@ -246,6 +278,20 @@ def _ask_vision_model(model: str, prompt: str, image_url: str) -> str:
 # -------------------------------------------------------------------- entry
 
 
+def drawn_pages(doc) -> list[int]:
+    """Pages (1-based) worth showing a vision model: a sizeable picture, or
+    enough drawn shapes for a chart, table grid or icon call-out. The rest
+    are plain text, which text extraction already reads."""
+    import pymupdf
+
+    found = []
+    for page in doc:
+        pictures = sum(abs(pymupdf.Rect(info["bbox"])) for info in page.get_image_info())
+        if pictures >= _MIN_IMAGE_SHARE * abs(page.rect) or len(page.get_drawings()) >= _VISUAL_PAGE_DRAWINGS:
+            found.append(page.number + 1)
+    return found
+
+
 def picture_chart_pages(doc) -> list[int]:
     """Pages (1-based) holding a chart or diagram that can't be measured
     from its drawing: a sizeable image (a pasted chart), or many drawn shapes
@@ -294,14 +340,17 @@ def read_visuals(data: bytes, filename: str, describe: Describer | None = None,
             if not notes_by_page[page.number]  # the endnotes page itself
         }
         footnotes = footnote_pages(markers_by_page, notes, filename)
-        pngs = [page.get_pixmap(dpi=_RENDER_DPI).tobytes("png") for page in doc]
+        numbers = drawn_pages(doc)
+        pngs = [doc[n - 1].get_pixmap(dpi=_RENDER_DPI).tobytes("png") for n in numbers]
 
+    if not numbers:
+        return footnotes
     if describe is None:
         if not settings.openrouter_api_key:
             return footnotes
         describe = openrouter_describer(filename)
     try:
-        return footnotes + visual_pages(pngs, filename, describe, progress=progress)
+        return footnotes + visual_pages(pngs, filename, describe, numbers, progress)
     except Exception:
         logger.exception("Reading page images of %s failed; using text only", filename)
         return footnotes

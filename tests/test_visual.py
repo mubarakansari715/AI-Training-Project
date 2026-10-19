@@ -94,8 +94,50 @@ def test_reading_stops_after_several_pages_fail():
             raise RuntimeError("429 rate-limited upstream")
         return "NONE"
 
-    assert visual_pages([b"p"] * 10, "gep.pdf", describe) == []
+    assert visual_pages([b"p"] * 10, "gep.pdf", describe, workers=1) == []
     assert asked == [1, 2, 3, 4, 5]
+
+
+def test_pages_are_read_in_parallel_and_kept_in_page_order():
+    import threading
+    import time
+
+    active, peak, lock = [0], [0], threading.Lock()
+
+    def describe(png: bytes, page: int) -> str:
+        with lock:
+            active[0] += 1
+            peak[0] = max(peak[0], active[0])
+        time.sleep(0.05 * (5 - page))  # later pages finish first
+        with lock:
+            active[0] -= 1
+        return f"TYPE: table\nTITLE: T{page}\n| a |"
+
+    pages = visual_pages([b"p"] * 4, "r.pdf", describe, workers=4)
+
+    assert [p.page for p in pages] == [1, 2, 3, 4]
+    assert peak[0] > 1
+
+
+def test_a_short_pdf_skips_its_plain_text_pages():
+    import pymupdf
+
+    from app.rag import visual
+
+    doc = pymupdf.open()
+    doc.new_page().insert_text((50, 60), "Prose only.", fontsize=10)
+    table = doc.new_page()  # page 2: a drawn table grid
+    for y in range(100, 220, 20):
+        table.draw_line((50, y), (400, y))
+    asked = []
+
+    def describe(png: bytes, page: int) -> str:
+        asked.append(page)
+        return "NONE"
+
+    visual.read_visuals(doc.tobytes(), "short.pdf", describe)
+
+    assert asked == [2]
 
 
 def test_a_long_pdf_reads_only_its_unmeasurable_chart_pages(monkeypatch):

@@ -127,8 +127,8 @@ class RAGPipeline:
         self.structure_source = structure_source or settings.structure_source
         self.layout_tables = layout_tables or settings.layout_tables
         self.section_aware = settings.section_aware if section_aware is None else section_aware
-        # Charts/tables/call-outs from page images + footnotes, for short PDFs (app/rag/visual.py).
-        self.read_visuals = settings.visual_reading_max_pages > 0 if read_visuals is None else read_visuals
+        # Charts/tables/call-outs from page images + footnotes, for PDFs (app/rag/visual.py).
+        self.read_visuals = settings.visual_reading if read_visuals is None else read_visuals
         self.embedding_service = EmbeddingService(embedding_model, embedding_query_prefix)
         self.vector_store = VectorStore(
             persist_dir=persist_dir, collection_name=collection_name

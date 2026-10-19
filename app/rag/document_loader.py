@@ -61,7 +61,7 @@ def parse_document(
     are transcribed into an info page plus [mm:ss]-timestamped transcript
     pages (see app.rag.media_transcriber).
 
-    `read_visuals` also reads a short PDF's charts, tables, call-outs and
+    `read_visuals` also reads a PDF's charts, tables, call-outs and
     footnotes (see app.rag.visual); with `defer_visuals` the caller reads
     those itself later (app.rag.visual.read_visuals), and only the choices
     that depend on them (layout tables) are made here. `structure_source`
@@ -118,6 +118,11 @@ def _parse_pdf(
         raise DocumentParsingError(
             f"Could not read '{filename}'. The PDF may be corrupted."
         ) from exc
+    if len(reader.pages) > settings.max_pdf_pages:
+        raise DocumentParsingError(
+            f"'{filename}' has {len(reader.pages):,} pages; the limit is {settings.max_pdf_pages:,}. "
+            "Split it into smaller PDFs and upload those."
+        )
 
     # Ligatures expanded before section detection too, so headings and section
     # labels read "Fiscal", not "ﬁscal" (app.rag.text_cleaner).
@@ -136,7 +141,7 @@ def _parse_pdf(
 
         if not defer_visuals:
             visuals = read_page_visuals(data, filename, progress=scaled(progress, 0.45, 0.85))
-    vision = read_visuals and len(reader.pages) <= settings.visual_reading_max_pages and bool(vision_models())
+    vision = read_visuals and bool(vision_models())
     if layout_tables == "on" or (layout_tables == "auto" and not vision):
         from app.rag.layout_tables import read_layout_tables
 

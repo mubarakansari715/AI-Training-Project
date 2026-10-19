@@ -11,8 +11,8 @@ cells mark the columns, so (the field guide's method):
    and into columns by position, until a large vertical gap;
 4. write the table as Markdown, one passage per table.
 
-Free and local (PyMuPDF), so it also works for PDFs too long for the
-vision model (app.rag.visual), which reads tables from page images.
+Free and local (PyMuPDF), so it also works when the vision model
+(app.rag.visual), which reads tables from page images, is off or has no key.
 """
 
 from __future__ import annotations

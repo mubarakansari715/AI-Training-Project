@@ -1,4 +1,4 @@
-"""Layout-aware reading for short, visual PDFs (product reports, fact sheets).
+"""Layout-aware reading of a PDF's charts, tables, call-outs and footnotes.
 
 Plain text extraction misses most of what such documents say: their facts
 sit in charts (drawn as vector shapes, so there is no image to OCR), small
@@ -20,12 +20,10 @@ Pages are read by Gemini (VISION_GEMINI_MODEL, a few seconds a page) when
 GEMINI_API_KEY is set, VISION_CONCURRENCY at a time; a page Gemini can't
 read falls back to the OpenRouter models (VISION_MODEL). Those are free but
 take about a minute a page and are rate-limited, so on their own they read
-one page at a time. Only pages that draw something are read: a page of plain text (no picture, almost no drawn
-shapes) holds nothing the text extraction misses. That applies to documents
-up to VISUAL_READING_MAX_PAGES (see app.config.settings). In a longer one,
-only pages holding a chart that can't be measured from its drawing (a
-picture; app.rag.chart_measure measures the rest for free) are read, up to
-VISUAL_CHART_PAGES.
+one page at a time. Every page that draws something is read, however long
+the PDF (uploads are capped at MAX_PDF_PAGES; see app.config.settings): a
+page of plain text (no picture, almost no drawn shapes) holds nothing the
+text extraction misses, so it is skipped.
 """
 
 from __future__ import annotations
@@ -62,16 +60,18 @@ _GEMINI_RETRY_RE = re.compile(r"retry in ([\d.]+)s")
 # Marks a Gemini model in a describer's model list; the rest are OpenRouter's.
 _GEMINI_PREFIX = "gemini:"
 _RENDER_DPI = 110
-# Free models that fail this many pages are rate-limited or down (each
-# failure has already waited through every model's retries): stop rather
-# than wait out the remaining pages.
+# Models that fail this many pages in a row are down (each failure has
+# already waited through every model's retries): stop starting pages rather
+# than wait out the rest. Pages that failed or weren't started get one more
+# pass after a pause, as most failures (rate limits, "high demand") pass.
 _MAX_FAILED_PAGES = 3
-_CHART_PAGE_DRAWINGS = 20
+_RETRY_PASS_WAIT_SECONDS = 60.0
+# Gemini errors worth retrying: rate-limited, or briefly overloaded.
+_GEMINI_RETRY_CODES = {429, 500, 503}
 # A page with fewer drawn shapes than this (and no picture) is plain text:
 # a header rule or two, no chart, table grid or icon.
 _VISUAL_PAGE_DRAWINGS = 5
 _MIN_IMAGE_SHARE = 0.02  # of the page area: smaller images are logos and icons
-_CAPTION_RE = re.compile(r"\b(?:figure|chart|graph|exhibit)\s*[A-Z]?\d", re.IGNORECASE)
 # Bump when VISION_PROMPT changes, so cached replies from the old prompt are not reused.
 _PROMPT_VERSION = 1
 
@@ -177,42 +177,24 @@ def visual_pages(page_pngs: list[bytes], filename: str, describe: Describer,
                  workers: int | None = None) -> list[DocumentPage]:
     """One DocumentPage per chart/table/call-out found on the rendered pages
     (page `numbers`, default 1, 2, ...), in page order. `workers` pages
-    (default vision_workers()) are read at a time. A page no model could
-    read is skipped (logged), keeping the others; after a few such pages the
-    rest are skipped too."""
+    (default vision_workers()) are read at a time. Pages no model could read
+    (or not started after several failures in a row) get a second pass after
+    a pause; a page that fails that too is skipped (logged), keeping the
+    others."""
     numbers = list(numbers or range(1, len(page_pngs) + 1))
-    todo = iter(zip(numbers, page_pngs))
+    pngs = dict(zip(numbers, page_pngs))
     replies: dict[int, str] = {}
-    failed = done = 0
     report(progress, f"Reading charts and tables (0 of {len(numbers)} pages)", 0.0)
-    # Progress is reported from this thread only: Streamlit widgets can't be
-    # updated from the worker threads.
-    workers = max(1, workers or vision_workers())
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        running = {}
-
-        def start_next() -> None:
-            for number, png in todo:
-                running[pool.submit(describe, png, number)] = number
-                return
-
-        for _ in range(workers):
-            start_next()
-        while running:
-            finished, _ = wait(running, return_when=FIRST_COMPLETED)
-            for future in finished:
-                number = running.pop(future)
-                done += 1
-                try:
-                    replies[number] = future.result()
-                except Exception:
-                    logger.exception("Could not read the image of page %d of %s", number, filename)
-                    failed += 1
-                if failed < _MAX_FAILED_PAGES:
-                    start_next()
-                report(progress, f"Reading charts and tables ({done} of {len(numbers)} pages)", done / len(numbers))
-        if failed >= _MAX_FAILED_PAGES and done < len(numbers):
-            logger.warning("Vision models failed on %d pages; not reading the rest of %s", failed, filename)
+    _read_pages(numbers, pngs, filename, describe, max(1, workers or vision_workers()), replies, progress)
+    unread = [n for n in numbers if n not in replies]
+    if unread:
+        logger.warning("Retrying %d page(s) of %s after a pause", len(unread), filename)
+        report(progress, f"Retrying {len(unread)} page(s) in a minute", len(replies) / len(numbers))
+        time.sleep(_RETRY_PASS_WAIT_SECONDS)
+        _read_pages(unread, pngs, filename, describe, 1, replies, progress, total=len(numbers))
+    if len(replies) < len(numbers):
+        logger.warning("Could not read %d of %d page images of %s", len(numbers) - len(replies), len(numbers),
+                       filename)
 
     pages = []
     for number in numbers:
@@ -221,6 +203,40 @@ def visual_pages(page_pngs: list[bytes], filename: str, describe: Describer,
             pages.append(DocumentPage(text=f"[{label} (read from the page image)]\n{body}", source=filename, page=number,
                                       element=True))
     return pages
+
+
+def _read_pages(numbers: list[int], pngs: dict[int, bytes], filename: str, describe: Describer, workers: int,
+                replies: dict[int, str], progress: Progress | None, total: int | None = None) -> None:
+    """Read pages `numbers`, `workers` at a time, into `replies`; stop
+    starting pages after _MAX_FAILED_PAGES failures in a row. Progress is
+    reported from this thread only: Streamlit widgets can't be updated from
+    the worker threads."""
+    total = total or len(numbers)
+    todo = iter(numbers)
+    streak = 0
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        running = {}
+
+        def start_next() -> None:
+            for number in todo:
+                running[pool.submit(describe, pngs[number], number)] = number
+                return
+
+        for _ in range(workers):
+            start_next()
+        while running:
+            finished, _ = wait(running, return_when=FIRST_COMPLETED)
+            for future in finished:
+                number = running.pop(future)
+                try:
+                    replies[number] = future.result()
+                    streak = 0
+                except Exception:
+                    logger.exception("Could not read the image of page %d of %s", number, filename)
+                    streak += 1
+                if streak < _MAX_FAILED_PAGES:
+                    start_next()
+                report(progress, f"Reading charts and tables ({len(replies)} of {total} pages)", len(replies) / total)
 
 
 def vision_models() -> list[str]:
@@ -295,7 +311,6 @@ def _ask_gemini(model: str, prompt: str, png: bytes) -> str:
         if _gemini_client is None:
             _gemini_client = genai.Client(api_key=settings.gemini_api_key)
     for attempt in range(1, _RATE_LIMIT_ATTEMPTS + 1):
-        wait_seconds = _GEMINI_WAIT_SECONDS
         try:
             response = _gemini_client.models.generate_content(
                 model=model,
@@ -304,8 +319,9 @@ def _ask_gemini(model: str, prompt: str, png: bytes) -> str:
             )
             return response.text or ""
         except errors.APIError as exc:
-            if exc.code != 429 or attempt == _RATE_LIMIT_ATTEMPTS:
+            if exc.code not in _GEMINI_RETRY_CODES or attempt == _RATE_LIMIT_ATTEMPTS:
                 raise
+            wait_seconds = _GEMINI_WAIT_SECONDS * attempt
             asked = _GEMINI_RETRY_RE.search(str(exc))
             if asked:
                 wait_seconds = min(float(asked.group(1)) + 1, _GEMINI_MAX_WAIT_SECONDS)
@@ -355,29 +371,10 @@ def drawn_pages(doc) -> list[int]:
     return found
 
 
-def picture_chart_pages(doc) -> list[int]:
-    """Pages (1-based) holding a chart or diagram that can't be measured
-    from its drawing: a sizeable image (a pasted chart), or many drawn shapes
-    under a figure caption where no bar chart could be measured (line charts,
-    diagrams)."""
-    import pymupdf
-
-    from app.rag.chart_measure import measure_page
-
-    found = []
-    for page in doc:
-        area = abs(page.rect)
-        pictures = sum(abs(pymupdf.Rect(info["bbox"])) for info in page.get_image_info()) >= _MIN_IMAGE_SHARE * area
-        drawn = len(page.get_drawings()) >= _CHART_PAGE_DRAWINGS and _CAPTION_RE.search(page.get_text())
-        if pictures or (drawn and not measure_page(page)):
-            found.append(page.number + 1)
-    return found
-
-
 def read_visuals(data: bytes, filename: str, describe: Describer | None = None,
                  progress: Progress | None = None) -> list[DocumentPage]:
-    """Footnote and chart/table/call-out pages for a short PDF; for a long
-    one, the chart pages that can't be measured from their drawing.
+    """Footnote pages, and one page per chart/table/call-out on every page
+    that draws something (drawn_pages).
 
     Any failure (no vision key, provider error) degrades to the footnotes
     alone: it is logged and nothing visual is added.
@@ -385,16 +382,7 @@ def read_visuals(data: bytes, filename: str, describe: Describer | None = None,
     import pymupdf  # PyMuPDF: page rendering and span-level font flags
 
     with pymupdf.open(stream=data, filetype="pdf") as doc:
-        if doc.page_count > settings.visual_reading_max_pages:
-            numbers = picture_chart_pages(doc)[:settings.visual_chart_pages]
-            pngs = [doc[n - 1].get_pixmap(dpi=_RENDER_DPI).tobytes("png") for n in numbers]
-            if not numbers or (describe is None and not vision_models()):
-                return []
-            try:
-                return visual_pages(pngs, filename, describe or vision_describer(filename), numbers, progress)
-            except Exception:
-                logger.exception("Reading the chart pages of %s failed; using text only", filename)
-                return []
+        report(progress, f"Finding pages with charts and tables (of {doc.page_count})", 0.0)
         notes_by_page = {page.number: parse_endnotes(page.get_text()) for page in doc}
         notes = {n: text for page_notes in notes_by_page.values() for n, text in page_notes.items()}
         markers_by_page = {

@@ -58,7 +58,7 @@ class EvalConfig:
     layout_tables: str = settings.layout_tables
     query_routing: str = settings.query_routing
     hybrid_search: bool = settings.hybrid_search
-    read_visuals: bool = settings.visual_reading_max_pages > 0
+    read_visuals: bool = settings.visual_reading
     rewrite_queries: bool = settings.query_rewriting
     decompose_queries: bool = settings.query_decomposition
 

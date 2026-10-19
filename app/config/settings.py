@@ -88,19 +88,19 @@ class Settings:
         "VISION_MODEL",
         "dots-studio/dots-3-note-preview:free,nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free,google/gemma-4-31b-it:free",
     )
-    # Read page images (charts, tables, call-outs) and attach footnotes for
-    # PDFs up to this many pages — one vision call per page, cached in
-    # VISION_CACHE_DIR. 0 turns it off.
-    visual_reading_max_pages: int = _get_int("VISUAL_READING_MAX_PAGES", 30)
+    # Read the page images of every PDF page that draws something (charts,
+    # tables, call-outs) and attach footnotes — one vision call per page,
+    # cached in VISION_CACHE_DIR. False = text only.
+    visual_reading: bool = _get_bool("VISUAL_READING", True)
+    # Longest PDF accepted for upload, in pages; a longer one is turned down
+    # with a message saying so.
+    max_pdf_pages: int = _get_int("MAX_PDF_PAGES", 500)
     # Pages sent to Gemini at once (the free OpenRouter models alone read
     # one at a time: more only gets them rate-limited).
     vision_concurrency: int = _get_int("VISION_CONCURRENCY", 4)
-    # For longer PDFs, only pages holding a chart that can't be measured from
-    # its drawing (a picture) are read, up to this many. 0 turns it off.
-    visual_chart_pages: int = _get_int("VISUAL_CHART_PAGES", 40)
     # Tables rebuilt from the page layout (header bars + word positions, no
     # vision model; app/rag/layout_tables.py): "auto" = whenever the vision
-    # model doesn't read the PDF (too long, or no OPENROUTER_API_KEY), "on"
+    # model doesn't read the PDF (VISUAL_READING off, or no vision key), "on"
     # = always, "off" = never.
     layout_tables: str = os.getenv("LAYOUT_TABLES", "auto")
     # Bar charts drawn as vector shapes are measured from the PDF's drawing

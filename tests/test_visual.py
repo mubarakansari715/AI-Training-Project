@@ -75,7 +75,11 @@ def test_echoed_content_placeholders_are_dropped():
     assert parse_visual_blocks(reply) == [("table", "T", "| a | b |")]
 
 
-def test_a_page_no_model_can_read_is_skipped():
+def test_a_page_no_model_can_read_is_skipped(monkeypatch):
+    from app.rag import visual
+
+    monkeypatch.setattr(visual, "_RETRY_PASS_WAIT_SECONDS", 0)
+
     def describe(png: bytes, page: int) -> str:
         if page == 1:
             raise RuntimeError("all vision models busy")
@@ -85,17 +89,36 @@ def test_a_page_no_model_can_read_is_skipped():
     assert [p.page for p in pages] == [2]
 
 
-def test_reading_stops_after_several_pages_fail():
+def test_a_page_that_fails_once_is_read_in_the_second_pass(monkeypatch):
+    from app.rag import visual
+
+    monkeypatch.setattr(visual, "_RETRY_PASS_WAIT_SECONDS", 0)
     asked = []
 
     def describe(png: bytes, page: int) -> str:
         asked.append(page)
-        if page % 2:  # flaky free models: every other page fails
-            raise RuntimeError("429 rate-limited upstream")
-        return "NONE"
+        if page % 2 and asked.count(page) == 1:  # "high demand" on the first try of odd pages
+            raise RuntimeError("503 UNAVAILABLE")
+        return f"TYPE: table\nTITLE: T{page}\n| a |"
+
+    pages = visual_pages([b"p"] * 10, "gep.pdf", describe, workers=1)
+
+    assert [p.page for p in pages] == list(range(1, 11))  # failures not in a row don't stop the pass
+    assert asked == list(range(1, 11)) + [1, 3, 5, 7, 9]
+
+
+def test_reading_stops_after_several_pages_fail_in_a_row(monkeypatch):
+    from app.rag import visual
+
+    monkeypatch.setattr(visual, "_RETRY_PASS_WAIT_SECONDS", 0)
+    asked = []
+
+    def describe(png: bytes, page: int) -> str:
+        asked.append(page)
+        raise RuntimeError("provider down")
 
     assert visual_pages([b"p"] * 10, "gep.pdf", describe, workers=1) == []
-    assert asked == [1, 2, 3, 4, 5]
+    assert asked == [1, 2, 3, 1, 2, 3]  # three in a row, then the same in the second pass
 
 
 def test_pages_are_read_in_parallel_and_kept_in_page_order():
@@ -140,21 +163,19 @@ def test_a_short_pdf_skips_its_plain_text_pages():
     assert asked == [2]
 
 
-def test_a_long_pdf_reads_only_its_unmeasurable_chart_pages(monkeypatch):
-    from dataclasses import replace
-
+def test_a_long_pdf_reads_every_page_that_draws_something():
     import pymupdf
 
     from app.rag import visual
     from tests.test_chart_measure import _stacked_chart_page
 
     doc = pymupdf.open()
-    doc.new_page().insert_text((50, 60), "Prose only.", fontsize=10)
-    doc.insert_pdf(_stacked_chart_page()[0])  # page 2: measured from its drawing, no vision call
-    picture = doc.new_page()  # page 3: a chart pasted as a picture
+    for _ in range(40):  # long, mostly prose
+        doc.new_page().insert_text((50, 60), "Prose only.", fontsize=10)
+    doc.insert_pdf(_stacked_chart_page()[0])  # page 41: a bar chart drawn as shapes
+    picture = doc.new_page()  # page 42: a chart pasted as a picture
     picture.insert_text((50, 60), "Figure 1.2 Prices", fontsize=10)
     picture.insert_image(pymupdf.Rect(50, 100, 400, 350), pixmap=pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, 20, 20), False))
-    monkeypatch.setattr(visual, "settings", replace(visual.settings, visual_reading_max_pages=2, visual_chart_pages=40))
     asked = []
 
     def describe(png: bytes, page: int) -> str:
@@ -163,7 +184,7 @@ def test_a_long_pdf_reads_only_its_unmeasurable_chart_pages(monkeypatch):
 
     pages = visual.read_visuals(doc.tobytes(), "long.pdf", describe)
 
-    assert asked == [3] and [p.page for p in pages] == [3]
+    assert sorted(asked) == [41, 42] and [p.page for p in pages] == [41, 42]
 
 
 def _keys(monkeypatch, gemini: str, openrouter: str):
@@ -231,3 +252,24 @@ def test_gemini_is_retried_while_rate_limited(monkeypatch):
     assert visual._ask_gemini("gemini-x", "prompt", b"png") == "NONE"
     assert attempts == ["gemini-x", "gemini-x"]
     assert waits == [3.5]  # the wait Gemini asked for, plus a second
+
+
+def test_gemini_is_retried_while_overloaded(monkeypatch):
+    from google.genai import errors
+
+    visual = _keys(monkeypatch, gemini="g-key", openrouter="")
+    attempts = []
+
+    class Models:
+        def generate_content(self, **kwargs):
+            attempts.append(kwargs["model"])
+            if len(attempts) < 3:
+                raise errors.ServerError(503, {"error": {"message": "high demand", "status": "UNAVAILABLE"}})
+            return type("R", (), {"text": "NONE"})()
+
+    monkeypatch.setattr(visual, "_gemini_client", type("C", (), {"models": Models()})())
+    waits = []
+    monkeypatch.setattr(visual.time, "sleep", waits.append)
+
+    assert visual._ask_gemini("gemini-x", "prompt", b"png") == "NONE"
+    assert waits == [visual._GEMINI_WAIT_SECONDS, visual._GEMINI_WAIT_SECONDS * 2]

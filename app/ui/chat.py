@@ -22,7 +22,7 @@ import time
 
 import streamlit as st
 
-from app.config.settings import APP_ICON
+from app.config.settings import APP_ICON, settings
 from app.rag.document_loader import DocumentParsingError
 from app.rag.media_transcriber import transcribe_speech
 from app.rag.retriever import RetrievedChunk
@@ -230,8 +230,8 @@ def _attach_dialog(ingest: IngestQueue) -> None:
         type=SUPPORTED_DOCUMENT_TYPES,
         accept_multiple_files=True,
         key=f"attach_uploader_{st.session_state.get('attach_round', 0)}",
-        help="PDF, Word, text, Markdown, video or audio. Its text is searchable in a minute or so; "
-             "a PDF's charts and tables are added after that.",
+        help=f"PDF (up to {settings.max_pdf_pages:,} pages), Word, text, Markdown, video or audio. "
+             "Its text is searchable in a minute or so; a PDF's charts and tables are added after that.",
     )
     with st.container(horizontal=True, horizontal_alignment="right"):
         cancel = st.button("Cancel", key="attach_cancel")

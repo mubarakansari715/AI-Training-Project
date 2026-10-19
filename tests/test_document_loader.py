@@ -125,3 +125,21 @@ def test_measured_bar_charts_are_indexed_as_their_own_passages():
     [chart] = [p for p in pages if p.element]
     assert chart.page == 1 and chart.text.startswith("[Chart on page 1 (values measured from the drawing)]")
     assert "2015: High risk ≈ 30" in chart.text
+
+
+def test_a_pdf_over_the_page_limit_is_turned_down(monkeypatch):
+    from dataclasses import replace
+
+    import pymupdf
+    import pytest
+
+    from app.rag import document_loader
+    from app.rag.document_loader import DocumentParsingError, parse_document
+
+    doc = pymupdf.open()
+    for _ in range(3):
+        doc.new_page().insert_text((50, 60), "Text.", fontsize=10)
+    monkeypatch.setattr(document_loader, "settings", replace(document_loader.settings, max_pdf_pages=2))
+
+    with pytest.raises(DocumentParsingError, match="has 3 pages; the limit is 2"):
+        parse_document("big.pdf", doc.tobytes())

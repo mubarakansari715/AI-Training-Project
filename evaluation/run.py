@@ -58,7 +58,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--hybrid-search", action=argparse.BooleanOptionalAction, default=settings.hybrid_search,
                         help="Merge BM25 keyword search with the embedding search (default: HYBRID_SEARCH)")
     parser.add_argument("--read-visuals", action=argparse.BooleanOptionalAction,
-                        default=settings.visual_reading_max_pages > 0,
+                        default=settings.visual_reading,
                         help="Read charts/tables/call-outs from page images and attach footnotes (short PDFs)")
     parser.add_argument("--model", default=settings.groq_model,
                         help='Pinned answer model: a Groq model, "auto", or a gemini-* model (default: GROQ_MODEL)')

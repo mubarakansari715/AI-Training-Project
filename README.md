@@ -60,17 +60,15 @@ up an earlier conversation later — even after restarting the app.
   can ask what was said and when. On-screen visuals are not analysed.
 - Voice questions: tap 🎤 in the chat box to ask by speaking — the recording
   is transcribed locally and answered like a typed question
-- Charts, tables and footnotes in short visual PDFs (up to
-  `VISUAL_READING_MAX_PAGES` pages): a vision model transcribes the charts,
-  tables and call-outs of each page that draws something (plain-text pages
-  are skipped) — Gemini when `GEMINI_API_KEY` is set (`VISION_CONCURRENCY`
-  pages at a time), else the free OpenRouter models (one page at a time) —
-  cached once read;
-  every footnote is
-  attached to the page that references it; a retrieved passage with a
-  footnote marker (`[1]`) brings that note along. Longer PDFs: only pages
-  with a chart that can't be measured (a pasted picture) are read, up to
-  `VISUAL_CHART_PAGES`
+- PDFs up to `MAX_PDF_PAGES` (500) pages; a longer one is turned down with a
+  message saying so
+- Charts, tables and footnotes in PDFs of any accepted length: a vision
+  model transcribes the charts, tables and call-outs of every page that
+  draws something (plain-text pages are skipped) — Gemini when
+  `GEMINI_API_KEY` is set (`VISION_CONCURRENCY` pages at a time), else the
+  free OpenRouter models (one page at a time) — cached once read; every
+  footnote is attached to the page that references it; a retrieved passage
+  with a footnote marker (`[1]`) brings that note along
 - Chart questions ("…from the chart", "figure 3.1"): bar, grouped-bar and
   stacked-bar charts drawn as vector shapes are measured from the PDF's own
   drawing (axis ticks → scale, legend colours → series, labels → categories;
@@ -281,9 +279,9 @@ See [`.env.example`](.env.example) for the full file with defaults:
 | `OPENROUTER_API_KEY` | OpenRouter key, used to read charts/tables from page images Gemini can't | _(none: Gemini only)_ |
 | `VISION_GEMINI_MODEL` | Gemini model that reads page images first (needs `GEMINI_API_KEY`) | `CHART_MODEL` |
 | `VISION_MODEL` | OpenRouter vision models (comma-separated, tried in order after Gemini) | free models, see `.env.example` |
-| `VISUAL_READING_MAX_PAGES` | Read the page images (except plain-text pages) for PDFs up to this many pages (`0` = off) | `30` |
+| `MAX_PDF_PAGES` | Longest PDF accepted for upload, in pages | `500` |
+| `VISUAL_READING` | Read the page images of every page that draws something (`false` = text only) | `true` |
 | `VISION_CONCURRENCY` | Page images sent to Gemini at once (OpenRouter alone: 1) | `4` |
-| `VISUAL_CHART_PAGES` | Longer PDFs: read only this many pages with an unmeasurable chart (`0` = off) | `40` |
 | `INDEX_MEASURED_CHARTS` | Index bar charts measured from the PDF drawing as passages | `true` |
 | `CHART_READING` | Answer chart questions from the chart page (measured values + page image for Gemini) | `true` |
 | `CHART_MODEL` | Gemini model that looks at chart pages | `GEMINI_MODEL` |

@@ -57,7 +57,9 @@ up an earlier conversation later — even after restarting the app.
 - Charts, tables and footnotes in short visual PDFs (up to
   `VISUAL_READING_MAX_PAGES` pages): a vision model transcribes the charts,
   tables and call-outs of each page that draws something (plain-text pages
-  are skipped), `VISION_CONCURRENCY` pages at a time and cached once read;
+  are skipped) — Gemini when `GEMINI_API_KEY` is set (`VISION_CONCURRENCY`
+  pages at a time), else the free OpenRouter models (one page at a time) —
+  cached once read;
   every footnote is
   attached to the page that references it; a retrieved passage with a
   footnote marker (`[1]`) brings that note along. Longer PDFs: only pages
@@ -269,10 +271,11 @@ See [`.env.example`](.env.example) for the full file with defaults:
 | `GEMINI_API_KEY` | Gemini API key (fallback provider) | _(none)_ |
 | `GEMINI_MODEL` | Gemini model name | `gemini-3.5-flash-lite` |
 | `GEMINI_TEMPERATURE` | Sampling temperature (0.0-2.0); lower = more literal/consistent | `0.2` |
-| `OPENROUTER_API_KEY` | OpenRouter key, used to read charts/tables from page images | _(none: text and footnotes only)_ |
-| `VISION_MODEL` | OpenRouter vision models (comma-separated, tried in order) | free models, see `.env.example` |
+| `OPENROUTER_API_KEY` | OpenRouter key, used to read charts/tables from page images Gemini can't | _(none: Gemini only)_ |
+| `VISION_GEMINI_MODEL` | Gemini model that reads page images first (needs `GEMINI_API_KEY`) | `CHART_MODEL` |
+| `VISION_MODEL` | OpenRouter vision models (comma-separated, tried in order after Gemini) | free models, see `.env.example` |
 | `VISUAL_READING_MAX_PAGES` | Read the page images (except plain-text pages) for PDFs up to this many pages (`0` = off) | `30` |
-| `VISION_CONCURRENCY` | Page images sent to the vision model at once | `4` |
+| `VISION_CONCURRENCY` | Page images sent to Gemini at once (OpenRouter alone: 1) | `4` |
 | `VISUAL_CHART_PAGES` | Longer PDFs: read only this many pages with an unmeasurable chart (`0` = off) | `40` |
 | `INDEX_MEASURED_CHARTS` | Index bar charts measured from the PDF drawing as passages | `true` |
 | `CHART_READING` | Answer chart questions from the chart page (measured values + page image for Gemini) | `true` |

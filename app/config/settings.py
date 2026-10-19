@@ -80,8 +80,9 @@ class Settings:
     openrouter_api_key: str = os.getenv("OPENROUTER_API_KEY", "")
     # openrouter_model: str = os.getenv("OPENROUTER_MODEL", "openrouter/auto")
     # Vision model (on OpenRouter) that transcribes charts, tables and
-    # call-outs from rendered PDF pages; comma-separated models are tried in
-    # order. The defaults are free (rate-limited); paid ones such as
+    # call-outs from rendered PDF pages when Gemini can't (no GEMINI_API_KEY,
+    # or a page it failed); comma-separated models are tried in order. The
+    # defaults are free (rate-limited); paid ones such as
     # google/gemini-3.8-flash need OpenRouter credits.
     vision_model: str = os.getenv(
         "VISION_MODEL",
@@ -91,8 +92,8 @@ class Settings:
     # PDFs up to this many pages — one vision call per page, cached in
     # VISION_CACHE_DIR. 0 turns it off.
     visual_reading_max_pages: int = _get_int("VISUAL_READING_MAX_PAGES", 30)
-    # Pages sent to the vision model at once. Free models take about a minute
-    # a page; more at once is faster until their per-minute rate limit hits.
+    # Pages sent to Gemini at once (the free OpenRouter models alone read
+    # one at a time: more only gets them rate-limited).
     vision_concurrency: int = _get_int("VISION_CONCURRENCY", 4)
     # For longer PDFs, only pages holding a chart that can't be measured from
     # its drawing (a picture) are read, up to this many. 0 turns it off.
@@ -112,6 +113,9 @@ class Settings:
     # GEMINI_API_KEY. CHART_MODEL defaults to GEMINI_MODEL.
     chart_reading: bool = _get_bool("CHART_READING", True)
     chart_model: str = os.getenv("CHART_MODEL", "") or os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+    # Gemini model that reads page images first when GEMINI_API_KEY is set
+    # (app/rag/visual.py; a few seconds a page); defaults to CHART_MODEL.
+    vision_gemini_model: str = os.getenv("VISION_GEMINI_MODEL", "") or chart_model
     # Copies of indexed PDFs, so chart pages can be rendered at answer time.
     page_store_dir: str = os.getenv("PAGE_STORE_DIR", "data/documents")
     vision_cache_dir: str = os.getenv("VISION_CACHE_DIR", "data/vision_cache")

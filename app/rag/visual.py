@@ -16,9 +16,11 @@ additions make those searchable:
   question about a claim's condition finds the note itself — one block of
   every note on a page matched no single question well enough.
 
-Each page read costs one vision call (about a minute on the free models),
-so pages are read VISION_CONCURRENCY at a time, and only pages that draw
-something are read: a page of plain text (no picture, almost no drawn
+Pages are read by Gemini (VISION_GEMINI_MODEL, a few seconds a page) when
+GEMINI_API_KEY is set, VISION_CONCURRENCY at a time; a page Gemini can't
+read falls back to the OpenRouter models (VISION_MODEL). Those are free but
+take about a minute a page and are rate-limited, so on their own they read
+one page at a time. Only pages that draw something are read: a page of plain text (no picture, almost no drawn
 shapes) holds nothing the text extraction misses. That applies to documents
 up to VISUAL_READING_MAX_PAGES (see app.config.settings). In a longer one,
 only pages holding a chart that can't be measured from its drawing (a
@@ -32,6 +34,7 @@ import base64
 import hashlib
 import logging
 import re
+import threading
 from collections.abc import Callable
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from pathlib import Path
@@ -51,6 +54,13 @@ VISION_TIMEOUT_SECONDS = 120
 # Free vision models are rate-limited per minute: wait and retry a few times.
 _RATE_LIMIT_ATTEMPTS = 3
 _RATE_LIMIT_WAIT_SECONDS = 20.0
+# Gemini's free tier allows about 15 requests a minute; a rate-limited
+# request says how long to wait ("Please retry in 54.0s"), up to this.
+_GEMINI_WAIT_SECONDS = 10.0
+_GEMINI_MAX_WAIT_SECONDS = 65.0
+_GEMINI_RETRY_RE = re.compile(r"retry in ([\d.]+)s")
+# Marks a Gemini model in a describer's model list; the rest are OpenRouter's.
+_GEMINI_PREFIX = "gemini:"
 _RENDER_DPI = 110
 # Free models that fail this many pages are rate-limited or down (each
 # failure has already waited through every model's retries): stop rather
@@ -167,7 +177,7 @@ def visual_pages(page_pngs: list[bytes], filename: str, describe: Describer,
                  workers: int | None = None) -> list[DocumentPage]:
     """One DocumentPage per chart/table/call-out found on the rendered pages
     (page `numbers`, default 1, 2, ...), in page order. `workers` pages
-    (default VISION_CONCURRENCY) are read at a time. A page no model could
+    (default vision_workers()) are read at a time. A page no model could
     read is skipped (logged), keeping the others; after a few such pages the
     rest are skipped too."""
     numbers = list(numbers or range(1, len(page_pngs) + 1))
@@ -177,7 +187,7 @@ def visual_pages(page_pngs: list[bytes], filename: str, describe: Describer,
     report(progress, f"Reading charts and tables (0 of {len(numbers)} pages)", 0.0)
     # Progress is reported from this thread only: Streamlit widgets can't be
     # updated from the worker threads.
-    workers = max(1, workers or settings.vision_concurrency)
+    workers = max(1, workers or vision_workers())
     with ThreadPoolExecutor(max_workers=workers) as pool:
         running = {}
 
@@ -213,14 +223,31 @@ def visual_pages(page_pngs: list[bytes], filename: str, describe: Describer,
     return pages
 
 
-def openrouter_describer(filename: str, models: str | list[str] | None = None, cache_dir: str | None = None) -> Describer:
-    """A Describer backed by OpenRouter vision models, with an on-disk cache.
+def vision_models() -> list[str]:
+    """The models that read page images, in the order they are tried:
+    Gemini ("gemini:<model>") when GEMINI_API_KEY is set, then the
+    OpenRouter models when OPENROUTER_API_KEY is. Empty = no page reading."""
+    models = [_GEMINI_PREFIX + settings.vision_gemini_model] if settings.gemini_api_key else []
+    if settings.openrouter_api_key:
+        models += [m.strip() for m in settings.vision_model.split(",") if m.strip()]
+    return models
 
-    `models` (default VISION_MODEL, comma-separated) are tried in order for
-    each page: free models are often rate-limited or briefly unavailable, so
-    the next one takes over. A page any of them has read is never re-read.
+
+def vision_workers() -> int:
+    """Pages read at a time: VISION_CONCURRENCY with Gemini; one on the free
+    OpenRouter models alone, which more at a time only rate-limits."""
+    return max(1, settings.vision_concurrency) if settings.gemini_api_key else 1
+
+
+def vision_describer(filename: str, models: str | list[str] | None = None, cache_dir: str | None = None) -> Describer:
+    """A Describer backed by vision models, with an on-disk cache.
+
+    `models` (default vision_models(); comma-separated, "gemini:" marks a
+    Gemini model) are tried in order for each page: a model that is
+    rate-limited or briefly unavailable hands the page to the next. A page
+    any of them has read is never re-read.
     """
-    models = models or settings.vision_model
+    models = vision_models() if models is None else models
     if isinstance(models, str):
         models = [m.strip() for m in models.split(",") if m.strip()]
     cache = Path(cache_dir or settings.vision_cache_dir)
@@ -232,11 +259,14 @@ def openrouter_describer(filename: str, models: str | list[str] | None = None, c
         for model in models:
             if cache_file(png, model).exists():
                 return cache_file(png, model).read_text(encoding="utf-8")
-        image = "data:image/png;base64," + base64.b64encode(png).decode()
+        prompt = VISION_PROMPT.format(page=page, filename=filename)
         errors = []
         for model in models:
             try:
-                reply = _ask_vision_model(model, VISION_PROMPT.format(page=page, filename=filename), image)
+                if model.startswith(_GEMINI_PREFIX):
+                    reply = _ask_gemini(model.removeprefix(_GEMINI_PREFIX), prompt, png)
+                else:
+                    reply = _ask_vision_model(model, prompt, "data:image/png;base64," + base64.b64encode(png).decode())
             except Exception as exc:  # rate limit, provider error, malformed reply: try the next model
                 logger.warning("Vision model %s failed on page %d: %s", model, page, exc)
                 errors.append(f"{model}: {exc}")
@@ -247,6 +277,39 @@ def openrouter_describer(filename: str, models: str | list[str] | None = None, c
         raise RuntimeError(f"No vision model could read page {page}: {'; '.join(errors)}")
 
     return describe
+
+
+_gemini_client = None
+# Pages are read from several threads: create the one client under a lock (a
+# second client replacing the first would close it mid-request).
+_gemini_lock = threading.Lock()
+
+
+def _ask_gemini(model: str, prompt: str, png: bytes) -> str:
+    """One Gemini vision request, retried while Gemini is rate-limited."""
+    global _gemini_client
+    from google import genai
+    from google.genai import errors, types
+
+    with _gemini_lock:
+        if _gemini_client is None:
+            _gemini_client = genai.Client(api_key=settings.gemini_api_key)
+    for attempt in range(1, _RATE_LIMIT_ATTEMPTS + 1):
+        wait_seconds = _GEMINI_WAIT_SECONDS
+        try:
+            response = _gemini_client.models.generate_content(
+                model=model,
+                contents=[types.Part.from_bytes(data=png, mime_type="image/png"), prompt],
+                config=types.GenerateContentConfig(temperature=0.0),
+            )
+            return response.text or ""
+        except errors.APIError as exc:
+            if exc.code != 429 or attempt == _RATE_LIMIT_ATTEMPTS:
+                raise
+            asked = _GEMINI_RETRY_RE.search(str(exc))
+            if asked:
+                wait_seconds = min(float(asked.group(1)) + 1, _GEMINI_MAX_WAIT_SECONDS)
+        time.sleep(wait_seconds)
 
 
 def _ask_vision_model(model: str, prompt: str, image_url: str) -> str:
@@ -325,10 +388,10 @@ def read_visuals(data: bytes, filename: str, describe: Describer | None = None,
         if doc.page_count > settings.visual_reading_max_pages:
             numbers = picture_chart_pages(doc)[:settings.visual_chart_pages]
             pngs = [doc[n - 1].get_pixmap(dpi=_RENDER_DPI).tobytes("png") for n in numbers]
-            if not numbers or (describe is None and not settings.openrouter_api_key):
+            if not numbers or (describe is None and not vision_models()):
                 return []
             try:
-                return visual_pages(pngs, filename, describe or openrouter_describer(filename), numbers, progress)
+                return visual_pages(pngs, filename, describe or vision_describer(filename), numbers, progress)
             except Exception:
                 logger.exception("Reading the chart pages of %s failed; using text only", filename)
                 return []
@@ -346,9 +409,9 @@ def read_visuals(data: bytes, filename: str, describe: Describer | None = None,
     if not numbers:
         return footnotes
     if describe is None:
-        if not settings.openrouter_api_key:
+        if not vision_models():
             return footnotes
-        describe = openrouter_describer(filename)
+        describe = vision_describer(filename)
     try:
         return footnotes + visual_pages(pngs, filename, describe, numbers, progress)
     except Exception:

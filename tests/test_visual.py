@@ -63,7 +63,7 @@ def test_describer_falls_back_to_the_next_model_and_caches(tmp_path, monkeypatch
         return "TYPE: table\nTITLE: T\n| a | b |"
 
     monkeypatch.setattr(visual, "_ask_vision_model", ask)
-    describe = visual.openrouter_describer("r.pdf", models="busy-model, backup-model", cache_dir=str(tmp_path))
+    describe = visual.vision_describer("r.pdf", models="busy-model, backup-model", cache_dir=str(tmp_path))
 
     assert describe(b"png", 1) == "TYPE: table\nTITLE: T\n| a | b |"
     assert describe(b"png", 1) == "TYPE: table\nTITLE: T\n| a | b |"  # second read comes from the cache
@@ -164,3 +164,70 @@ def test_a_long_pdf_reads_only_its_unmeasurable_chart_pages(monkeypatch):
     pages = visual.read_visuals(doc.tobytes(), "long.pdf", describe)
 
     assert asked == [3] and [p.page for p in pages] == [3]
+
+
+def _keys(monkeypatch, gemini: str, openrouter: str):
+    from dataclasses import replace
+
+    from app.rag import visual
+
+    monkeypatch.setattr(visual, "settings", replace(
+        visual.settings, gemini_api_key=gemini, openrouter_api_key=openrouter, vision_gemini_model="gemini-x",
+        vision_model="free-a:free, free-b:free", vision_concurrency=4))
+    return visual
+
+
+def test_gemini_reads_pages_first_and_several_at_a_time(monkeypatch):
+    visual = _keys(monkeypatch, gemini="g-key", openrouter="o-key")
+    assert visual.vision_models() == ["gemini:gemini-x", "free-a:free", "free-b:free"]
+    assert visual.vision_workers() == 4
+
+
+def test_without_gemini_the_free_models_read_one_page_at_a_time(monkeypatch):
+    visual = _keys(monkeypatch, gemini="", openrouter="o-key")
+    assert visual.vision_models() == ["free-a:free", "free-b:free"]
+    assert visual.vision_workers() == 1
+    assert _keys(monkeypatch, gemini="", openrouter="").vision_models() == []
+
+
+def test_a_page_gemini_fails_falls_back_to_openrouter(tmp_path, monkeypatch):
+    visual = _keys(monkeypatch, gemini="g-key", openrouter="o-key")
+    calls = []
+
+    def gemini(model, prompt, png):
+        calls.append(model)
+        raise RuntimeError("500 internal")
+
+    def openrouter(model, prompt, image_url):
+        calls.append(model)
+        return "TYPE: chart\nTITLE: C\nOil 80"
+
+    monkeypatch.setattr(visual, "_ask_gemini", gemini)
+    monkeypatch.setattr(visual, "_ask_vision_model", openrouter)
+    describe = visual.vision_describer("r.pdf", cache_dir=str(tmp_path))
+
+    assert describe(b"png", 1) == "TYPE: chart\nTITLE: C\nOil 80"
+    assert calls == ["gemini-x", "free-a:free"]
+
+
+def test_gemini_is_retried_while_rate_limited(monkeypatch):
+    from google.genai import errors
+
+    visual = _keys(monkeypatch, gemini="g-key", openrouter="")
+    attempts = []
+
+    class Models:
+        def generate_content(self, **kwargs):
+            attempts.append(kwargs["model"])
+            if len(attempts) == 1:
+                raise errors.ClientError(429, {"error": {"message": "Quota exceeded. Please retry in 2.5s.",
+                                                         "status": "RESOURCE_EXHAUSTED"}})
+            return type("R", (), {"text": "NONE"})()
+
+    monkeypatch.setattr(visual, "_gemini_client", type("C", (), {"models": Models()})())
+    waits = []
+    monkeypatch.setattr(visual.time, "sleep", waits.append)
+
+    assert visual._ask_gemini("gemini-x", "prompt", b"png") == "NONE"
+    assert attempts == ["gemini-x", "gemini-x"]
+    assert waits == [3.5]  # the wait Gemini asked for, plus a second

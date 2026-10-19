@@ -127,10 +127,10 @@ def _parse_pdf(
     visuals = []
     if read_visuals:
         from app.rag.visual import read_visuals as read_page_visuals
+        from app.rag.visual import vision_models
 
         visuals = read_page_visuals(data, filename, progress=scaled(progress, 0.45, 0.85))
-    vision = read_visuals and len(reader.pages) <= settings.visual_reading_max_pages and bool(
-        settings.openrouter_api_key)
+    vision = read_visuals and len(reader.pages) <= settings.visual_reading_max_pages and bool(vision_models())
     if layout_tables == "on" or (layout_tables == "auto" and not vision):
         from app.rag.layout_tables import read_layout_tables
 

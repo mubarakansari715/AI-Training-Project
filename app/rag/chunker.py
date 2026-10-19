@@ -43,6 +43,9 @@ class Chunk:
     # Every page the chunk covers (a sentence-packed chunk can run onto the
     # next page); `page` is the first, used for citations.
     pages: list[int] = field(default_factory=list)
+    # Read from a page image (app.rag.visual), added after the document's
+    # text: a re-upload compares and replaces the two sets separately.
+    visual: bool = False
 
 
 # A sentence ends at . ! or ? (plus closing quotes/brackets) followed by

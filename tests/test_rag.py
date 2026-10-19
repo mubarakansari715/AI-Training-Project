@@ -482,3 +482,32 @@ def test_indexing_reports_progress_from_start_to_done(pipeline):
         assert stage in labels
     assert any(label.startswith("Embedding passages") for label in labels)
     assert pipeline.last_indexed["risk.pdf"] == {"pages": 1, "passages": added, "charts": 1}
+
+
+def test_text_is_indexed_before_and_apart_from_the_page_images(pipeline, monkeypatch):
+    from app.rag.document_loader import DocumentPage
+    from tests.test_chart_measure import _stacked_chart_page
+
+    doc, _ = _stacked_chart_page()
+    file = FakeUploadedFile("risk.pdf", doc.tobytes())
+    read = []
+
+    def read_visuals(data, filename, progress=None):
+        read.append(filename)
+        return [DocumentPage(text="[Table on page 1: Risks (read from the page image)]\n| a | b |",
+                             source=filename, page=1, element=True)]
+
+    monkeypatch.setattr("app.rag.visual.read_visuals", read_visuals)
+
+    text = pipeline.index_text(file)
+    assert text.added and not read  # searchable before any page image is read
+    assert pipeline.vector_store.chunk_ids_for_source("risk.pdf", visual=True) == set()
+    assert pipeline.visuals_pending(file, text)
+
+    visuals = pipeline.index_visuals(file, text=text)
+    assert visuals.added == 1 and read == ["risk.pdf"]
+    assert len(pipeline.vector_store.chunk_ids_for_source("risk.pdf", visual=True)) == 1
+
+    again = pipeline.index_text(file)  # an unchanged re-upload keeps both, reads nothing
+    assert again.unchanged and not pipeline.visuals_pending(file, again)
+    assert pipeline.index_visuals(file, text=again).added == 0 and read == ["risk.pdf"]

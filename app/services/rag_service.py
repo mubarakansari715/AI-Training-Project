@@ -22,17 +22,25 @@ from app.rag.model_router import resolve_groq_model
 from app.rag.page_store import PageStore
 from app.rag.progress import Progress, report, scaled
 from app.rag.query_decomposer import decompose_query, needs_decomposition
-from app.rag.query_router import llm_route
 from app.rag.query_rewriter import needs_rewrite, rewrite_query, words
+from app.rag.query_router import llm_route
 from app.rag.reranker import Reranker
 from app.rag.retriever import RetrievedChunk, Retriever
 from app.rag.small_talk import is_small_talk
+from app.rag.text_cleaner import clean_text
 from app.rag.vector_store import VectorStore, VectorStoreError
-from app.services.document_service import parse_uploaded_files
+from app.services.document_service import UploadedDocument, parse_uploaded_files
 
 logger = logging.getLogger(__name__)
 
 _EMBED_BATCH = 64
+
+
+def run_inline(fn, *args, progress: Progress | None = None, **kwargs):
+    """Run a reading step here. index_text/index_visuals take another
+    runner with this signature to read in a worker process instead
+    (app.services.ingest_jobs.ProcessRunner); `fn` reports to `progress`."""
+    return fn(*args, progress=progress, **kwargs)
 
 NOT_FOUND_MESSAGE = (
     "I couldn't find this information in the uploaded documents, "
@@ -44,6 +52,18 @@ NOT_FOUND_MESSAGE = (
 SOURCE_DOCUMENT = "document"
 SOURCE_GENERAL_KNOWLEDGE = "general_knowledge"
 SOURCE_SMALL_TALK = "small_talk"
+
+
+@dataclass
+class IndexResult:
+    """One file's text indexing (RAGPipeline.index_text)."""
+
+    added: int = 0
+    error: str | None = None
+    # {"pages", "passages", "charts"} (charts measured from the drawing).
+    stats: dict[str, int] = field(default_factory=dict)
+    # The document's text was already indexed exactly like this.
+    unchanged: bool = False
 
 
 @dataclass
@@ -128,9 +148,7 @@ class RAGPipeline:
         self.decompose_queries = settings.query_decomposition
         self.chart_reading = settings.chart_reading
         self.page_store = PageStore(page_store_dir)
-        # What the last index_files call read, per document: {"pages",
-        # "passages", "charts"} (charts measured from the drawing); shown
-        # when an upload finishes.
+        # What the last index_files call read, per document (IndexResult.stats).
         self.last_indexed: dict[str, dict[str, int]] = {}
         # Words of the indexed documents, for skipping needless rewrites;
         # rebuilt when the chunk count changes (see _document_vocabulary).
@@ -147,58 +165,119 @@ class RAGPipeline:
         return self._vocabulary[1]
 
     def index_files(self, files, progress: Progress | None = None) -> tuple[int, dict[str, str]]:
-        """Parse, clean, chunk, embed, and store uploaded files.
+        """Parse, clean, chunk, embed, and store uploaded files: each file's
+        text first (index_text), then what its page images show
+        (index_visuals).
 
         Returns (num_chunks_added, errors) where `errors` maps
         filename to a friendly message for anything that failed.
-        `progress` hears about each stage (app.rag.progress): reading
-        takes the first half, embedding most of the rest.
+        `progress` hears about each stage (app.rag.progress).
         """
         files = list(files)
         self.last_indexed = {}
-        report(progress, "Reading the document", 0.0)
-        pages, errors = parse_uploaded_files(files, detect_structure=self.section_aware, read_visuals=self.read_visuals,
-                                             structure_source=self.structure_source, layout_tables=self.layout_tables,
-                                             progress=scaled(progress, 0.0, 0.5))
-        if not pages:
-            return 0, errors
+        added, errors = 0, {}
+        for number, file in enumerate(files):
+            part = scaled(progress, number / len(files), (number + 1) / len(files))
+            text = self.index_text(file, scaled(part, 0.0, 0.6))
+            if text.error:
+                errors[file.name] = text.error
+                continue
+            visuals = self.index_visuals(file, scaled(part, 0.6, 1.0), text)
+            self.last_indexed[file.name] = {**text.stats, "passages": text.stats["passages"] + visuals.stats["passages"]}
+            added += text.added + visuals.added
+        report(progress, "Done", 1.0)
+        return added, errors
 
+    def index_text(self, file, progress: Progress | None = None, run=run_inline) -> IndexResult:
+        """Index one uploaded file's text (plus charts measured from its
+        drawing and tables rebuilt from its layout), so it can be searched
+        while its page images are still being read (index_visuals).
+        Reading takes the first half of `progress`, embedding most of the
+        rest. Re-uploading a document replaces it; unchanged text is a
+        cheap no-op. `run` runs the reading (see run_inline)."""
+        report(progress, "Reading the document", 0.0)
+        pages, errors = run(parse_uploaded_files, [UploadedDocument(file.name, file.getvalue())],
+                            detect_structure=self.section_aware, read_visuals=self.read_visuals,
+                            structure_source=self.structure_source, layout_tables=self.layout_tables,
+                            progress=scaled(progress, 0.0, 0.5), defer_visuals=True)
         report(progress, "Splitting into passages", 0.5)
-        length = self.embedding_service.count_tokens if self.chunk_unit == "tokens" else len
-        chunks = chunk_pages(pages, chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap,
-                             strategy=self.chunk_strategy, length_function=length)
+        chunks = self._chunk(pages)
         if not chunks:
-            return 0, errors
-        for source in {page.source for page in pages}:
-            self.last_indexed[source] = {
-                "pages": max((p.page for p in pages if p.source == source and p.page is not None), default=0),
-                "passages": sum(1 for c in chunks if c.source == source),
-                "charts": sum(1 for p in pages if p.source == source and p.text.startswith("[Chart on page")
-                              and "measured from the drawing" in p.text),
-            }
+            return IndexResult(error=errors.get(file.name) or "No extractable text was found in this document.")
+        stats = {
+            "pages": max((p.page for p in pages if p.page is not None), default=0),
+            "passages": len(chunks),
+            "charts": sum(1 for p in pages if p.text.startswith("[Chart on page")
+                          and "measured from the drawing" in p.text),
+        }
+        try:
+            # Unchanged content with the same settings yields the same chunk
+            # IDs. Anything else (edited file, new chunking/section settings)
+            # replaces the document, page-image chunks included, which would
+            # otherwise sit next to the new ones.
+            unchanged = self.vector_store.chunk_ids_for_source(file.name, visual=False) == {
+                c.chunk_id for c in chunks}
+            added = 0
+            if not unchanged:
+                self.vector_store.delete_ids(self.vector_store.chunk_ids_for_source(file.name))
+                embeddings = self._embed_with_progress([c.text for c in chunks], scaled(progress, 0.52, 0.95))
+                report(progress, "Saving", 0.96)
+                added = self.vector_store.add_chunks(chunks, embeddings)
+        except VectorStoreError as exc:
+            logger.exception("Indexing %s failed", file.name)
+            return IndexResult(error=str(exc))
+
+        self.indexed_documents.add(file.name)
+        self.page_store.save(file.name, file.getvalue())
+        self._vocabulary = (-1, set())
+        report(progress, "Text indexed", 1.0)
+        return IndexResult(added=added, stats=stats, unchanged=unchanged)
+
+    def index_visuals(self, file, progress: Progress | None = None, text: IndexResult | None = None,
+                      run=run_inline) -> IndexResult:
+        """Add what a PDF's page images show (charts, tables, call-outs read
+        by a vision model, and footnotes; app.rag.visual) to its indexed
+        text; `stats["passages"]` counts them. Skipped when the text was
+        unchanged (`text`, from index_text) and its page images were read
+        already. A failure is logged and leaves the text indexed. `run` runs
+        the reading (see run_inline)."""
+        stored = self.vector_store.chunk_ids_for_source(file.name, visual=True)
+        if not self.visuals_pending(file, text):
+            return IndexResult(stats={"passages": len(stored)}, unchanged=bool(stored))
+        from app.rag.visual import read_visuals
 
         try:
-            # Re-uploading a document replaces it. Unchanged content with the
-            # same settings yields the same chunk IDs (a cheap no-op below);
-            # anything else — edited file, new chunking/section settings —
-            # would otherwise leave the old chunks next to the new ones.
-            chunks = self._replace_changed_sources(chunks)
-            embeddings = self._embed_with_progress([c.text for c in chunks], scaled(progress, 0.52, 0.95))
-            report(progress, "Saving", 0.96)
-            num_added = self.vector_store.add_chunks(chunks, embeddings)
-        except VectorStoreError as exc:
-            logger.exception("Indexing failed")
-            errors["_index"] = str(exc)
-            return 0, errors
-
-        self.indexed_documents.update(page.source for page in pages)
-        indexed = {page.source for page in pages}
-        for file in files:
-            if file.name in indexed:
-                self.page_store.save(file.name, file.getvalue())
+            pages = run(read_visuals, file.getvalue(), file.name, progress=scaled(progress, 0.0, 0.85))
+            for page in pages:
+                page.text = clean_text(page.text)
+            chunks = self._chunk([page for page in pages if page.text])
+            for chunk in chunks:
+                chunk.visual = True
+            if stored == {c.chunk_id for c in chunks}:
+                return IndexResult(stats={"passages": len(chunks)}, unchanged=True)
+            self.vector_store.delete_ids(stored)
+            embeddings = self._embed_with_progress([c.text for c in chunks], scaled(progress, 0.85, 0.98))
+            added = self.vector_store.add_chunks(chunks, embeddings)
+        except Exception:
+            logger.exception("Adding the page images of %s failed; its text stays indexed", file.name)
+            return IndexResult(error="Charts and tables could not be read; the text is searchable.",
+                               stats={"passages": 0})
         self._vocabulary = (-1, set())
-        report(progress, "Done", 1.0)
-        return num_added, errors
+        report(progress, "Charts and tables added", 1.0)
+        return IndexResult(added=added, stats={"passages": len(chunks)})
+
+    def visuals_pending(self, file, text: IndexResult | None = None) -> bool:
+        """Whether index_visuals will read this file's page images: a PDF,
+        page-image reading on, and not an unchanged re-upload already read."""
+        if not self.read_visuals or not file.name.lower().endswith(".pdf"):
+            return False
+        return not (text is not None and text.unchanged
+                    and self.vector_store.chunk_ids_for_source(file.name, visual=True))
+
+    def _chunk(self, pages: list) -> list:
+        length = self.embedding_service.count_tokens if self.chunk_unit == "tokens" else len
+        return chunk_pages(pages, chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap,
+                           strategy=self.chunk_strategy, length_function=length) if pages else []
 
     def _embed_with_progress(self, texts: list[str], progress: Progress | None) -> list[list[float]]:
         """Embed in batches, so a long document's progress keeps moving."""
@@ -207,22 +286,6 @@ class RAGPipeline:
             report(progress, f"Embedding passages ({start:,} of {len(texts):,})", start / len(texts))
             embeddings += self.embedding_service.embed_texts(texts[start:start + _EMBED_BATCH])
         return embeddings
-
-    def _replace_changed_sources(self, chunks: list) -> list:
-        """Drop chunks already stored unchanged; delete a document's old
-        chunks when its new chunk set differs. Returns the chunks to add."""
-        by_source: dict[str, set[str]] = {}
-        for chunk in chunks:
-            by_source.setdefault(chunk.source, set()).add(chunk.chunk_id)
-        unchanged: set[str] = set()
-        for source, new_ids in by_source.items():
-            old_ids = self.vector_store.chunk_ids_for_source(source)
-            if old_ids == new_ids:
-                unchanged.add(source)
-            elif old_ids:
-                logger.info("Re-indexing %s: replacing %d old chunks", source, len(old_ids))
-                self.vector_store.delete_ids(old_ids)
-        return [c for c in chunks if c.source not in unchanged]
 
     def ask(
         self,

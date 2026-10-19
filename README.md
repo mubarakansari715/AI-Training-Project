@@ -23,8 +23,8 @@ Gemini as a fallback).
 ## Overview
 
 Attach PDF, DOCX, TXT, or Markdown documents — or video/audio files, which
-are transcribed — with the **Attach** button above the chat box, watch them
-being indexed, and ask questions about them. The
+are transcribed — with the **Attach** button above the chat box, and ask questions about them
+while they are indexed in the background. The
 assistant answers from your uploaded documents whenever they contain the
 answer — it retrieves the most relevant chunks, sends just that context to
 the LLM, and cites the source file (and page, when available). If nothing
@@ -37,10 +37,16 @@ up an earlier conversation later — even after restarting the app.
 ## Features
 
 **Document handling**
-- Multi-document upload from the **Attach** button above the chat box: a
-  dialog shows each file's progress (reading text, reading charts, embedding
-  420 of 1,194 passages, ...), then "GEP-Jun-2026.pdf is ready: 200 pages,
-  1,676 passages, 101 charts measured" and a note in the chat
+- Multi-document upload from the **Attach** button above the chat box,
+  indexed in the background (one file at a time; the reading runs in a
+  worker process, so the page stays responsive): the dialog closes at once,
+  the sidebar shows each file's progress (reading text, embedding 420 of
+  1,194 passages, reading charts and tables, ...), and the chat stays
+  usable. The text is searchable first ("GEP-Jun-2026.pdf is ready: 200
+  pages, 1,303 passages, 101 charts measured. Ask away — its charts and
+  tables are still being read."), and a second note follows when the charts
+  and tables read from page images are added. A job survives a page refresh
+  but not an app restart
 - Light theme, and strict document mode on by default (answers only from
   your documents)
 - Chat styled like ChatGPT: your messages in bubbles on the right, a live
@@ -198,7 +204,8 @@ app/
 │   └── small_talk.py             # Greeting/intro/recall detection
 └── services/
     ├── document_service.py      # Parse+clean orchestration, per-file errors
-    ├── rag_service.py           # Full pipeline: index + ask
+    ├── rag_service.py           # Full pipeline: index (text, then page images) + ask
+    ├── ingest_jobs.py           # Background indexing queue (worker thread + reading process)
     └── conversation_service.py  # Save/load/list/delete past conversations
 data/
 ├── uploads/                     # Uploaded documents (gitignored)
@@ -319,7 +326,8 @@ streamlit run app/main.py
 Opens at `http://localhost:8501`.
 
 1. Click **Attach** above the chat box, pick documents and press **Upload**.
-   The dialog shows each file's progress; press **Start asking** when it's ready.
+   Their progress shows in the sidebar; start asking as soon as the chat
+   says a document is ready (its charts and tables follow a bit later).
 2. Ask questions in the chat box.
 3. Use **New chat** to start a fresh conversation, or click any past
    conversation in the sidebar to reopen it.

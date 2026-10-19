@@ -51,6 +51,7 @@ class DocumentPage:
 def parse_document(
     filename: str, data: bytes, detect_structure: bool = True, read_visuals: bool = False,
     structure_source: str | None = None, layout_tables: str | None = None, progress: Progress | None = None,
+    defer_visuals: bool = False,
 ) -> list[DocumentPage]:
     """Parse raw file bytes into a list of DocumentPage.
 
@@ -61,8 +62,11 @@ def parse_document(
     pages (see app.rag.media_transcriber).
 
     `read_visuals` also reads a short PDF's charts, tables, call-outs and
-    footnotes (see app.rag.visual). `structure_source` picks where section
-    headings come from (default: settings.structure_source), and
+    footnotes (see app.rag.visual); with `defer_visuals` the caller reads
+    those itself later (app.rag.visual.read_visuals), and only the choices
+    that depend on them (layout tables) are made here. `structure_source`
+    picks where section headings come from (default:
+    settings.structure_source), and
     `layout_tables` whether tables are rebuilt from the page layout
     (default: settings.layout_tables; see app.rag.layout_tables).
     `progress` hears about each stage of reading a PDF (app.rag.progress).
@@ -86,7 +90,7 @@ def parse_document(
         if extension == "pdf":
             return _parse_pdf(data, filename, detect_structure, read_visuals,
                               structure_source or settings.structure_source, layout_tables or settings.layout_tables,
-                              progress)
+                              progress, defer_visuals)
         if extension == "docx":
             return _parse_docx(data, filename)
         if extension in MEDIA_EXTENSIONS:
@@ -106,6 +110,7 @@ def parse_document(
 def _parse_pdf(
     data: bytes, filename: str, detect_structure: bool = True, read_visuals: bool = False,
     structure_source: str = "auto", layout_tables: str = "auto", progress: Progress | None = None,
+    defer_visuals: bool = False,
 ) -> list[DocumentPage]:
     try:
         reader = PdfReader(io.BytesIO(data))
@@ -129,7 +134,8 @@ def _parse_pdf(
         from app.rag.visual import read_visuals as read_page_visuals
         from app.rag.visual import vision_models
 
-        visuals = read_page_visuals(data, filename, progress=scaled(progress, 0.45, 0.85))
+        if not defer_visuals:
+            visuals = read_page_visuals(data, filename, progress=scaled(progress, 0.45, 0.85))
     vision = read_visuals and len(reader.pages) <= settings.visual_reading_max_pages and bool(vision_models())
     if layout_tables == "on" or (layout_tables == "auto" and not vision):
         from app.rag.layout_tables import read_layout_tables

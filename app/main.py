@@ -20,8 +20,9 @@ import streamlit as st
 
 from app.config.settings import APP_ICON, APP_NAME
 from app.services.conversation_service import ConversationStore
+from app.services.ingest_jobs import IngestQueue, ProcessRunner
 from app.services.rag_service import RAGPipeline
-from app.ui.chat import render_chat
+from app.ui.chat import render_chat, render_ingest_status
 from app.ui.evaluation_page import render_evaluation_page
 from app.ui.sidebar import render_sidebar
 
@@ -38,6 +39,14 @@ def get_pipeline() -> RAGPipeline:
     shared resource instead of being recreated on every rerun.
     """
     return RAGPipeline()
+
+
+@st.cache_resource
+def get_ingest_queue() -> IngestQueue:
+    """The background indexing queue, shared by every session (one worker
+    writing to the shared pipeline, reading in a worker process;
+    app.services.ingest_jobs)."""
+    return IngestQueue(get_pipeline(), run=ProcessRunner())
 
 
 @st.cache_resource
@@ -95,6 +104,7 @@ def chat_page() -> None:
         st.stop()
 
     conversation_store = get_conversation_store()
+    ingest = get_ingest_queue()
 
     if "conversation_id" not in st.session_state:
         st.session_state.conversation_id = conversation_store.new_id()
@@ -111,6 +121,8 @@ def chat_page() -> None:
     sidebar = render_sidebar(
         conversations=conversation_store.list_conversations(),
         active_conversation_id=st.session_state.conversation_id,
+        document_status=lambda: render_ingest_status(ingest, conversation_store, st.session_state.conversation_id),
+        indexing=ingest.busy(),
     )
 
     handle_conversation_actions(conversation_store, sidebar)
@@ -134,6 +146,7 @@ def chat_page() -> None:
 
     render_chat(
         pipeline,
+        ingest,
         conversation_store,
         st.session_state.conversation_id,
         show_debug=sidebar.show_debug,

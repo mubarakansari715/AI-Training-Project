@@ -7,8 +7,9 @@ model's general knowledge instead of refusing — either way, the
 source is labeled under the answer. Re-asking a question already
 answered earlier in this conversation returns that same stored answer
 instead of a fresh (and possibly different) LLM call. Documents are
-added through the Attach button above the chat box, which opens a dialog
-showing each file's indexing progress. Each exchange is persisted via
+added through the Attach button above the chat box; they are indexed in
+the background (app.services.ingest_jobs), with their progress in the
+sidebar, so the chat stays usable meanwhile. Each exchange is persisted via
 ConversationStore so it survives an app restart and shows up in the
 sidebar's conversation list.
 """
@@ -26,6 +27,7 @@ from app.rag.document_loader import DocumentParsingError
 from app.rag.media_transcriber import transcribe_speech
 from app.rag.retriever import RetrievedChunk
 from app.services.conversation_service import ConversationStore
+from app.services.ingest_jobs import FAILED, READY, SEARCHABLE, IngestJob, IngestQueue
 from app.services.rag_service import (
     SOURCE_DOCUMENT,
     SOURCE_GENERAL_KNOWLEDGE,
@@ -203,26 +205,6 @@ def _transcribe_voice(audio) -> str | None:
     return spoken
 
 
-def _index_with_progress(pipeline: RAGPipeline, files: list) -> list[dict]:
-    """Index each file in turn, with a live progress bar and stage label;
-    return one result per file: {"name", "error", "stats", "added"}."""
-    results = []
-    for file in files:
-        with st.container(border=True):
-            st.markdown(f"**{file.name}**")
-            bar = st.progress(0.0, text="Starting...")
-            try:
-                added, errors = pipeline.index_files(
-                    [file], progress=lambda label, fraction: bar.progress(fraction, text=label))
-            except Exception:
-                logger.exception("Indexing %s failed", file.name)
-                added, errors = 0, {"_index": "Something went wrong while processing this document."}
-        error = errors.get(file.name) or errors.get("_index")
-        results.append({"name": file.name, "error": error, "stats": pipeline.last_indexed.get(file.name),
-                        "added": added})
-    return results
-
-
 def _ready_note(result: dict) -> str:
     """ "200 pages, 1,194 passages, 101 charts measured" for a finished upload."""
     stats = result["stats"] or {}
@@ -239,70 +221,86 @@ def _ready_note(result: dict) -> str:
     return note
 
 
-@st.dialog("Add documents", width="medium", dismissible=False)
-def _attach_dialog(pipeline: RAGPipeline, conversation_store: ConversationStore, conversation_id: str) -> None:
-    """Pick files, watch them being indexed, then go back to the chat.
-
-    Not dismissible, so a long upload can't be cut off by a stray click:
-    it closes through Cancel or Start asking (a full rerun)."""
-    results = st.session_state.get("attach_results")
-    if results is None:
-        picker = st.empty()  # cleared once the upload starts, leaving only its progress
-        with picker.container():
-            files = st.file_uploader(
-                "Choose documents",
-                type=SUPPORTED_DOCUMENT_TYPES,
-                accept_multiple_files=True,
-                key=f"attach_uploader_{st.session_state.get('attach_round', 0)}",
-                help="PDF, Word, text, Markdown, video or audio. A long PDF takes a few minutes.",
-            )
-            with st.container(horizontal=True, horizontal_alignment="right"):
-                cancel = st.button("Cancel", key="attach_cancel")
-                upload = st.button("Upload", type="primary", icon=":material/upload:", disabled=not files,
-                                   key="attach_upload")
-        if cancel:
-            st.rerun()
-        if upload:
-            picker.empty()
-            st.session_state.attach_results = _index_with_progress(pipeline, files)
-            st.rerun(scope="fragment")
-        return
-
-    for result in results:
-        if result["error"]:
-            st.error(f"**{result['name']}**: {result['error']}", icon=":material/error:")
-        else:
-            st.success(f"**{result['name']}** is ready: {_ready_note(result)}", icon=":material/check_circle:")
-    ready = [r for r in results if not r["error"]]
+@st.dialog("Add documents", width="medium")
+def _attach_dialog(ingest: IngestQueue) -> None:
+    """Pick files and queue them for indexing; the dialog closes at once and
+    their progress shows in the sidebar (render_ingest_status)."""
+    files = st.file_uploader(
+        "Choose documents",
+        type=SUPPORTED_DOCUMENT_TYPES,
+        accept_multiple_files=True,
+        key=f"attach_uploader_{st.session_state.get('attach_round', 0)}",
+        help="PDF, Word, text, Markdown, video or audio. Its text is searchable in a minute or so; "
+             "a PDF's charts and tables are added after that.",
+    )
     with st.container(horizontal=True, horizontal_alignment="right"):
-        more = st.button("Add more", icon=":material/add:", key="attach_more")
-        done = st.button("Start asking" if ready else "Close", type="primary", key="attach_done")
-    if more:
-        st.session_state.attach_results = None
+        cancel = st.button("Cancel", key="attach_cancel")
+        upload = st.button("Upload", type="primary", icon=":material/upload:", disabled=not files,
+                           key="attach_upload")
+    if upload:
+        announced = st.session_state.setdefault("ingest_jobs", {})
+        for file in files:
+            announced[ingest.submit(file.name, file.getvalue())] = None
         st.session_state.attach_round = st.session_state.get("attach_round", 0) + 1
-        st.rerun(scope="fragment")
-    if done:
-        if ready:
-            _announce_documents(ready, conversation_store, conversation_id)
-        st.session_state.attach_results = None
+    if cancel or upload:
         st.rerun()
 
 
-def _announce_documents(ready: list[dict], conversation_store: ConversationStore, conversation_id: str) -> None:
-    """Note the new documents in the chat and the sidebar list."""
-    names = st.session_state.setdefault("document_names", [])
-    lines = []
-    for result in ready:
-        if result["name"] not in names:
-            names.append(result["name"])
-        lines.append(f"📄 **{result['name']}** is ready: {_ready_note(result)}.")
-    lines.append("Ask me anything about " + ("it." if len(ready) == 1 else "them."))
-    st.session_state.chat_history.append({"role": "assistant", "content": "\n\n".join(lines), "sources": []})
-    conversation_store.save(conversation_id, st.session_state.chat_history)
+def render_ingest_status(ingest: IngestQueue, conversation_store: ConversationStore, conversation_id: str) -> None:
+    """This session's uploads still being indexed, refreshed every two
+    seconds while there are any; each milestone (text searchable, charts
+    added, failed) is noted in the chat once."""
+    if not st.session_state.get("ingest_jobs"):
+        return
+    st.fragment(run_every=2.0)(_ingest_status)(ingest, conversation_store, conversation_id)
+
+
+def _ingest_status(ingest: IngestQueue, conversation_store: ConversationStore, conversation_id: str) -> None:
+    announced = st.session_state.ingest_jobs  # job id -> last milestone noted in the chat
+    notes = []
+    for job in ingest.jobs(announced):
+        if job.active:
+            with st.container(border=True):
+                st.markdown(f"**{job.name}**")
+                st.progress(job.fraction, text=job.label)
+        milestone = {SEARCHABLE: SEARCHABLE, READY: READY, FAILED: FAILED}.get(job.status)
+        if milestone is None or announced[job.id] == milestone:
+            continue
+        notes += _milestone_notes(job, announced[job.id])
+        announced[job.id] = milestone
+        if job.status in (SEARCHABLE, READY) and job.name not in st.session_state.setdefault("document_names", []):
+            st.session_state.document_names.append(job.name)
+    for job_id in [j.id for j in ingest.jobs(announced) if not j.active]:
+        del announced[job_id]  # noted; the document list shows it from now on
+    if notes:
+        st.session_state.chat_history.append({"role": "assistant", "content": "\n\n".join(notes), "sources": []})
+        conversation_store.save(conversation_id, st.session_state.chat_history)
+        st.rerun()  # the whole page, so the note and the document list appear
+
+
+def _milestone_notes(job: IngestJob, noted: str | None) -> list[str]:
+    """The chat note(s) for a job reaching its current status, given the
+    milestone already `noted` (None, or SEARCHABLE)."""
+    if job.status == FAILED:
+        return [f"⚠️ **{job.name}** could not be added: {job.error}"]
+    notes = []
+    if noted is None:
+        note = f"📄 **{job.name}** is ready: {_ready_note({'stats': job.stats, 'added': job.added})}."
+        if job.charts_pending:
+            note += " Ask away — its charts and tables are still being read."
+        notes.append(note)
+    if job.status == READY and noted == SEARCHABLE:
+        if job.warning:
+            notes.append(f"⚠️ **{job.name}**: {job.warning}")
+        elif job.visual_passages:
+            notes.append(f"📊 Charts and tables from **{job.name}** added "
+                         f"({job.visual_passages:,} passage{'s' if job.visual_passages != 1 else ''}).")
+    return notes
 
 
 def render_chat(
     pipeline: RAGPipeline,
+    ingest: IngestQueue,
     conversation_store: ConversationStore,
     conversation_id: str,
     show_debug: bool,
@@ -354,8 +352,7 @@ def render_chat(
             submit_mode="disable",
         )
     if attach:
-        st.session_state.attach_results = None  # a fresh dialog each time
-        _attach_dialog(pipeline, conversation_store, conversation_id)
+        _attach_dialog(ingest)
     if not submission and not suggested:
         return
 

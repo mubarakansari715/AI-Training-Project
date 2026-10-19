@@ -7,6 +7,7 @@ lets you manage it.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import streamlit as st
@@ -115,9 +116,13 @@ def render_model_picker() -> tuple[str | None, str | None]:
 
 
 def render_sidebar(
-    conversations: list[dict], active_conversation_id: str | None
+    conversations: list[dict], active_conversation_id: str | None,
+    document_status: Callable[[], None] | None = None, indexing: bool = False,
 ) -> SidebarState:
     """Render the sidebar and return the user's current choices.
+
+    `document_status` draws uploads still being indexed under Documents;
+    while `indexing`, Clear index is disabled.
 
     `conversations` is [{"id", "title", "updated_at"}, ...], most
     recently updated first — the saved conversation history shown
@@ -164,9 +169,12 @@ def render_sidebar(
 
         if "document_names" not in st.session_state:
             st.session_state.document_names = []
+        if document_status is not None:
+            document_status()
         render_document_list(st.session_state.document_names)
 
-        clear_index = st.button("Clear index", width="stretch")
+        clear_index = st.button("Clear index", width="stretch", disabled=indexing,
+                                help="Available once the documents being added are done." if indexing else None)
 
         st.divider()
 

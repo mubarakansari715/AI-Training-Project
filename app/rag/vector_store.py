@@ -76,6 +76,7 @@ class VectorStore:
                         "page": c.page if c.page is not None else -1,
                         "section": c.section or "",
                         "pages": ",".join(map(str, c.pages)),
+                        "visual": c.visual,
                     }
                     for c, _ in new_items
                 ],
@@ -172,9 +173,12 @@ class VectorStore:
             result[chunk_id] = float(vector @ query / ((np.linalg.norm(vector) or 1.0) * query_norm))
         return result
 
-    def chunk_ids_for_source(self, source: str) -> set[str]:
-        """IDs of every stored chunk from one document."""
-        return set(self._collection.get(where={"source": source}, include=[])["ids"])
+    def chunk_ids_for_source(self, source: str, visual: bool | None = None) -> set[str]:
+        """IDs of every stored chunk from one document; only those read from
+        page images (`visual=True`) or only the rest (`visual=False`)."""
+        stored = self._collection.get(where={"source": source}, include=["metadatas"])
+        return {chunk_id for chunk_id, meta in zip(stored["ids"], stored["metadatas"])
+                if visual is None or bool(meta.get("visual")) == visual}
 
     def delete_ids(self, ids: set[str]) -> None:
         if not ids:
@@ -192,16 +196,18 @@ class VectorStore:
 
     def page_chunks(self, source: str, page: int) -> list[dict]:
         """Every stored chunk of one page, in reading order (the chunk index
-        in the ID, see app.rag.chunker._make_chunk_id)."""
+        in the ID, see app.rag.chunker._make_chunk_id), page-image chunks last."""
         stored = self._collection.get(
             where={"$and": [{"source": source}, {"page": page}]}, include=["documents", "metadatas"]
         )
         chunks = [
-            {"chunk_id": chunk_id, "text": text, "source": source, "page": page,
-             "section": meta.get("section") or None}
+            ({"chunk_id": chunk_id, "text": text, "source": source, "page": page,
+              "section": meta.get("section") or None}, bool(meta.get("visual")))
             for chunk_id, text, meta in zip(stored["ids"], stored["documents"], stored["metadatas"])
         ]
-        return sorted(chunks, key=lambda c: _chunk_index(c["chunk_id"]))
+        # The page's text first, then what was read from its image.
+        chunks.sort(key=lambda item: (item[1], _chunk_index(item[0]["chunk_id"])))
+        return [chunk for chunk, _ in chunks]
 
 
 def _chunk_index(chunk_id: str) -> int:

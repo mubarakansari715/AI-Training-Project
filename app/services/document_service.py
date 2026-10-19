@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
+from dataclasses import dataclass, field
 
 from app.rag.document_loader import DocumentPage, DocumentParsingError, parse_document
 from app.rag.progress import Progress, scaled
@@ -17,9 +18,22 @@ from app.rag.text_cleaner import clean_text
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class UploadedDocument:
+    """An uploaded file's name and bytes, with Streamlit UploadedFile's
+    interface; it outlives the Streamlit run that received the file, and
+    can be sent to a worker process (app.services.ingest_jobs)."""
+
+    name: str
+    data: bytes = field(repr=False)
+
+    def getvalue(self) -> bytes:
+        return self.data
+
+
 def parse_uploaded_files(
     files: Iterable, detect_structure: bool = True, read_visuals: bool = False, structure_source: str | None = None,
-    layout_tables: str | None = None, progress: Progress | None = None,
+    layout_tables: str | None = None, progress: Progress | None = None, defer_visuals: bool = False,
 ) -> tuple[list[DocumentPage], dict[str, str]]:
     """Parse and clean Streamlit-uploaded files.
 
@@ -35,7 +49,8 @@ def parse_uploaded_files(
         try:
             file_pages = parse_document(file.name, file.getvalue(), detect_structure, read_visuals, structure_source,
                                         layout_tables,
-                                        scaled(progress, number / len(files), (number + 1) / len(files)))
+                                        scaled(progress, number / len(files), (number + 1) / len(files)),
+                                        defer_visuals)
         except DocumentParsingError as exc:
             logger.warning("Parsing failed for %s: %s", file.name, exc)
             errors[file.name] = str(exc)

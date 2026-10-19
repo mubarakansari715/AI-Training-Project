@@ -91,6 +91,9 @@ class Settings:
     # PDFs up to this many pages — one vision call per page, cached in
     # VISION_CACHE_DIR. 0 turns it off.
     visual_reading_max_pages: int = _get_int("VISUAL_READING_MAX_PAGES", 30)
+    # Pages sent to the vision model at once. Free models take about a minute
+    # a page; more at once is faster until their per-minute rate limit hits.
+    vision_concurrency: int = _get_int("VISION_CONCURRENCY", 4)
     # For longer PDFs, only pages holding a chart that can't be measured from
     # its drawing (a picture) are read, up to this many. 0 turns it off.
     visual_chart_pages: int = _get_int("VISUAL_CHART_PAGES", 40)

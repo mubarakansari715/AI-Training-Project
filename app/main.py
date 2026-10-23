@@ -23,6 +23,7 @@ from app.services.conversation_service import ConversationStore
 from app.services.ingest_jobs import IngestQueue, ProcessRunner
 from app.services.rag_service import RAGPipeline
 from app.ui.chat import render_chat, render_ingest_status
+from app.ui.agent_page import render_agent_page
 from app.ui.evaluation_page import render_evaluation_page
 from app.ui.sidebar import render_sidebar
 
@@ -167,6 +168,7 @@ def main() -> None:
             st.Page(chat_page, title="Chat", icon=":material/chat:", default=True),
             st.Page(render_evaluation_page, title="Use case results", icon=":material/fact_check:",
                     url_path="results"),
+            st.Page(render_agent_page, title="Agent", icon=":material/smart_toy:", url_path="agent"),
         ],
         position="top",
     )

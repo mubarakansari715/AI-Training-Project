@@ -24,9 +24,99 @@ Plan for adding the "AI agents" topics to ALLY AI. Tick each box as it's done.
 | Step-limit guardrail | `AGENT_MAX_SEARCHES` (default 3) |
 | Workflow vs. agent | Standard pipeline (rewrite → retrieve → rerank → answer) is a workflow; Auto mode is an agent |
 
+## Engines: manual vs. LangChain
+
+Both engines take a question, let the model call tools (multiply, currency, weather,
+web search), and return an answer. The difference is **who writes the
+Think → Act → Observe loop**.
+
+### Manual engine: we write the loop
+
+Already done this way in `app/rag/agent.py`. Our code handles every step:
+
+```python
+messages = [system_prompt, user_question]
+for step in range(max_steps):                       # guardrail: step limit
+    reply = groq.chat(messages, tools=TOOL_SCHEMAS)  # THINK: model decides
+    if not reply.tool_calls:
+        return reply.content                         # done, final answer
+    for call in reply.tool_calls:
+        result = TOOLS[call.name](**call.args)       # ACT: run the Python function
+        messages.append(tool_result(call, result))   # OBSERVE: feed result back
+raise StepLimitReached
+```
+
+Each tool's JSON schema is written by hand:
+
+```python
+{"name": "get_weather", "parameters": {"type": "object",
+  "properties": {"city": {"type": "string"}}, "required": ["city"]}}
+```
+
+**Role:** shows exactly how an agent works under the hood. No magic and full control, but
+more code to write and maintain.
+
+### LangChain engine: the framework runs the loop
+
+We only give it the model, the tools and the instructions:
+
+```python
+from langchain.agents import create_agent
+from langchain.tools import tool
+from langchain_groq import ChatGroq
+
+@tool
+def get_weather(city: str) -> str:
+    """Get the current weather for a city."""   # schema built from this automatically
+    ...
+
+agent = create_agent(
+    model=ChatGroq(model="openai/gpt-oss-20b"),
+    tools=[multiply, convert_currency, get_weather, web_search],
+    system_prompt="You are a helpful assistant...",
+)
+
+result = agent.invoke(
+    {"messages": [{"role": "user", "content": question}]},
+    config={"recursion_limit": 10},   # guardrail: stop runaway loops
+)
+```
+
+- No loop code: LangChain decides when to call the model and when to run tools.
+- No hand-written schemas: `@tool` builds them from the type hints and docstring.
+- `recursion_limit` is the framework's step limit. When it's hit, LangChain raises
+  `GraphRecursionError`, which we catch and show as "stopped by guardrail". Each model call
+  and each round of tool calls counts as a step, so a 2-tool question uses about 5.
+
+**Role:** the standard industry way, with less code and built-in extras (middleware,
+human-approval hooks, memory). Less visibility inside, plus a new dependency.
+
+### Side by side
+
+| | Manual | LangChain |
+|---|---|---|
+| Who runs the loop | Our code | `create_agent` |
+| Tool schemas | Written by hand (JSON) | Built automatically from `@tool` |
+| Step limit | Our `max_steps` counter | `recursion_limit` |
+| Code size | More | Less |
+| Learning value | See how agents really work | See how frameworks hide that work |
+| New dependency | None | `langchain`, `langchain-groq` |
+
+### The `AGENT_ENGINE` setting
+
+Both engines use the same four tools and the same Groq model; the setting only picks which
+loop runs.
+
+- `AGENT_ENGINE=manual|langchain` in `.env` sets the default.
+- The Manual / LangChain switch in the Agent tab changes it per question.
+
+Ask the same question with each and compare the trace, answer, steps, tokens and time.
+That is the hands-on part: "manual tool calling" vs. "`create_agent` with
+`recursion_limit`". The document chat (Auto mode) keeps the manual engine either way.
+
 ## Decisions still open
 
-- [ ] Where the new tools live: inside the ALLY AI chat, or in a separate demo/notebook
+- [x] Where the new tools live: a separate **Agent** tab (Option A); the document chat stays as it is
 - [ ] OK to add full LangChain (`langchain`, `langchain-groq`) as a dependency, which `create_agent` needs
 - [ ] Web search provider: DuckDuckGo (`ddgs`, no key) or Tavily (`TAVILY_API_KEY`)
 
@@ -67,10 +157,11 @@ Plan for adding the "AI agents" topics to ALLY AI. Tick each box as it's done.
 - [ ] Cost control: token budget per question and a cap on tool calls (usage already recorded in `_record_usage`)
 - [ ] Prompt injection: wrap tool results in delimiters as data, system-prompt rule to ignore instructions inside them, tests with injected text
 
-## Phase 6: UI
+## Phase 6: Agent tab UI (`app/ui/agent_page.py`)
 
-- [ ] Sidebar switches to turn each tool on/off and to choose the engine
-- [ ] Show each tool call in the "Answered in N s" step list
+- [x] Design preview: third top tab, engine switch, tool chips, guardrail controls, example Think/Act/Observe trace
+- [ ] Wire the settings and chat box to the real engines and tools
+- [ ] Show the live trace, steps, tokens and time for each question
 
 ## Phase 7: Optional extras
 

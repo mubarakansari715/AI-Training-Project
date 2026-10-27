@@ -118,7 +118,7 @@ That is the hands-on part: "manual tool calling" vs. "`create_agent` with
 
 - [x] Where the new tools live: a separate **Agent** tab (Option A); the document chat stays as it is
 - [ ] OK to add full LangChain (`langchain`, `langchain-groq`) as a dependency, which `create_agent` needs
-- [ ] Web search provider: DuckDuckGo (`ddgs`, no key) or Tavily (`TAVILY_API_KEY`)
+- [x] Web search provider: DuckDuckGo (`ddgs`, no key), so the demo runs without any API keys
 
 ## Phase 1: Concepts notebook
 
@@ -127,12 +127,12 @@ That is the hands-on part: "manual tool calling" vs. "`create_agent` with
 
 ## Phase 2: The four tools (`app/agent_tools/`)
 
-- [ ] `multiply(a, b)`: pure Python
-- [ ] `convert_currency(amount, from_currency, to_currency)`: Frankfurter API (free, no key)
-- [ ] `get_weather(city)`: Open-Meteo (free, no key)
-- [ ] `web_search(query)`: provider from the decision above
-- [ ] JSON schema and input validation for each tool
-- [ ] Tests with network calls mocked
+- [x] `multiply(a, b)`: pure Python
+- [x] `convert_currency(amount, from_currency, to_currency)`: Frankfurter API (free, no key)
+- [x] `get_weather(city)`: Open-Meteo (free, no key)
+- [x] `web_search(query)`: DuckDuckGo via `ddgs`
+- [x] JSON schema and input validation for each tool; `run_tool()` turns bad calls and failures into error text for the model
+- [x] Tests with network calls mocked (`tests/test_agent_tools.py`)
 
 ## Phase 3: Manual tool calling
 
@@ -152,7 +152,7 @@ That is the hands-on part: "manual tool calling" vs. "`create_agent` with
 ## Phase 5: Guardrails
 
 - [ ] Step limit: keep max searches; add `recursion_limit` for the LangChain engine
-- [ ] Input validation: currency codes, number ranges, city name length
+- [x] Input validation: currency codes, number ranges, city name length (done with the tools in Phase 2)
 - [ ] Human approval: Streamlit confirm before external calls (e.g. web search)
 - [ ] Cost control: token budget per question and a cap on tool calls (usage already recorded in `_record_usage`)
 - [ ] Prompt injection: wrap tool results in delimiters as data, system-prompt rule to ignore instructions inside them, tests with injected text

@@ -15,6 +15,10 @@ requests>=2.31  # OpenRouter fallback (plain REST, no SDK needed)
 # Web search via DuckDuckGo: free, no API key. Currency (Frankfurter) and
 # weather (Open-Meteo) are plain REST calls through requests.
 ddgs>=9.16
+# Agent tab engine (app/rag/lc_agent.py): create_agent, middleware and the
+# Groq chat model. Pure Python; fits the torch 2.2.2 / numpy<2 pins below.
+langchain>=1.4,<2
+langchain-groq>=1.1,<2
 
 # --- Embeddings ---
 # Pinned for compatibility with torch 2.2.2, the last version PyTorch

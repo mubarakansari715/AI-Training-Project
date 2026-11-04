@@ -26,6 +26,11 @@ Plan for adding the "AI agents" topics to ALLY AI. Tick each box as it's done.
 
 ## Engines: manual vs. LangChain
 
+**Decision (2026-11-04): the Agent tab uses LangChain only.** The manual engine stays where it
+already was, in the document chat's Auto mode (`app/rag/agent.py`); there is no Manual/LangChain
+switch and no `AGENT_ENGINE` setting. Manual tool calling is shown step by step in the notebook
+(`bind_tools`, section 5) instead. The comparison below is kept as background.
+
 Both engines take a question, let the model call tools (multiply, currency, weather,
 web search), and return an answer. The difference is **who writes the
 Think → Act → Observe loop**.
@@ -117,15 +122,19 @@ That is the hands-on part: "manual tool calling" vs. "`create_agent` with
 ## Decisions still open
 
 - [x] Where the new tools live: a separate **Agent** tab (Option A); the document chat stays as it is
-- [ ] OK to add full LangChain (`langchain`, `langchain-groq`) as a dependency, which `create_agent` needs
+- [x] OK to add full LangChain (`langchain`, `langchain-groq`) as a dependency, which `create_agent` needs
 - [x] Web search provider: DuckDuckGo (`ddgs`, no key), so the demo runs without any API keys
 
 ## Phase 1: Concepts notebook
 
-- [ ] Add `notebooks/02_ai_agents.ipynb`: agents vs. chatbots, LLMs, prompts, tokens, context windows, design patterns
-- [ ] Link each concept to the matching code in this project (table above)
+- [x] Add `notebooks/02_ai_agents.ipynb`: agents vs. chatbots, LLMs, prompts, tokens, context windows, design patterns
+- [x] Link each concept to the matching code in this project (table above)
 
 ## Phase 2: The four tools (`app/agent_tools/`)
+
+Fix (2026-11-04): Frankfurter's server timed out for most currency pairs, so
+`convert_currency` now fetches the 1-unit rate (no `amount` parameter, which also
+timed out), multiplies locally, and falls back to open.er-api.com (free, no key).
 
 - [x] `multiply(a, b)`: pure Python
 - [x] `convert_currency(amount, from_currency, to_currency)`: Frankfurter API (free, no key)
@@ -136,35 +145,45 @@ That is the hands-on part: "manual tool calling" vs. "`create_agent` with
 
 ## Phase 3: Manual tool calling
 
-- [ ] Change `run_agent` from one hard-coded tool to a tool registry (name → function + schema)
-- [ ] Register `search_documents` plus the four new tools
-- [ ] Keep using the existing `chat_with_tools()` (no new dependencies)
-- [ ] Update `tests/test_agent.py`
+- [x] Change `run_agent` from one hard-coded tool to a tool registry (name → function + schema)
+- [x] Register `search_documents` plus the four new tools (`extra_tools=[...]`; the document chat passes none, so it stays search-only)
+- [x] Keep using the existing `chat_with_tools()` (no new dependencies)
+- [x] Update `tests/test_agent.py`; `max_steps` turn limit, and each call recorded in `AgentResult.tool_calls` for the trace
 
 ## Phase 4: `create_agent` with `recursion_limit`
 
-- [ ] Check `langchain` / `langchain-groq` fit the torch 2.2.2 and `numpy<2` pins; add them to `requirements.txt`
-- [ ] Add `app/rag/lc_agent.py`: tools via `@tool`, `create_agent(model, tools, system_prompt)`
-- [ ] Run with `.invoke(..., config={"recursion_limit": N})`; catch `GraphRecursionError`
-- [ ] Add `AGENT_ENGINE=manual|langchain` setting to compare both engines
-- [ ] Tests
+- [x] Check `langchain` / `langchain-groq` fit the torch 2.2.2 and `numpy<2` pins; add them to `requirements.txt` (langchain 1.4.8, langchain-groq 1.1.3: no conflicts)
+- [x] Add `app/rag/lc_agent.py`: tools via `@tool`, `create_agent(model, tools, system_prompt)`
+- [x] Run with `config={"recursion_limit": N}` (streamed, for the live trace); catch `GraphRecursionError`
+- [x] ~~Add `AGENT_ENGINE=manual|langchain` setting~~ Dropped: the Agent tab is LangChain only (see the decision above). New settings instead: `AGENT_MODEL`, `AGENT_MAX_STEPS`, `AGENT_TOKEN_BUDGET`, `AGENT_MAX_TOOL_CALLS`
+- [x] Tests (`tests/test_lc_agent.py`, scripted chat model, no network)
 
 ## Phase 5: Guardrails
 
-- [ ] Step limit: keep max searches; add `recursion_limit` for the LangChain engine
+- [x] Step limit: keep max searches; add `recursion_limit` for the LangChain engine
 - [x] Input validation: currency codes, number ranges, city name length (done with the tools in Phase 2)
-- [ ] Human approval: Streamlit confirm before external calls (e.g. web search)
-- [ ] Cost control: token budget per question and a cap on tool calls (usage already recorded in `_record_usage`)
-- [ ] Prompt injection: wrap tool results in delimiters as data, system-prompt rule to ignore instructions inside them, tests with injected text
+- [x] Human approval: LangChain's `HumanInTheLoopMiddleware` pauses before `web_search`; Approve / Reject (with an optional reason) in the chat, resumed with `Command(resume=...)`
+- [x] Cost control: token budget per question and a cap on tool calls (`GuardrailMiddleware`, wrap hooks only, so no extra steps)
+- [x] Prompt injection: tool results wrapped in `<tool_result>` delimiters (delimiters inside a result neutralised, instruction-like text flagged), system-prompt rule to ignore instructions inside them, tests with injected text
 
 ## Phase 6: Agent tab UI (`app/ui/agent_page.py`)
 
 - [x] Design preview: third top tab, engine switch, tool chips, guardrail controls, example Think/Act/Observe trace
-- [ ] Wire the settings and chat box to the real engines and tools
-- [ ] Show the live trace, steps, tokens and time for each question
+- [x] Wire the settings and chat box to the LangChain engine and tools (model, tools incl. "My documents", guardrails)
+- [x] Show the live trace, steps, tokens and time for each question; memory of earlier questions; tests (`tests/test_agent_page.py`)
+
+## Accuracy fixes (2026-11-04, after testing with real questions)
+
+- [x] Approval before web search is **off by default** (the agent decides on its own; the toggle stays as an optional guardrail)
+- [x] `read_webpage` tool, added with Web search: opens a result page so facts are checked on the page, not guessed from snippets (public http(s) only, size and text limits)
+- [x] Web search tries several search engines before saying "no results"
+- [x] Today's date and grounding rules in the system prompt: current facts only from tool results, name the site, never invent numbers, stop after 3 searches for one fact
+- [x] Loop guard: an exact repeat of an earlier tool call is refused
+- [x] When the step limit is hit, one last call without tools answers from the results gathered so far
+- [x] Leaked gpt-oss tool-call markup is cut from answers
 
 ## Phase 7: Optional extras
 
 - [ ] Multi-agent: router agent that hands work to a documents agent and a web/tools agent
 - [ ] MCP: expose `search_documents` as an MCP server
-- [ ] Update `README.md` and the "How it works" page (`app/ui/how_it_works.py`)
+- [x] Update `README.md` and the "How it works" page (`app/ui/how_it_works.py`)

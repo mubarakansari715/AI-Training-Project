@@ -6,7 +6,7 @@ import requests
 from ddgs.exceptions import DDGSException
 
 from app.agent_tools import TOOLS, run_tool, tool_schemas
-from app.agent_tools import currency, weather, web_search
+from app.agent_tools import currency, weather, web_page, web_search
 from app.agent_tools.base import ToolError, ToolInputError
 from app.agent_tools.currency import convert_currency
 from app.agent_tools.multiply import multiply
@@ -60,14 +60,16 @@ def test_multiply_rejects_bad_numbers(a, b):
 # --- convert_currency ---
 
 def test_convert_currency_calls_frankfurter(monkeypatch):
-    get = fake_get(FakeResponse({"amount": 250.0, "base": "USD", "date": "2026-10-26", "rates": {"INR": 23796}}))
+    get = fake_get(FakeResponse({"amount": 1.0, "base": "USD", "date": "2026-10-26", "rates": {"INR": 95.184}}))
     monkeypatch.setattr(currency.requests, "get", get)
 
     result = convert_currency(250, "usd", " inr ")
 
     assert result.startswith("250.00 USD = 23,796.00 INR")
     assert "2026-10-26" in result
-    assert get.calls[0]["params"] == {"base": "USD", "symbols": "INR", "amount": 250}
+    assert "rate 95.184" in result
+    # The rate of 1 unit is fetched and multiplied locally (`amount` makes the API time out).
+    assert get.calls[0]["params"] == {"base": "USD", "symbols": "INR"}
     assert get.calls[0]["timeout"]
 
 
@@ -92,11 +94,34 @@ def test_convert_currency_unknown_code_is_an_input_error(monkeypatch):
         convert_currency(10, "USD", "XYZ")
 
 
-@pytest.mark.parametrize("reply", [requests.ConnectionError("down"), FakeResponse(status_code=500),
-                                   FakeResponse({"rates": {}})])
-def test_convert_currency_service_failures(monkeypatch, reply):
-    monkeypatch.setattr(currency.requests, "get", fake_get(reply))
-    with pytest.raises(ToolError):
+FALLBACK_USD = {"result": "success", "time_last_update_utc": "Wed, 04 Nov 2026 00:02:31 +0000",
+                "rates": {"USD": 1, "INR": 94.8}}
+
+
+@pytest.mark.parametrize("primary", [requests.ConnectionError("down"), requests.Timeout("slow"),
+                                     FakeResponse(status_code=522), FakeResponse({"rates": {}})])
+def test_convert_currency_falls_back_when_frankfurter_fails(monkeypatch, primary):
+    get = fake_get(primary, FakeResponse(FALLBACK_USD))
+    monkeypatch.setattr(currency.requests, "get", get)
+
+    result = convert_currency(10, "USD", "INR")
+
+    assert result == "10.00 USD = 948.00 INR (rate 94.8, open.er-api.com rate of 04 Nov 2026)"
+    assert get.calls[1]["url"] == "https://open.er-api.com/v6/latest/USD"
+
+
+def test_convert_currency_fallback_unknown_code_is_an_input_error(monkeypatch):
+    monkeypatch.setattr(currency.requests, "get", fake_get(
+        requests.Timeout("slow"), FakeResponse({"result": "success", "rates": {"USD": 1}})))
+    with pytest.raises(ToolInputError, match="Unsupported currency"):
+        convert_currency(10, "USD", "XYZ")
+
+
+@pytest.mark.parametrize("fallback", [requests.ConnectionError("down"), FakeResponse(status_code=500),
+                                      FakeResponse({"result": "error", "error-type": "quota-reached"})])
+def test_convert_currency_both_services_down(monkeypatch, fallback):
+    monkeypatch.setattr(currency.requests, "get", fake_get(requests.ConnectionError("down"), fallback))
+    with pytest.raises(ToolError, match="Currency services unavailable"):
         convert_currency(10, "USD", "INR")
 
 
@@ -151,20 +176,23 @@ class FakeDDGS:
     results = []
     error = None
     queries = []
+    by_backend = None  # backend -> results or exception, to script engine fallbacks
 
     def __init__(self, timeout=None):
         self.timeout = timeout
 
-    def text(self, query, max_results=None):
-        FakeDDGS.queries.append((query, max_results))
-        if FakeDDGS.error:
-            raise FakeDDGS.error
-        return FakeDDGS.results
+    def text(self, query, max_results=None, backend="auto"):
+        FakeDDGS.queries.append((query, max_results, backend))
+        reply = FakeDDGS.by_backend.get(backend, []) if FakeDDGS.by_backend is not None else (
+            FakeDDGS.error or FakeDDGS.results)
+        if isinstance(reply, Exception):
+            raise reply
+        return reply
 
 
 @pytest.fixture
 def ddgs(monkeypatch):
-    FakeDDGS.results, FakeDDGS.error, FakeDDGS.queries = [], None, []
+    FakeDDGS.results, FakeDDGS.error, FakeDDGS.queries, FakeDDGS.by_backend = [], None, [], None
     monkeypatch.setattr(web_search, "DDGS", FakeDDGS)
     return FakeDDGS
 
@@ -177,12 +205,19 @@ def test_web_search_formats_numbered_results(ddgs):
 
     assert result == ("[1] Streamlit 1.50\nhttps://example.com/a\nReleased today.\n\n"
                       "[2] Docs\nhttps://example.com/b\nRelease notes.")
-    assert ddgs.queries == [("latest streamlit", web_search.MAX_RESULTS)]
+    assert ddgs.queries == [("latest streamlit", web_search.MAX_RESULTS, "auto")]
 
 
 def test_web_search_no_results(ddgs):
     ddgs.error = DDGSException("No results found.")
     assert web_search.web_search("zzqq").startswith("No web results found")
+    assert [q[2] for q in ddgs.queries] == list(web_search.BACKENDS)  # every engine was tried
+
+
+def test_web_search_tries_other_engines_when_one_finds_nothing(ddgs):
+    ddgs.by_backend = {"auto": DDGSException("No results found."), "yahoo,duckduckgo": [],
+                       "google": [{"title": "PM", "href": "https://example.com", "body": "Snippet"}]}
+    assert web_search.web_search("uk prime minister").startswith("[1] PM\nhttps://example.com")
 
 
 def test_web_search_failure(ddgs):
@@ -197,10 +232,75 @@ def test_web_search_rejects_bad_queries(ddgs, query):
         web_search.web_search(query)
 
 
+# --- read_webpage ---
+
+class FakePage:
+    def __init__(self, body=b"", status=200, kind="text/html; charset=utf-8"):
+        self.body, self.status_code, self.ok = body, status, status < 400
+        self.headers = {"Content-Type": kind}
+        self.encoding = "utf-8"
+
+    def iter_content(self, size):
+        yield self.body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+@pytest.fixture
+def public_dns(monkeypatch):
+    monkeypatch.setattr(web_page.socket, "getaddrinfo", lambda host, port: [(None, None, None, None, ("93.184.216.34", 0))])
+
+
+HTML = b"""<html><head><title>Gold price today</title><script>var x=1;</script></head>
+<body><nav>Home | Menu</nav><main><h1>Gold price</h1><p>24K gold: 12,317 INR per gram.</p></main>
+<footer>Copyright</footer></body></html>"""
+
+
+def test_read_webpage_returns_the_main_text(monkeypatch, public_dns):
+    calls = []
+    monkeypatch.setattr(web_page.requests, "get", lambda url, **kw: calls.append(kw) or FakePage(HTML))
+
+    result = web_page.read_webpage("https://example.com/gold")
+
+    assert result == "Gold price today\nhttps://example.com/gold\n\nGold price\n24K gold: 12,317 INR per gram."
+    assert calls[0]["timeout"] and calls[0]["stream"]
+
+
+def test_read_webpage_cuts_long_pages(monkeypatch, public_dns):
+    body = b"<html><body><p>" + b"word " * 5000 + b"</p></body></html>"
+    monkeypatch.setattr(web_page.requests, "get", lambda url, **kw: FakePage(body))
+    assert web_page.read_webpage("https://example.com").endswith("…[cut]")
+
+
+@pytest.mark.parametrize("url", ["ftp://example.com/x", "example.com", "file:///etc/passwd", ""])
+def test_read_webpage_rejects_bad_urls(url):
+    with pytest.raises(ToolInputError):
+        web_page.read_webpage(url)
+
+
+@pytest.mark.parametrize("address", ["127.0.0.1", "10.0.0.5", "192.168.1.1", "169.254.169.254", "::1"])
+def test_read_webpage_refuses_private_addresses(monkeypatch, address):
+    monkeypatch.setattr(web_page.socket, "getaddrinfo", lambda host, port: [(None, None, None, None, (address, 0))])
+    with pytest.raises(ToolInputError, match="public website"):
+        web_page.read_webpage("http://internal.example/")
+
+
+@pytest.mark.parametrize("page", [FakePage(status=404), FakePage(b"%PDF", kind="application/pdf"),
+                                  FakePage(b"<html><body><script>app()</script></body></html>")])
+def test_read_webpage_failures(monkeypatch, public_dns, page):
+    monkeypatch.setattr(web_page.requests, "get", lambda url, **kw: page)
+    with pytest.raises(ToolError):
+        web_page.read_webpage("https://example.com")
+
+
 # --- registry and run_tool ---
 
-def test_registry_has_the_four_tools_with_valid_schemas():
-    assert list(TOOLS) == ["multiply", "convert_currency", "get_weather", "web_search"]
+def test_registry_has_the_tools_with_valid_schemas():
+    assert list(TOOLS) == ["multiply", "convert_currency", "get_weather", "web_search", "read_webpage"]
     for schema in tool_schemas():
         function = schema["function"]
         assert schema["type"] == "function" and function["description"]

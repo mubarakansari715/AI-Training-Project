@@ -216,6 +216,12 @@ class Settings:
     # like ChatGPT/Claude — see app/rag/agent.py. Needs Groq (tool calling).
     agent_mode: bool = _get_bool("AGENT_MODE", True)
     agent_max_searches: int = _get_int("AGENT_MAX_SEARCHES", 3)
+    # Agent tab (LangChain create_agent, app/rag/lc_agent.py): its Groq model
+    # and default guardrails (all adjustable per question in the tab).
+    agent_model: str = os.getenv("AGENT_MODEL", "") or os.getenv("GROQ_FAST_MODEL", "openai/gpt-oss-20b")
+    agent_max_steps: int = _get_int("AGENT_MAX_STEPS", 15)
+    agent_token_budget: int = _get_int("AGENT_TOKEN_BUDGET", 12000)
+    agent_max_tool_calls: int = _get_int("AGENT_MAX_TOOL_CALLS", 8)
     # USD per 1M (input, output) tokens per model, for cost estimates in the
     # evaluation; add or override with MODEL_PRICES (see _get_prices).
     model_prices: dict = field(default_factory=lambda: _get_prices("MODEL_PRICES", _DEFAULT_MODEL_PRICES))

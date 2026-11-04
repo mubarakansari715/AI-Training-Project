@@ -11,22 +11,32 @@ MAX_QUERY_LENGTH = 300
 MAX_RESULTS = 5
 
 
+# Search engines tried in turn: any single one often returns nothing for a
+# query the others answer (measured 2026-11-04), so "no results" only
+# counts once every one has been tried.
+BACKENDS = ("auto", "yahoo,duckduckgo", "google")
+
+
 def web_search(query) -> str:
     """Top web results for `query`: numbered title, link and snippet."""
     query = require_text("query", query, MAX_QUERY_LENGTH)
-    try:
-        results = DDGS(timeout=HTTP_TIMEOUT_SECONDS).text(query, max_results=MAX_RESULTS)
-    except DDGSException as exc:
-        # ddgs also raises this when nothing matched.
-        if "no results" in str(exc).lower():
-            return f"No web results found for {query!r}."
-        raise ToolError(f"Web search failed: {exc}") from exc
-    if not results:
-        return f"No web results found for {query!r}."
-    return "\n\n".join(
-        f"[{i}] {r.get('title', '').strip()}\n{r.get('href', '')}\n{r.get('body', '').strip()}"
-        for i, r in enumerate(results, start=1)
-    )
+    errors = []
+    for backend in BACKENDS:
+        try:
+            results = DDGS(timeout=HTTP_TIMEOUT_SECONDS).text(query, max_results=MAX_RESULTS, backend=backend)
+        except DDGSException as exc:
+            # ddgs also raises this when nothing matched.
+            if "no results" not in str(exc).lower():
+                errors.append(str(exc))
+            continue
+        if results:
+            return "\n\n".join(
+                f"[{i}] {r.get('title', '').strip()}\n{r.get('href', '')}\n{r.get('body', '').strip()}"
+                for i, r in enumerate(results, start=1)
+            )
+    if errors and len(errors) == len(BACKENDS):
+        raise ToolError(f"Web search failed: {errors[-1]}")
+    return f"No web results found for {query!r}. Try fewer or different words."
 
 
 WEB_SEARCH_TOOL = Tool(

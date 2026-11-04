@@ -1,4 +1,5 @@
-"""The Agent tab's tools: multiply, currency conversion, weather and web search.
+"""The Agent tab's tools: multiply, currency conversion, weather, web search and
+reading a web page.
 
 `TOOLS` maps each tool's name to its function and JSON schema; `run_tool`
 runs one call from the model and always returns text to feed back to it
@@ -15,11 +16,13 @@ from app.agent_tools.base import Tool, ToolError, ToolInputError
 from app.agent_tools.currency import CURRENCY_TOOL
 from app.agent_tools.multiply import MULTIPLY_TOOL
 from app.agent_tools.weather import WEATHER_TOOL
+from app.agent_tools.web_page import WEB_PAGE_TOOL
 from app.agent_tools.web_search import WEB_SEARCH_TOOL
 
 logger = logging.getLogger(__name__)
 
-TOOLS: dict[str, Tool] = {tool.name: tool for tool in (MULTIPLY_TOOL, CURRENCY_TOOL, WEATHER_TOOL, WEB_SEARCH_TOOL)}
+TOOLS: dict[str, Tool] = {tool.name: tool for tool in (MULTIPLY_TOOL, CURRENCY_TOOL, WEATHER_TOOL, WEB_SEARCH_TOOL,
+                                                    WEB_PAGE_TOOL)}
 
 
 def tool_schemas(names: list[str] | None = None) -> list[dict]:

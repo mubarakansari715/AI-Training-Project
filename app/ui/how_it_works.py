@@ -112,6 +112,12 @@ TECHNIQUES = [
      "FDsys question: context precision 60% -> 100%", "QUERY_DECOMPOSITION", "app/rag/query_decomposer.py"),
     ("Future work", "Agentic search that searches again", "On (chat Auto mode)",
      "Correct citations 83% -> 100% on GPO", "AGENT_MODE", "app/rag/agent.py"),
+    ("Agents", "Agent tab: LangChain create_agent with multiply, currency, weather, web and document tools",
+     "On", "Live Think -> Act -> Observe trace with steps, tokens and time", "AGENT_MODEL",
+     "app/rag/lc_agent.py"),
+    ("Agents", "Guardrails: recursion_limit, token budget, tool-call cap, approval before web search, "
+     "tool results as data", "On", "Adjustable per question in the Agent tab", "AGENT_MAX_STEPS",
+     "app/rag/lc_agent.py"),
     ("Future work", "LLM-as-judge evaluation", "Done",
      "Correctness, faithfulness, relevance, context recall", "-", "evaluation/metrics.py"),
     ("Extra", "Context compression (drop passages far below the best)", "On",
@@ -130,6 +136,7 @@ STACK = [
     ("Charts and tables from page images", "OpenRouter free vision models", "Free tier"),
     ("Bar charts measured from the drawing", "PyMuPDF vector shapes", "Local"),
     ("Chart pages at answer time", "Gemini 3.5 Flash-Lite (vision)", "Free tier"),
+    ("Agent tab", "LangChain create_agent + middleware, langchain-groq", "Free tier"),
     ("App", "Streamlit", "Local"),
 ]
 

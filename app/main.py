@@ -157,6 +157,11 @@ def chat_page() -> None:
     )
 
 
+def agent_page() -> None:
+    """The Agent tab; the document index is loaded only if "My documents" is used."""
+    render_agent_page(get_retriever=lambda: get_pipeline().retriever)
+
+
 def main() -> None:
     st.set_page_config(
         page_title=APP_NAME,
@@ -168,7 +173,7 @@ def main() -> None:
             st.Page(chat_page, title="Chat", icon=":material/chat:", default=True),
             st.Page(render_evaluation_page, title="Use case results", icon=":material/fact_check:",
                     url_path="results"),
-            st.Page(render_agent_page, title="Agent", icon=":material/smart_toy:", url_path="agent"),
+            st.Page(agent_page, title="Agent", icon=":material/smart_toy:", url_path="agent"),
         ],
         position="top",
     )

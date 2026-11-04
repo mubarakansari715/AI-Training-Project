@@ -118,6 +118,29 @@ up an earlier conversation later — even after restarting the app.
   *document* facts, not the conversation itself
 - Retrieval transparency / debug mode (see the retrieved chunks + scores)
 
+**Agent tab** (LangChain `create_agent`, `app/rag/lc_agent.py`)
+- Questions that need tools: `multiply`, `convert_currency` (Frankfurter, with
+  open.er-api.com as fallback), `get_weather` (Open-Meteo), `web_search`
+  (several search engines via `ddgs`, tried in turn), `read_webpage` (opens a
+  result to check the fact on the page) and, optionally, `search_documents` over your uploaded files. No
+  API keys beyond Groq
+- Tools are `@tool` functions: LangChain builds each JSON schema from the type
+  hints and docstring; every tool validates its arguments and returns errors as
+  text so the model can correct itself
+- A live Think → Act → Observe trace for every answer, with tool calls, steps,
+  tokens and time
+- Guardrails, adjustable per question: step limit (`recursion_limit`), token
+  budget and tool-call cap per question, optional human approval before each
+  web search (LangChain's `HumanInTheLoopMiddleware`, off by default), and
+  tool results wrapped as data so instructions inside them are ignored (prompt
+  injection)
+- Grounded answers: the model is told today's date and must take current facts
+  (prices, weather, news, people in office) only from tool results and name the
+  site; repeated identical tool calls are refused, and if the step limit is hit
+  it answers from the results gathered so far instead of returning nothing
+- Memory: earlier questions and answers on the tab
+- Concepts notebook: `notebooks/02_ai_agents.ipynb`
+
 **Conversation**
 - Conversational chat with history — remembers earlier turns for
   continuity (e.g. your name, follow-up references) alongside document
@@ -167,6 +190,7 @@ and reloaded into the UI when you pick it from the sidebar.
 | Embeddings | `sentence-transformers/all-MiniLM-L6-v2` (configurable) |
 | Vector store | ChromaDB (persistent, local) |
 | LLM | Groq (`requests`, OpenAI-compatible API), Google Gemini fallback (`google-genai`) |
+| Agent tab | LangChain `create_agent` + middleware, `langchain-groq` |
 | Conversation storage | Plain JSON files on disk |
 | Config | `.env` via `python-dotenv` |
 
@@ -177,9 +201,11 @@ app/
 ├── main.py                     # Streamlit entry point / orchestration
 ├── config/
 │   └── settings.py             # Env-driven configuration
+├── agent_tools/                # multiply, currency, weather, web search (validated)
 ├── ui/
 │   ├── sidebar.py               # Conversation history, document list, and settings UI
 │   ├── chat.py                  # Chat input (incl. file attach), sources, debug view
+│   ├── agent_page.py            # Agent tab: tools, guardrails, live trace, approvals
 │   └── components.py            # Small reusable UI pieces
 ├── rag/
 │   ├── document_loader.py       # PDF/DOCX/TXT/MD -> DocumentPage
@@ -197,6 +223,7 @@ app/
 │   ├── prompt.py                 # RAG prompt template
 │   ├── generator.py              # Groq/Gemini answer generation (+ Groq tool calling)
 │   ├── agent.py                  # Auto mode: LLM-driven search with a tool
+│   ├── lc_agent.py               # Agent tab engine: LangChain create_agent + guardrails
 │   ├── model_router.py           # "auto" model: fast vs strong per question
 │   ├── reranker.py               # Cross-encoder reranking of retrieved chunks
 │   └── small_talk.py             # Greeting/intro/recall detection
@@ -313,6 +340,10 @@ See [`.env.example`](.env.example) for the full file with defaults:
 | `QUERY_DECOMPOSITION` | Split comparison/multi-part questions into sub-questions, each searched | `true` |
 | `AGENT_MODE` | Auto mode: the LLM decides whether/how often to search (needs Groq) | `true` |
 | `AGENT_MAX_SEARCHES` | Most searches auto mode may run per question | `3` |
+| `AGENT_MODEL` | Groq model for the Agent tab | `GROQ_FAST_MODEL` |
+| `AGENT_MAX_STEPS` | Agent tab step limit (`recursion_limit`) | `15` |
+| `AGENT_TOKEN_BUDGET` | Agent tab tokens per question | `12000` |
+| `AGENT_MAX_TOOL_CALLS` | Agent tab tool calls per question | `8` |
 | `MODEL_PRICES` | Extra or changed paid-tier prices for cost estimates, `model=input/output` USD per 1M tokens | _(built-in table)_ |
 
 ## Running the Application
@@ -401,8 +432,9 @@ Tests cover document parsing (including video/audio transcription, with
 the Whisper model faked), text cleaning, chunking (including
 metadata/determinism), embeddings, the vector store, retrieval, prompt
 construction, small-talk detection, conversation persistence, and a full
-pipeline integration test. The Groq and Gemini APIs are mocked throughout, so
-`pytest` never requires a real API key.
+pipeline integration test, the agent tools and the Agent tab (engine and page,
+with a scripted chat model). The Groq and Gemini APIs and the tools' web
+services are mocked throughout, so `pytest` never requires a real API key.
 
 ## Future Improvements
 
@@ -415,7 +447,7 @@ pipeline integration test. The Groq and Gemini APIs are mocked throughout, so
 ## Quick Start
 
 ```bash
-cd /Users/mubarak/Desktop/AI_Training/AI-Training-Project
+cd /Users/apple/Backup/AI_Training/AI-Training-Project
 source .venv/bin/activate
 streamlit run app/main.py
 ```

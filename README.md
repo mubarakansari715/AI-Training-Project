@@ -447,7 +447,7 @@ services are mocked throughout, so `pytest` never requires a real API key.
 ## Quick Start
 
 ```bash
-cd /Users/apple/Backup/AI_Training/AI-Training-Project
+cd /Users/apple/NewMacBackup/AI_Training/AI-Training-Project
 source .venv/bin/activate
 streamlit run app/main.py
 ```

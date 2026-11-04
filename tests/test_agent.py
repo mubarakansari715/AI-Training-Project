@@ -140,3 +140,83 @@ def test_final_turn_after_search_limit_sends_no_tools():
     assert [m["role"] for m in final["messages"]] == ["system", "user"]
     assert '"q1"' in final["messages"][-1]["content"]
     assert final["messages"][-1]["content"].startswith("question")
+
+
+# --- Extra tools from app/agent_tools ---
+
+def _tool_call(name, arguments, call_id="t1"):
+    return {"id": call_id, "type": "function", "function": {"name": name, "arguments": json.dumps(arguments)}}
+
+
+def _tool_names(turn):
+    return [t["function"]["name"] for t in turn["tools"]]
+
+
+def test_document_chat_only_offers_search_documents():
+    gen = ScriptedGenerator([{"content": "ok"}])
+    run_agent("question", gen, FakeRetriever({}))
+
+    assert _tool_names(gen.turns[0]) == ["search_documents"]
+    assert "You also have these tools" not in gen.turns[0]["messages"][0]["content"]
+
+
+def test_extra_tools_are_offered_run_and_recorded():
+    gen = ScriptedGenerator([
+        {"content": None, "tool_calls": [_tool_call("multiply", {"a": 6, "b": 7}, "m"), _call("tax rate", "s")]},
+        {"content": "6 × 7 = 42 (multiply)."},
+    ])
+    result = run_agent("6 times 7, and the tax rate?", gen, FakeRetriever({"tax rate": [_chunk("p3", 3)]}),
+                       extra_tools=["multiply", "get_weather"])
+
+    assert _tool_names(gen.turns[0]) == ["search_documents", "multiply", "get_weather"]
+    assert "You also have these tools: multiply, get_weather" in gen.turns[0]["messages"][0]["content"]
+    tool_messages = [m for m in gen.turns[1]["messages"] if m["role"] == "tool"]
+    assert [(m["tool_call_id"], m["content"]) for m in tool_messages][0] == ("m", "6 × 7 = 42")
+    assert [(r.name, r.arguments) for r in result.tool_calls] == [("multiply", {"a": 6, "b": 7}),
+                                                                   ("search_documents", {"query": "tax rate"})]
+    assert result.searches == ["tax rate"] and result.steps == 2
+
+
+def test_tool_errors_are_fed_back_so_the_model_can_retry():
+    gen = ScriptedGenerator([
+        {"content": None, "tool_calls": [_tool_call("multiply", {"a": "six", "b": 7})]},
+        {"content": None, "tool_calls": [_tool_call("multiply", {"a": 6, "b": 7})]},
+        {"content": "42"},
+    ])
+    result = run_agent("6 times 7", gen, FakeRetriever({}), extra_tools=["multiply"])
+
+    first_result = [m for m in gen.turns[1]["messages"] if m["role"] == "tool"][0]["content"]
+    assert first_result.startswith("Error: invalid input for multiply")
+    assert [r.result for r in result.tool_calls] == [first_result, "6 × 7 = 42"]
+    assert result.answer == "42"
+
+
+def test_calls_to_tools_that_are_not_enabled_are_refused(monkeypatch):
+    monkeypatch.setattr("app.rag.agent.run_tool", lambda *a: pytest.fail("disabled tool was run"))
+    gen = ScriptedGenerator([{"content": None, "tool_calls": [_tool_call("get_weather", {"city": "Mumbai"})]},
+                             {"content": "I can't check the weather."}])
+    result = run_agent("weather in Mumbai?", gen, FakeRetriever({}))
+
+    tool_message = [m for m in gen.turns[1]["messages"] if m["role"] == "tool"][0]["content"]
+    assert tool_message.startswith("Error: unknown tool 'get_weather'")
+    assert result.tool_calls == []
+
+
+def test_unknown_extra_tool_names_are_rejected_up_front():
+    with pytest.raises(ValueError, match="divide"):
+        run_agent("q", ScriptedGenerator([]), FakeRetriever({}), extra_tools=["multiply", "divide"])
+
+
+def test_step_limit_forces_a_final_answer_with_tool_results_inlined():
+    gen = ScriptedGenerator([
+        {"content": None, "tool_calls": [_tool_call("multiply", {"a": 2, "b": 3})]},
+        {"content": None, "tool_calls": [_tool_call("multiply", {"a": 6, "b": 4})]},
+        {"content": "24."},
+    ])
+    result = run_agent("2 × 3 × 4", gen, FakeRetriever({}), extra_tools=["multiply"], max_steps=3)
+
+    final = gen.turns[-1]
+    assert final["tools"] == [] and [m["role"] for m in final["messages"]] == ["system", "user"]
+    prompt = final["messages"][-1]["content"]
+    assert 'multiply {"a": 2, "b": 3}' in prompt and "6 × 4 = 24" in prompt
+    assert result.steps == 3 and result.answer == "24."

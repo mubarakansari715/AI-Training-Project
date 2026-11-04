@@ -10,10 +10,16 @@ decides per question:
   questions ("South Asia vs Sub-Saharan Africa growth"), or to retry with
   different words when the first results don't contain the answer.
 
-Guards keep it predictable: at most `max_searches` searches; in strict mode
-the first turn must search (unless it's small talk); facts about the
-documents may only come from search results; and any provider error raises
-AgentError so the caller can fall back to the standard pipeline.
+Tools come from a registry: `search_documents` is always there, and
+`extra_tools` adds any of the agent tools in app/agent_tools (multiply,
+convert_currency, get_weather, web_search) by name. The document chat
+passes none, so it only ever searches the documents.
+
+Guards keep it predictable: at most `max_searches` searches and `max_steps`
+model turns; in strict mode the first turn must search (unless it's small
+talk); facts about the documents may only come from search results; and
+any provider error raises AgentError so the caller can fall back to the
+standard pipeline.
 """
 
 from __future__ import annotations
@@ -22,6 +28,7 @@ import json
 import logging
 from dataclasses import dataclass, field
 
+from app.agent_tools import TOOLS, run_tool
 from app.config.settings import APP_CREATOR, APP_NAME
 from app.rag.generator import AnswerGenerator, ToolCallingError
 from app.rag.prompt import FORMAT_RULE
@@ -82,14 +89,23 @@ STRICT_RULE = ("Strict mode: answer only from the search results. If they don't 
 OPEN_RULE = ("If the documents don't contain the answer, you may answer from general "
              "knowledge, but say clearly that this part is not from the documents.")
 
+# Appended to the system prompt when extra tools are on.
+EXTRA_TOOLS_RULE = """
+
+You also have these tools: {tool_names}. Use them for what they are for (maths, \
+currency conversion, weather, the web) instead of answering from memory. Their results \
+are not from the documents: say which tool a fact came from, e.g. "(get_weather)" or \
+"(web search: example.com)". If a tool returns an error, fix the arguments and try again, \
+or explain what went wrong."""
+
 
 FINAL_ANSWER_PROMPT = """{question}
 
-You already searched the documents ({searches}); these are the excerpts found:
+You already used your tools ({calls}); these are the results:
 
-{excerpts}
+{results}
 
-Answer the question now, using only these excerpts (follow the rules above). \
+Answer the question now, using only these results (follow the rules above). \
 If they don't contain the answer, say so."""
 
 
@@ -98,10 +114,21 @@ class AgentError(Exception):
 
 
 @dataclass
+class ToolCallRecord:
+    """One executed tool call (Act) and what it returned (Observe)."""
+
+    name: str
+    arguments: dict
+    result: str
+
+
+@dataclass
 class AgentResult:
     answer: str
     sources: list[RetrievedChunk] = field(default_factory=list)
     searches: list[str] = field(default_factory=list)
+    tool_calls: list[ToolCallRecord] = field(default_factory=list)
+    steps: int = 0  # model turns used
 
 
 def _format_results(chunks: list[RetrievedChunk], start: int) -> str:
@@ -114,12 +141,31 @@ def _format_results(chunks: list[RetrievedChunk], start: int) -> str:
     return "\n\n".join(blocks)
 
 
-def _query_from(tool_call: dict, fallback: str) -> str:
+def _arguments_from(tool_call: dict) -> dict:
     try:
-        query = json.loads(tool_call["function"]["arguments"]).get("query", "")
+        arguments = json.loads(tool_call["function"]["arguments"] or "{}")
     except (KeyError, TypeError, json.JSONDecodeError):
-        query = ""
-    return query.strip() or fallback
+        return {}
+    return arguments if isinstance(arguments, dict) else {}
+
+
+def _query_from(tool_call: dict, fallback: str) -> str:
+    query = _arguments_from(tool_call).get("query", "")
+    return (query.strip() if isinstance(query, str) else "") or fallback
+
+
+def _describe(record: ToolCallRecord) -> str:
+    """How a call is listed in the final-answer prompt: a search by its query, others by name and arguments."""
+    if record.name == SEARCH_TOOL["function"]["name"]:
+        return f'"{record.arguments["query"]}"'
+    return f"{record.name} {json.dumps(record.arguments, ensure_ascii=False)}"
+
+
+def _result_block(record: ToolCallRecord) -> str:
+    """A call's result for the final-answer prompt; search excerpts carry their own citations."""
+    if record.name == SEARCH_TOOL["function"]["name"]:
+        return record.result
+    return f"Result of {_describe(record)}:\n{record.result}"
 
 
 def run_agent(
@@ -132,40 +178,53 @@ def run_agent(
     model_name: str | None = None,
     temperature: float | None = None,
     max_searches: int = 3,
+    extra_tools: list[str] | None = None,
+    max_steps: int | None = None,
 ) -> AgentResult:
-    """Answer `question`, letting the model search the documents as it sees fit."""
-    messages = [{
-        "role": "system",
-        "content": SYSTEM_PROMPT.format(
-            app_name=APP_NAME, app_creator=APP_CREATOR, max_searches=max_searches,
-            mode_rule=STRICT_RULE if strict else OPEN_RULE,
-            format_rule=" ".join(FORMAT_RULE.split()),
-        ),
-    }]
+    """Answer `question`, letting the model search the documents (and use any
+    `extra_tools`) as it sees fit, in at most `max_steps` model turns
+    (default: one per allowed search plus one for the answer)."""
+    extra_tools = list(extra_tools or [])
+    unknown = [name for name in extra_tools if name not in TOOLS]
+    if unknown:
+        raise ValueError(f"Unknown agent tools: {', '.join(unknown)}")
+    # The registry: tool name → schema; search_documents is handled below,
+    # every other tool runs through app.agent_tools.run_tool.
+    tool_schemas = [SEARCH_TOOL] + [TOOLS[name].schema for name in extra_tools]
+    max_steps = max_steps if max_steps is not None else max_searches + 1
+
+    system_prompt = SYSTEM_PROMPT.format(
+        app_name=APP_NAME, app_creator=APP_CREATOR, max_searches=max_searches,
+        mode_rule=STRICT_RULE if strict else OPEN_RULE,
+        format_rule=" ".join(FORMAT_RULE.split()),
+    )
+    if extra_tools:
+        system_prompt += EXTRA_TOOLS_RULE.format(tool_names=", ".join(extra_tools))
+    messages = [{"role": "system", "content": system_prompt}]
     messages += [{"role": t["role"], "content": t["content"]} for t in (history or [])[-_HISTORY_MESSAGES:]]
     base = list(messages)  # system + history, without tool turns (for the final answer)
     messages.append({"role": "user", "content": question})
 
     searches: list[str] = []
     sources: dict[str, RetrievedChunk] = {}
-    excerpts: list[str] = []
+    records: list[ToolCallRecord] = []
 
-    # One extra turn beyond max_searches for the final answer.
-    for turn in range(max_searches + 1):
-        limit_reached = len(searches) >= max_searches
+    for turn in range(max_steps):
+        # Searches used up, or the last allowed turn: answer now.
+        limit_reached = len(searches) >= max_searches or turn == max_steps - 1
         if limit_reached:
-            # Final answer as a plain question with the excerpts inlined and no
-            # tools: with earlier tool calls still in the conversation, models
-            # keep trying to search again, which the API rejects.
+            # Final answer as a plain question with the tool results inlined
+            # and no tools: with earlier tool calls still in the conversation,
+            # models keep trying to call tools again, which the API rejects.
             messages = base + [{"role": "user", "content": FINAL_ANSWER_PROMPT.format(
-                question=question, searches=", ".join(f'"{q}"' for q in searches),
-                excerpts="\n\n".join(excerpts) or "(none)",
+                question=question, calls=", ".join(_describe(r) for r in records),
+                results="\n\n".join(_result_block(r) for r in records) or "(none)",
             )}]
             tools, tool_choice = [], "none"
         elif turn == 0 and must_search:
-            tools, tool_choice = [SEARCH_TOOL], "required"
+            tools, tool_choice = tool_schemas, "required"
         else:
-            tools, tool_choice = [SEARCH_TOOL], "auto"
+            tools, tool_choice = tool_schemas, "auto"
         try:
             message = generator.chat_with_tools(
                 messages, tools, model_name=model_name, temperature=temperature,
@@ -179,21 +238,32 @@ def run_agent(
             answer = (message.get("content") or "").strip()
             if not answer:
                 raise AgentError("The model returned an empty answer")
-            return AgentResult(answer=answer, sources=list(sources.values()), searches=searches)
+            return AgentResult(answer=answer, sources=list(sources.values()), searches=searches,
+                               tool_calls=records, steps=turn + 1)
 
         messages.append({"role": "assistant", "content": message.get("content") or "", "tool_calls": tool_calls})
         for call in tool_calls:
-            if len(searches) >= max_searches:
-                content = "Search limit reached; answer with what you have."
+            name = (call.get("function") or {}).get("name")
+            if name == SEARCH_TOOL["function"]["name"]:
+                if len(searches) >= max_searches:
+                    content = "Search limit reached; answer with what you have."
+                else:
+                    query = _query_from(call, question)
+                    searches.append(query)
+                    found = retriever.retrieve(query)
+                    content = _format_results(found, start=len(sources) + 1)
+                    records.append(ToolCallRecord(name, {"query": query}, content))
+                    for chunk in found:
+                        sources.setdefault(chunk.chunk_id, chunk)
+                    logger.info("Agent search %d: %r -> %d chunks", len(searches), query, len(found))
+            elif name in extra_tools:
+                arguments = _arguments_from(call)
+                content = run_tool(name, call["function"].get("arguments"))
+                records.append(ToolCallRecord(name, arguments, content))
+                logger.info("Agent tool %s(%s) -> %r", name, arguments, content[:120])
             else:
-                query = _query_from(call, question)
-                searches.append(query)
-                found = retriever.retrieve(query)
-                content = _format_results(found, start=len(sources) + 1)
-                excerpts.append(content)
-                for chunk in found:
-                    sources.setdefault(chunk.chunk_id, chunk)
-                logger.info("Agent search %d: %r -> %d chunks", len(searches), query, len(found))
+                content = f"Error: unknown tool {name!r}. Available tools: " + ", ".join(
+                    s["function"]["name"] for s in tool_schemas)
             messages.append({"role": "tool", "tool_call_id": call.get("id", ""), "content": content})
 
     raise AgentError("The agent did not finish within its turn limit")
